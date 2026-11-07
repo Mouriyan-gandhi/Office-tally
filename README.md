@@ -35,17 +35,26 @@ blocks connector endpoints and cannot access live Tally data or post entries.
   blind retries after an uncertain import. Device token protected with Windows DPAPI.
 - Manual WhatsApp text sharing; the user chooses the recipient and sends the message.
 
+## Cloud deployment
+
+The Supabase/PostgreSQL backend and Render Docker deployment are now implemented.
+Follow [DEPLOY.md](docs/DEPLOY.md) to configure the private database, single admin,
+private storage and Windows pairing. [SYSTEM.md](docs/SYSTEM.md) explains the OCR and
+voucher flow. Deployment to your own accounts and actual Tally validation are separate
+steps; adding credentials to chat does not deploy anything.
+
 ## Current release boundary
 
-This is a **local pilot**, not a completed production deployment. All demo workflows
+This is a tested-source pilot, not a completed deployment to your accounts. All demo workflows
 can be exercised without Windows. Actual Tally 7.1 exports/imports must be validated
-on the office laptop before live use. The current app server listens on the Mac's
-loopback address; it cannot yet be reached from the office laptop or a phone.
+on the office laptop before live use. The local preview listens on the Mac's loopback address. Deploy the included ASGI
+backend on Render for phone and Windows access; do not expose the development server.
 
 Full Tally report exports preserve original field names and values. Their final mobile
 column mappings require real export fixtures. GST invoice statutory details, mixed-rate
 items, batches/godowns, custom voucher types, e-invoicing, credit notes, automatic
-WhatsApp delivery and cloud/mobile deployment are outside this pilot's supported scope.
+WhatsApp delivery are outside this pilot's supported accounting scope. Cloud deployment files are included,
+but hosting and actual-company validation must still be completed.
 Printable summaries are **not statutory tax invoices**. Read [STATUS.md](docs/STATUS.md)
 for the precise verified/unverified split.
 

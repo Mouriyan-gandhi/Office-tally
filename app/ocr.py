@@ -4,12 +4,14 @@ import re
 import shutil
 import subprocess
 import tempfile
+import time
 
 
 def extract(path):
     binary = shutil.which('tesseract')
     if not binary:
         return {'available': False, 'message': 'Local OCR is not installed. Enter the bill manually, or install Tesseract on the app host.'}
+    deadline=time.monotonic()+45
     try:
         with tempfile.TemporaryDirectory(prefix='office-ocr-') as folder:
             images = [Path(path)]
@@ -20,12 +22,12 @@ def extract(path):
                     return {'available': False, 'message': 'PDF attached. Install Poppler for local PDF OCR, or upload a JPG/PNG instead.'}
                 prefix = str(Path(folder) / 'page')
                 subprocess.run([renderer, '-f', '1', '-l', '3', '-scale-to', '2200', '-png', str(path), prefix],
-                               capture_output=True, timeout=35, check=True)
+                               capture_output=True, timeout=20, check=True)
                 images = sorted(Path(folder).glob('page-*.png'))
                 truncated = True
             chunks = []
             for image in images:
-                result = subprocess.run([binary, str(image), 'stdout', '--psm', '6'], capture_output=True, text=True, timeout=45, check=True)
+                result = subprocess.run([binary, str(image), 'stdout', '--psm', '6'], capture_output=True, text=True, timeout=max(1,deadline-time.monotonic()), check=True)
                 chunks.append(result.stdout[:20000])
             content = '\n\n'.join(chunks)[:50000]
     except (subprocess.SubprocessError, OSError):

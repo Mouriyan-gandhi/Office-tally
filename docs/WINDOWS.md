@@ -66,3 +66,12 @@ before sending XML. An expired job becomes **Check in Tally**, never an automati
 Inspect the actual company and import log. If a voucher exists, keep it and reconcile
 the app record; do not create a replacement. A dedicated reconciliation UI is still a
 production follow-up; no “retry anyway” button is provided.
+
+## Optional startup at Windows sign-in
+
+After pairing and validating read-only sync, the provided
+`scripts/install-startup-task.ps1` can register a scheduled task for the same signed-in
+Windows user. It uses that user's DPAPI key, not a system service account, and stores
+no Windows password. Review/run it locally; it has not been exercised on the actual
+office laptop. Keep the extracted repository in a permanent folder so the task's
+working directory does not change.

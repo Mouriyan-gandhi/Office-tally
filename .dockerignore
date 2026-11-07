@@ -1,0 +1,10 @@
+.git
+.env
+.env.*
+!.env.example
+local-data
+work
+outputs
+.venv
+**/__pycache__
+**/*.pyc

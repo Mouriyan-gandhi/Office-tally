@@ -35,7 +35,7 @@ const when = v => v ? new Date(v*1000).toLocaleString('en-IN',{day:'numeric',mon
 const statuses = {draft:'Draft',demo_saved:'Demo saved',queued:'Waiting for Tally',posting:'Saving in Tally',posted:'Saved in Tally',needs_review:'Check in Tally',rejected:'Rejected by Tally',cancelled:'Cancelled'};
 const statusBadge = status => `<span class="badge ${esc(status)}">${esc(statuses[status] || status)}</span>`;
 const kindIcon = kind => ({Sales:'invoice',Purchase:'stock',Receipt:'down',Payment:'up'}[kind] || 'file');
-let state={user:null,mode:'demo',page:'home',data:null,search:'',kind:'all',from:'',to:'',chat:[],editor:null,scan:null,preview:false};
+let state={user:null,mode:'demo',page:'home',data:null,search:'',kind:'all',from:'',to:'',chat:[],editor:null,scan:null,preview:false,cloud:false};
 let toastTimer, lastFocus, busy=false;
 
 async function api(path, data){
@@ -57,7 +57,7 @@ function ledgers(group){return snap().ledgers.filter(l=>!group || group.includes
 function brand(){return '<div class="brand"><img src="/icon.svg" alt=""><div><strong>upkar<span class="muted">.</span></strong><small>Agency Office</small></div></div>';}
 
 function renderLogin(){
- root.innerHTML=`<div class="login"><section class="login-story">${brand()}<div><div class="login-rule"></div><h1>Your business.<br>Your books.<br><em>Within reach.</em></h1><p>Sales, purchases, payments and stock. A simpler way to keep your office moving.</p></div><div class="tiny">MADE FOR UPKAR AGENCY &nbsp; · &nbsp; POWERED BY YOUR TALLY</div></section><section class="login-main"><div class="login-form"><span class="eyebrow">Welcome to your office</span><h2>Let’s get to business.</h2><p>Sign in to keep your accounts close.</p><form id="login-form"><div class="field"><label for="email">Email address</label><input id="email" type="email" name="email" required autocomplete="username" placeholder="Your email address"></div><div class="field"><label for="password">Password</label><input id="password" type="password" name="password" required autocomplete="current-password" placeholder="Your password"></div><button class="btn primary" type="submit">Open my office ${icon('arrow')}</button></form>${state.preview?'<div class="divider">OR TAKE A LOOK AROUND</div><button class="btn soft" data-action="preview">Explore the demo '+icon('arrow')+'</button><div class="notice">This preview uses fictional data. It cannot connect to Tally or create real entries.</div>':'<div class="field-help mt">First time? Create your owner account using the setup instructions included with the app.</div>'}</div></section></div>`;
+ root.innerHTML=`<div class="login"><section class="login-story">${brand()}<div><div class="login-rule"></div><h1>Your business.<br>Your books.<br><em>Within reach.</em></h1><p>Sales, purchases, payments and stock. A simpler way to keep your office moving.</p></div><div class="tiny">MADE FOR UPKAR AGENCY &nbsp; · &nbsp; POWERED BY YOUR TALLY</div></section><section class="login-main"><div class="login-form"><span class="eyebrow">Welcome to your office</span><h2>Let’s get to business.</h2><p>Sign in to keep your accounts close.</p><form id="login-form"><div class="field"><label for="email">Email address</label><input id="email" type="email" name="email" required autocomplete="username" placeholder="Your email address"></div><div class="field"><label for="password">Password</label><input id="password" type="password" name="password" required autocomplete="current-password" placeholder="Your password"></div><button class="btn primary" type="submit">Open my office ${icon('arrow')}</button></form>${state.preview?'<div class="divider">OR TAKE A LOOK AROUND</div><button class="btn soft" data-action="preview">Explore the demo '+icon('arrow')+'</button><div class="notice">This preview uses fictional data. It cannot connect to Tally or create real entries.</div>':'<div class="field-help mt">Use your approved admin account. Public signup is not available.</div>'}</div></section></div>`;
 }
 function render(){
  if(!state.user)return renderLogin();
@@ -219,7 +219,7 @@ document.addEventListener('click',event=>{
  if(button.dataset.action&&actions[button.dataset.action]){event.preventDefault();run(actions[button.dataset.action]);}
 });
 document.addEventListener('submit',event=>{const form=event.target;if(!['login-form','home-chat','chat-form','entry-form'].includes(form.id))return;event.preventDefault();run(async()=>{
- if(form.id==='login-form'){state.user=await api('login',Object.fromEntries(new FormData(form)));await api('demo',{});await load();render();}
+ if(form.id==='login-form'){state.user=await api('login',Object.fromEntries(new FormData(form)));if(!state.cloud)await api('demo',{});await load();render();}
  else if(form.id==='home-chat'||form.id==='chat-form'){await ask(new FormData(form).get('question'));}
  else if(form.id==='entry-form'){await saveDraft();}
 });});
@@ -245,7 +245,7 @@ document.addEventListener('change',event=>{const el=event.target;
  if(el.id==='tax-mode'){$('#tax-ledger-fields').innerHTML=taxFields();}
 });
 modal.addEventListener('click',e=>{if(e.target===modal){const r=modal.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)closeModal();}});
-async function boot(){try{const config=await api('config');state.preview=config.preview;try{state.user=await api('session');await load();render();}catch{renderLogin();}}catch{root.innerHTML='<div class="boot">The app could not load. Check that the local server is running, then refresh.</div>';}}
+async function boot(){try{const config=await api('config');state.preview=config.preview;state.cloud=Boolean(config.cloud);if(state.cloud)state.mode='live';try{state.user=await api('session');await load();render();}catch{renderLogin();}}catch{root.innerHTML='<div class="boot">The app could not load. Check that the local server is running, then refresh.</div>';}}
 boot();
 
 function prepareScannedDraft(){
@@ -260,3 +260,21 @@ function prepareScannedDraft(){
  newDraft('Purchase',{reference:s.ocr.reference||'',document_id:s.id,printed_total:s.ocr.suggested_total||'',expected_total:s.ocr.suggested_total||'',party:supplier?.name||'',date:hints.date||today(),taxMode,taxPercent,...(items.length?{items}:{})});
  toast('OCR suggestions filled where available. Verify every field against the bill.');
 }
+
+// Refresh confirmed posting results without interrupting an entry form or a search.
+let statusRefreshRunning=false;
+setInterval(async()=>{
+ if(statusRefreshRunning||busy||!state.user||document.hidden||state.mode!=='live'||!state.data)return;
+ if(!['home','entries','settings'].includes(state.page)||modal.open)return;
+ const pending=state.data.drafts.some(v=>['queued','posting'].includes(v.status));
+ if(!pending&&state.page!=='settings')return;
+ statusRefreshRunning=true;
+ try{
+   const page=state.page;await load();
+   if(state.page!==page||modal.open)return;
+   if(page==='entries'){const results=$('#entry-results');if(results)results.innerHTML=entryTable(filteredEntries());}
+   else if(page==='home')renderHome();
+   else if(page==='settings'&&!document.activeElement?.matches('input,textarea,select'))renderSettings();
+ }catch{ /* Keep the last confirmed status; no posting retries are performed here. */ }
+ finally{statusRefreshRunning=false;}
+},5000);

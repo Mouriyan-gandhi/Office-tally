@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: upkar-agency-office
+    runtime: docker
+    plan: free
+    healthCheckPath: /healthz
+    envVars:
+      - key: OFFICE_BACKEND
+        value: supabase
+      - key: SUPABASE_URL
+        value: https://qwfiwqknzrbhamhzwoga.supabase.co
+      - key: SUPABASE_STORAGE_BUCKET
+        value: office-invoices
+      - key: OFFICE_SECURE_COOKIE
+        value: 'YES'
+      - key: OFFICE_ENABLE_POSTING
+        value: 'NO'
+      - key: OFFICE_CONNECTOR_TOKEN
+        generateValue: true
+      - key: SUPABASE_PUBLISHABLE_KEY
+        sync: false
+      - key: SUPABASE_SECRET_KEY
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: OFFICE_OWNER_EMAIL
+        sync: false

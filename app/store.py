@@ -4,11 +4,15 @@ import os
 import sqlite3
 import time
 from pathlib import Path
+from app.cloud import enabled as cloud_enabled
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA = Path(os.environ.get('OFFICE_DATA_DIR', ROOT / 'local-data'))
 
 def connect():
+    if cloud_enabled():
+        from app.postgres import connect as pg_connect
+        return pg_connect()
     DATA.mkdir(parents=True, exist_ok=True)
     db = sqlite3.connect(DATA / 'office.db', timeout=15)
     db.row_factory = sqlite3.Row
@@ -20,7 +24,8 @@ def connect():
 def transaction():
     db = connect()
     try:
-        db.execute('BEGIN IMMEDIATE')
+        if not cloud_enabled():
+            db.execute('BEGIN IMMEDIATE')
         yield db
         db.commit()
     except Exception:
@@ -30,6 +35,11 @@ def transaction():
         db.close()
 
 def init():
+    if cloud_enabled():
+        with transaction() as db:
+            if not db.execute('SELECT version FROM schema_migrations WHERE version=1').fetchone():
+                raise RuntimeError('Run the Supabase migration before starting the app')
+        return
     with transaction() as db:
         db.executescript('''
         CREATE TABLE IF NOT EXISTS users(id TEXT PRIMARY KEY, email TEXT UNIQUE NOT NULL, password TEXT NOT NULL, role TEXT NOT NULL);

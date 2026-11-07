@@ -14,7 +14,7 @@ from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse
 
-from app import store
+from app import store, cloud
 from app.assistant import answer
 from app.demo import seed
 from app.domain import ValidationError, normalize_draft, require_masters
@@ -45,7 +45,13 @@ def check_password(password, encoded):
     return hmac.compare_digest(password_hash(password, salt), encoded)
 
 
+def session_id(token):
+    return hashlib.sha256(token.encode()).hexdigest() if cloud.enabled() else token
+
+
 def init_user(email, password):
+    if cloud.enabled():
+        raise ValueError('Create the admin in Supabase Authentication, then set OFFICE_OWNER_EMAIL on the host')
     if '@' not in email or len(email) > 200:
         raise ValueError('Enter a valid owner email address')
     if len(password) < 12:
@@ -109,9 +115,13 @@ class Handler(BaseHTTPRequestHandler):
             token = cookie.get('office_session')
         except Exception:
             token = None
-        session = db.execute('SELECT s.*,u.email,u.role FROM sessions s JOIN users u ON s.user_id=u.id WHERE s.id=? AND s.expires>?', (token.value if token else '', time.time())).fetchone()
+        session = db.execute('SELECT s.*,u.email,u.role FROM sessions s JOIN users u ON s.user_id=u.id WHERE s.id=? AND s.expires>?', (session_id(token.value) if token else '', time.time())).fetchone()
         if not session:
             raise PermissionError('Sign in to continue')
+        if cloud.enabled():
+            if session['email'].casefold() != cloud.settings()['owner'] or session['role'] != 'owner':
+                raise ForbiddenError('This account is not the approved admin')
+            cloud.verify_admin(session['user_id'])
         if mutate and not hmac.compare_digest(self.headers.get('X-CSRF-Token', ''), session['csrf']):
             raise ForbiddenError('Session check failed; reload the page')
         return session
@@ -132,6 +142,8 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         try:
             self.get()
+        except cloud.CloudError as error:
+            self.respond(503, {'error': str(error)})
         except ForbiddenError as error:
             self.respond(403, {'error': str(error)})
         except PermissionError as error:
@@ -144,7 +156,7 @@ class Handler(BaseHTTPRequestHandler):
     def get(self):
         route = urlparse(self.path)
         if route.path == '/api/config':
-            return self.respond(200, {'preview': PREVIEW})
+            return self.respond(200, {'preview': PREVIEW, 'cloud': cloud.enabled(), 'single_admin': cloud.enabled()})
         if route.path == '/api/session':
             with store.transaction() as db:
                 user = self.user(db)
@@ -175,7 +187,7 @@ class Handler(BaseHTTPRequestHandler):
                 row = db.execute('SELECT * FROM documents WHERE id=?', (document_id,)).fetchone()
                 if not row:
                     return self.respond(404, {'error': 'Document not found'})
-                body = Path(row['path']).read_bytes()
+                body = cloud.get_file(row['path']) if cloud.enabled() else Path(row['path']).read_bytes()
                 self.send_response(200)
                 self.security_headers()
                 self.send_header('Content-Type', row['mime'])
@@ -203,6 +215,8 @@ class Handler(BaseHTTPRequestHandler):
             if origin and origin not in ('http://' + host, 'https://' + host):
                 raise ForbiddenError('Cross-site request rejected')
             self.post()
+        except cloud.CloudError as error:
+            self.respond(503, {'error': str(error)})
         except ForbiddenError as error:
             self.respond(403, {'error': str(error)})
         except PermissionError as error:
@@ -236,18 +250,31 @@ class Handler(BaseHTTPRequestHandler):
             failures = [t for t in ATTEMPTS.get(key, []) if now - t < 300]
             if len(failures) >= 10:
                 return self.respond(429, {'error': 'Too many attempts. Wait five minutes.'})
+            email = str(data.get('email', '')).lower().strip()
+            identity = None
+            if cloud.enabled():
+                try:
+                    identity = cloud.sign_in(email,str(data.get('password',''))[:1000])
+                except PermissionError:
+                    ATTEMPTS[key] = failures + [now]
+                    raise
             with store.transaction() as db:
-                email = str(data.get('email', '')).lower().strip()
                 user = db.execute('SELECT * FROM users WHERE email=?', (email,)).fetchone()
-                if not user or not check_password(str(data.get('password', ''))[:1000], user['password']):
+                if identity:
+                    if user is None:
+                        db.execute('INSERT INTO users VALUES(?,?,?,?)',(identity['id'],identity['email'],'supabase-auth-only','owner'))
+                        user = db.execute('SELECT * FROM users WHERE id=?',(identity['id'],)).fetchone()
+                    if user['id'] != identity['id'] or user['role'] != 'owner':
+                        raise ForbiddenError('Admin identity changed; review and revoke old app sessions before re-pairing this account')
+                elif not user or not check_password(str(data.get('password', ''))[:1000], user['password']):
                     ATTEMPTS[key] = failures + [now]
                     raise PermissionError('Email or password is incorrect')
                 ATTEMPTS.pop(key, None)
                 token, csrf = secrets.token_urlsafe(32), secrets.token_urlsafe(32)
                 db.execute('DELETE FROM sessions WHERE expires<?', (now,))
-                db.execute('INSERT INTO sessions VALUES(?,?,?,?)', (token, user['id'], csrf, now + SESSION_AGE))
+                db.execute('INSERT INTO sessions VALUES(?,?,?,?)', (session_id(token), user['id'], csrf, now + SESSION_AGE))
                 store.audit(db, email, 'signed_in', 'session')
-            secure = '; Secure' if os.environ.get('OFFICE_SECURE_COOKIE') == 'YES' else ''
+            secure = '; Secure' if cloud.enabled() or os.environ.get('OFFICE_SECURE_COOKIE') == 'YES' else ''
             return self.respond(200, {'email': email, 'role': user['role'], 'csrf': csrf}, {'Set-Cookie': f'office_session={token}; HttpOnly; SameSite=Strict; Path=/; Max-Age={SESSION_AGE}{secure}'})
         if path == '/api/upload':
             return self.upload(data)
@@ -258,7 +285,8 @@ class Handler(BaseHTTPRequestHandler):
                 raise ForbiddenError('This account has read-only access')
             if path == '/api/logout':
                 db.execute('DELETE FROM sessions WHERE id=?', (user['id'],))
-                return self.respond(200, {'ok': True}, {'Set-Cookie': 'office_session=; Path=/; Max-Age=0; HttpOnly; SameSite=Strict'})
+                secure = '; Secure' if cloud.enabled() else ''
+                return self.respond(200, {'ok': True}, {'Set-Cookie': 'office_session=; Path=/; Max-Age=0; HttpOnly; SameSite=Strict'+secure})
             if path == '/api/demo':
                 seed(db, actor)
                 return self.respond(200, {'ok': True})
@@ -338,6 +366,14 @@ class Handler(BaseHTTPRequestHandler):
             return self.respond(404, {'error': 'Not found'})
 
     def upload(self, data):
+        if cloud.enabled():
+            with store.transaction() as db:
+                user = self.user(db,mutate=True)
+                if user['role'] != 'owner':
+                    raise ForbiddenError('Only the approved admin can upload bills')
+                actor,mode = user['email'],self.mode(data)
+            from app.cloud_uploads import upload
+            return self.respond(200,upload(data,actor,mode))
         with store.transaction() as db:
             user = self.user(db, mutate=True)
             if user['role'] == 'viewer':
@@ -452,9 +488,12 @@ def main():
     global PREVIEW, LIVE_WRITES, DEVICE_TOKEN
     PREVIEW = args.preview
     if PREVIEW:
+        os.environ['OFFICE_BACKEND'] = 'local'
         store.DATA = store.ROOT / 'local-data' / 'preview'
         LIVE_WRITES = False
         DEVICE_TOKEN = ''
+    if cloud.enabled():
+        raise SystemExit('Use the production ASGI deployment for Supabase mode. See docs/DEPLOY.md.')
     store.init()
     if PREVIEW:
         with store.transaction() as db:

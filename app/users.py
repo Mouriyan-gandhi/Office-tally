@@ -10,6 +10,9 @@ def main():
     parser = argparse.ArgumentParser(description='Add a user to the single-company office app')
     parser.add_argument('--role', choices=['owner','operator','viewer'], default='operator')
     args = parser.parse_args()
+    from app.cloud import enabled
+    if enabled():
+        raise SystemExit('Cloud deployment is restricted to one verified Supabase admin; local user creation is disabled.')
     store.init()
     email = input('New user email: ').strip().lower()
     if '@' not in email:
