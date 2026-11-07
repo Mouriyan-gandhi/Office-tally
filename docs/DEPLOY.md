@@ -151,3 +151,19 @@ latest 1,000 matching vouchers are displayed/exported with an explicit limit not
 App-recorded entries remain a separate section to avoid double-counting posted jobs.
 The real Tally 7.1 collection request still requires verification on the office PC;
 local exported XML compatibility is not proof of a live request's correctness.
+
+## Additional approved administrators
+
+Create each user's confirmed email/password account in Supabase Authentication →
+Users (or invite them and finish password setup using a configured redirect flow).
+Keep public signup disabled. Add OFFICE_ADMIN_EMAILS to Render with comma-separated
+approved email addresses and deploy. OFFICE_OWNER_EMAIL remains the original owner
+and is always included. Up to ten total approved addresses are accepted; each has
+full owner access, including approval/posting. No passwords belong in environment
+variables or SQL. Remove an address from OFFICE_ADMIN_EMAILS and redeploy to revoke
+its next request; banning/deleting the Supabase account also revokes access.
+
+Multi-company operation is not enabled: all queues, drafts and caches currently
+belong to one pinned company. Do not change company constants to repurpose the same
+database. A second company needs a separate isolated deployment/database and connector,
+or a reviewed multi-company schema and company-specific access controls.

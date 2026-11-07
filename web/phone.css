@@ -306,3 +306,14 @@
 /* A hidden toast must not peek out beneath a phone's bottom navigation. */
 .toast { visibility: hidden; opacity: 0; pointer-events: none; }
 .toast.visible { visibility: visible; opacity: 1; }
+
+@media(max-width:900px){
+ .item-row{grid-template-columns:repeat(2,minmax(0,1fr));padding:18px 14px;gap:16px 12px}
+ .item-row .item-name{grid-column:1/-1;padding-right:40px}.item-row .godown-field{grid-column:1/-1}
+ .item-row .unit-field,.item-row .discount-field{grid-column:auto}.item-row .line-total{grid-column:1/-1;text-align:right}
+ .item-row .remove-row{position:absolute;top:12px;right:8px;bottom:auto}
+ .item-row .amount-adjustment{grid-column:1/-1;grid-row:auto}.amount-adjustment[open]{display:block}.amount-adjustment input{margin-bottom:12px}
+ .item-row input,.item-row select{font-size:16px}.modal-feedback.visible{padding:12px 20px;font-size:14px}
+}
+
+@media(max-width:900px){.item-row .item-name,.item-row .godown-field,.item-row .unit-field,.item-row .quantity-field,.item-row .rate-field,.item-row .discount-field,.item-row .line-total,.item-row .remove-row{grid-row:auto}.item-row .unit-field,.item-row .quantity-field,.item-row .rate-field,.item-row .discount-field{grid-column:auto}}

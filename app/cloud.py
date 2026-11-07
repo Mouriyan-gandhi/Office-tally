@@ -31,7 +31,10 @@ def settings():
     owner = os.environ.get('OFFICE_OWNER_EMAIL', '').strip().casefold()
     if '@' not in owner:
         raise CloudError('Set OFFICE_OWNER_EMAIL to the sole approved admin email')
-    return {'url':url,'publishable':publishable,'secret':secret,'owner':owner,
+    admins = {owner} | {email.strip().casefold() for email in os.environ.get('OFFICE_ADMIN_EMAILS','').split(',') if email.strip()}
+    if len(admins)>10 or any(email.count('@')!=1 or any(c.isspace() for c in email) for email in admins):
+        raise CloudError('OFFICE_ADMIN_EMAILS must contain at most ten approved email addresses separated by commas')
+    return {'admins':admins,'url':url,'publishable':publishable,'secret':secret,'owner':owner,
             'bucket':os.environ.get('SUPABASE_STORAGE_BUCKET','office-invoices')}
 
 
@@ -67,7 +70,7 @@ def request(method, path, payload=None, *, secret=False, token=None, raw=None, m
 
 def owner_allowed(user):
     config = settings()
-    if not isinstance(user,dict) or user.get('email','').strip().casefold()!=config['owner']:
+    if not isinstance(user,dict) or user.get('email','').strip().casefold() not in config['admins']:
         return False
     if not user.get('email_confirmed_at') or not user.get('id') or user.get('deleted_at'):
         return False
@@ -82,7 +85,7 @@ def owner_allowed(user):
 
 
 def sign_in(email, password):
-    if email.strip().casefold()!=settings()['owner']:
+    if email.strip().casefold() not in settings()['admins']:
         raise CloudAuthError('Email or password is incorrect')
     value = json.loads(request('POST','/auth/v1/token?grant_type=password', {'email':email,'password':password}))
     token = value.get('access_token')

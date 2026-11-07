@@ -62,3 +62,13 @@ class CloudTests(unittest.TestCase):
         self.assertEqual(translated('SELECT * FROM users WHERE email=?'),'SELECT * FROM users WHERE email=%s')
         row=Row(total=3)
         self.assertEqual(row[0],3);self.assertEqual(row['total'],3)
+
+    def test_additional_confirmed_admin_is_allowlisted_and_revocable(self):
+        extra=USER|{'email':'second@example.test'}
+        self.assertFalse(cloud.owner_allowed(extra))
+        with patch.dict(os.environ,{'OFFICE_ADMIN_EMAILS':' Second@example.test , third@example.test '}):
+            self.assertTrue(cloud.owner_allowed(extra))
+            self.assertTrue(cloud.owner_allowed(USER))
+            self.assertFalse(cloud.owner_allowed(extra|{'email_confirmed_at':None}))
+            self.assertFalse(cloud.owner_allowed(extra|{'email':'unapproved@example.test'}))
+        self.assertFalse(cloud.owner_allowed(extra))

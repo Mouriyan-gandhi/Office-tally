@@ -120,7 +120,7 @@ class Handler(BaseHTTPRequestHandler):
         if not session:
             raise PermissionError('Sign in to continue')
         if cloud.enabled():
-            if session['email'].casefold() != cloud.settings()['owner'] or session['role'] != 'owner':
+            if session['email'].casefold() not in cloud.settings()['admins'] or session['role'] != 'owner':
                 raise ForbiddenError('This account is not the approved admin')
             cloud.verify_admin(session['user_id'])
         if mutate and not hmac.compare_digest(self.headers.get('X-CSRF-Token', ''), session['csrf']):

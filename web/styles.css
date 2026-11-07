@@ -3,3 +3,18 @@
 .mobile-shortcuts{display:none}@media(max-width:700px){.mobile-shortcuts{display:grid;margin-bottom:20px;grid-template-columns:repeat(3,1fr)}.mobile-shortcuts .report-tile{padding:14px 10px}.mobile-shortcuts .report-tile h3{font-size:10px}.mobile-shortcuts .report-tile svg{margin-bottom:8px}}
 .quick strong{font-size:13px}.quick small{font-size:11px}.btn{font-size:13px}label{font-size:12px}input,select,textarea{font-size:14px}.question-chip{font-size:12px}.stat-foot{font-size:11px}.stat-label{font-size:12px}.stat-value{overflow-wrap:anywhere}@media(max-width:700px){.quick strong{font-size:13px}.quick small{font-size:10px}.stat-value{font-size:24px}.stat-label{font-size:11px}.stat-foot{font-size:10px}.item-row input{font-size:14px}}
 @media(min-width:701px){.item-row{grid-template-columns:minmax(130px,2fr) 55px 65px 85px 65px 90px 26px}}
+
+/* Item cards keep location and optional adjustments out of narrow numeric columns. */
+.item-row{min-width:0;position:relative;grid-template-columns:repeat(6,minmax(0,1fr));gap:16px;padding:20px;border:1px solid var(--line);border-radius:12px;background:#fafbf7;margin:0 0 16px;align-items:end}
+.item-row>*{min-width:0}.item-row .item-name{grid-column:1/5}.item-row .godown-field{grid-column:5/7}
+.item-row label{font-size:12px;white-space:normal}.item-row input,.item-row select{width:100%;font-size:14px;padding:11px 10px;min-height:44px}
+.item-row .unit-field,.item-row .discount-field{grid-column:auto}.item-row .line-total{grid-column:5;align-self:center;white-space:nowrap;text-align:right;font-weight:700}
+.item-row .remove-row{grid-column:6;position:static;justify-self:end;min-width:44px;min-height:44px}
+.item-row .amount-adjustment{grid-column:1/-1;grid-row:3;border-top:1px solid var(--line);padding-top:14px}
+.amount-adjustment summary{cursor:pointer;font-size:13px;font-weight:600;padding:5px 0;min-height:32px}.amount-adjustment[open]{display:grid;grid-template-columns:1fr 2fr;gap:12px 18px}
+.amount-adjustment summary,.amount-adjustment .field-help{grid-column:1/-1}.amount-adjustment label{display:block}.amount-adjustment input{max-width:100%}
+dialog[open]{display:flex;flex-direction:column;max-height:calc(100dvh - 32px)}.modal-head,.modal-foot{flex-shrink:0}.modal-body{min-height:0;flex:1 1 auto}
+.modal-feedback{display:none}.modal-feedback.visible{display:block;flex-shrink:0;padding:12px 24px;background:#eaf2e7;color:#244e41;border-bottom:1px solid #ccddc6;overflow-wrap:anywhere}.modal-feedback.error{background:#fff0ec;color:#8b342a;border-color:#efd1c9}
+@media(min-width:901px) and (max-width:1150px){.editor-layout{grid-template-columns:minmax(0,1fr)}.editor-layout .summary{position:static}.item-row{gap:12px}}
+
+.item-row .item-name,.item-row .godown-field{grid-row:1}.item-row .unit-field{grid-column:1;grid-row:2}.item-row .quantity-field{grid-column:2;grid-row:2}.item-row .rate-field{grid-column:3;grid-row:2}.item-row .discount-field{grid-column:4;grid-row:2}.item-row .line-total,.item-row .remove-row{grid-row:2}
