@@ -12,14 +12,14 @@ def request_xml(company, start, end):
         raise ValueError('History exports require a period of at most 32 days')
     root = ET.fromstring(export_request('companies', company))
     variables = root.find('.//STATICVARIABLES')
-    ET.SubElement(variables, 'SVFROMDATE').text = start.strftime('%Y%m%d')
-    ET.SubElement(variables, 'SVTODATE').text = end.strftime('%Y%m%d')
+    ET.SubElement(variables, 'SVFROMDATE', TYPE='Date').text = start.strftime('%Y%m%d')
+    ET.SubElement(variables, 'SVTODATE', TYPE='Date').text = end.strftime('%Y%m%d')
     collection = root.find('.//COLLECTION')
     for child in list(collection): collection.remove(child)
     ET.SubElement(collection, 'TYPE').text = 'Voucher'
     for field in ('GUID','MasterID','AlterID','Date','VoucherTypeName','VoucherNumber','Narration','IsCancelled','IsOptional','AllLedgerEntries.*'):
         ET.SubElement(collection, 'NATIVEMETHOD').text = field
-    ET.SubElement(collection, 'FILTER').text = 'OfficeHistoryPeriod'
+    ET.SubElement(collection, 'FILTERS').text = 'OfficeHistoryPeriod'
     system = ET.SubElement(root.find('.//TDLMESSAGE'), 'SYSTEM', TYPE='Formulae', NAME='OfficeHistoryPeriod')
     system.text = '$Date >= ##SVFromDate AND $Date <= ##SVToDate'
     return ET.tostring(root, encoding='utf-8')
@@ -64,7 +64,8 @@ def read_period(port, company, start, end):
         connection.request('POST','/',body=request_xml(company,start,end),headers={'Content-Type':'text/xml; charset=utf-8'})
         response = connection.getresponse()
         raw = response.read(MAX_RESPONSE+1)
-        if response.status != 200 or len(raw)>MAX_RESPONSE: raise ValueError('History export failed or exceeded size limit')
+        if response.status != 200: raise ValueError('Tally history HTTP request failed')
+        if len(raw)>MAX_RESPONSE: raise ValueError('Tally history response exceeded 16 MiB')
         return vouchers(parse_response(raw),start,end)
     finally: connection.close()
 
@@ -77,6 +78,8 @@ def failure_reason(error):
     if isinstance(error, ET.ParseError):
         return 'Tally history response was not valid XML'
     reasons = {
+        'Tally history HTTP request failed': 'Tally returned an unsuccessful HTTP status for history',
+        'Tally history response exceeded 16 MiB': 'History response exceeded 16 MiB; verify filtering and period size',
         'Expected a voucher collection; history was not replaced': 'Tally returned no voucher collection (request compatibility needs checking)',
         'Tally returned vouchers outside the requested period': 'Tally did not apply the requested date filter',
         'Missing or duplicate voucher identity': 'Tally returned missing or duplicate voucher IDs',

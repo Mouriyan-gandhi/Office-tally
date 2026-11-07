@@ -50,7 +50,10 @@ class HistoryTests(unittest.TestCase):
         root=parse_response(request_xml('Upkar Agency','2026-11-01','2026-11-30'))
         self.assertEqual(root.findtext('.//TALLYREQUEST'),'Export')
         self.assertIn('AllLedgerEntries.*',[n.text for n in root.findall('.//NATIVEMETHOD')])
-        self.assertIsNotNone(root.find('.//FILTER'))
+        self.assertIsNone(root.find('.//FILTER'))
+        self.assertEqual(root.findtext('.//FILTERS'),'OfficeHistoryPeriod')
+        self.assertEqual(root.find('.//SVFROMDATE').get('TYPE'),'Date')
+        self.assertEqual(root.find('.//SVTODATE').get('TYPE'),'Date')
 
     def test_control_character_obfuscation_cannot_hide_dtd(self):
         for encoding in ('utf-8','utf-16'):
