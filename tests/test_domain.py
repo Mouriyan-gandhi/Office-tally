@@ -57,7 +57,7 @@ class DomainTests(unittest.TestCase):
             raw=build(invoice(kind) if kind in ('Sales','Purchase') else receipt(kind),'Upkar Agency','test-id')
             root=ET.fromstring(raw)
             voucher=root.find('.//VOUCHER')
-            amounts=[Decimal(n.findtext('AMOUNT')) for n in voucher if n.tag in ('ALLLEDGERENTRIES.LIST','ALLINVENTORYENTRIES.LIST')]
+            amounts=[Decimal(n.findtext('AMOUNT')) for n in voucher if n.tag in ('ALLLEDGERENTRIES.LIST','LEDGERENTRIES.LIST','ALLINVENTORYENTRIES.LIST')]
             self.assertEqual(sum(amounts),0)
             self.assertEqual(amounts[0]<0,kind in ('Sales','Payment'))
             self.assertEqual(root.findtext('.//PARTYLEDGERNAME'),'Customer & Co')
@@ -83,7 +83,7 @@ class CompanyWriteTests(unittest.TestCase):
                 self.assertEqual(root.findtext('.//VOUCHERNUMBER'),'TEST-42')
                 self.assertEqual(root.findtext('.//GODOWNNAME'),'Main Location')
                 voucher=root.find('.//VOUCHER')
-                self.assertEqual(sum(Decimal(n.findtext('AMOUNT')) for n in voucher if n.tag in ('ALLLEDGERENTRIES.LIST','ALLINVENTORYENTRIES.LIST')),0)
+                self.assertEqual(sum(Decimal(n.findtext('AMOUNT')) for n in voucher if n.tag in ('ALLLEDGERENTRIES.LIST','LEDGERENTRIES.LIST','ALLINVENTORYENTRIES.LIST')),0)
     def test_reviewed_amount_requires_reason(self):
         draft=invoice();draft['items'][0]['amount_override']='270'
         with self.assertRaises(ValidationError):normalize_draft(draft)
@@ -96,3 +96,17 @@ class CompanyWriteTests(unittest.TestCase):
         from app.company import company_name
         with patch.dict(os.environ,{'OFFICE_TEST_COMPANY':'Upkar Agency TEST','OFFICE_BACKEND':'supabase'}):
             with self.assertRaises(RuntimeError):company_name()
+
+    def test_invoice_party_and_tax_use_native_invoice_ledger_collection(self):
+        for kind in ('Sales','Purchase'):
+            root=ET.fromstring(build(invoice(kind),'Upkar Agency','id'))
+            voucher=root.find('.//VOUCHER')
+            self.assertIsNone(voucher.find('ALLLEDGERENTRIES.LIST'))
+            ledgers=voucher.findall('LEDGERENTRIES.LIST')
+            self.assertEqual(len(ledgers),3)
+            self.assertEqual(ledgers[0].findtext('ISPARTYLEDGER'),'Yes')
+            # Balance accounting ledger allocations, rather than treating inventory
+            # amounts as if they were top-level financial ledger postings.
+            amounts=[Decimal(n.findtext('AMOUNT')) for n in ledgers]
+            amounts += [Decimal(n.findtext('AMOUNT')) for n in voucher.findall('ALLINVENTORYENTRIES.LIST/ACCOUNTINGALLOCATIONS.LIST')]
+            self.assertEqual(sum(amounts),0)

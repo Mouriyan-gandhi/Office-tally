@@ -119,7 +119,9 @@ def import_once(xml, port):
         other_changes = sum(int(root.findtext('.//'+tag,'0')) for tag in ('ALTERED','DELETED','CANCELLED'))
         if created == 1 and errors == 0 and exceptions == 0 and other_changes == 0:
             return 'posted', 'Tally confirmed one voucher created'
-        if created == 0 and other_changes == 0 and (errors or exceptions):
+        if exceptions:
+            return 'needs_review', 'Tally recorded an import exception; inspect Alt+O > Exceptions before resolving or resubmitting'
+        if created == 0 and other_changes == 0 and errors:
             return 'rejected', ('Tally rejected the voucher; inspect its import log' + ('; run py -m connector.import_diagnostics on Windows for the saved response' if COMPANY == 'Upkar Agency TEST' else ''))
         return 'needs_review', 'No single voucher creation confirmed; inspect Tally'
     except Exception:

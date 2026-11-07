@@ -31,7 +31,7 @@ def build(draft, company, identifier, *, billwise=False):
     # Native Tally amounts use a negative sign for debits.
     party_amount = -total if kind in ('Sales', 'Payment') else total
     def ledger(parent, name, amount):
-        entry = ET.SubElement(parent, 'ALLLEDGERENTRIES.LIST')
+        entry = ET.SubElement(parent, 'LEDGERENTRIES.LIST' if draft['items'] else 'ALLLEDGERENTRIES.LIST')
         put(entry, 'LEDGERNAME', name)
         put(entry, 'ISDEEMEDPOSITIVE', 'Yes' if amount < 0 else 'No')
         put(entry, 'AMOUNT', format(amount, '.2f'))

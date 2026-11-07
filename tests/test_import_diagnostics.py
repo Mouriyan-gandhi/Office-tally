@@ -23,7 +23,7 @@ class ImportDiagnosticTests(unittest.TestCase):
             with tempfile.TemporaryDirectory() as temp,patch.object(diagnostics,'folder',return_value=Path(temp)),patch('connector.worker.COMPANY',company),patch('connector.worker.http.client.HTTPConnection') as factory:
                 response=factory.return_value.getresponse.return_value
                 response.status=200;response.read.return_value=b'<RESPONSE><CREATED>0</CREATED><ERRORS>0</ERRORS><EXCEPTIONS>1</EXCEPTIONS><LINEERROR>Synthetic reason</LINEERROR></RESPONSE>'
-                self.assertEqual(import_once(b'<ENVELOPE/>',9000)[0],'rejected')
+                self.assertEqual(import_once(b'<ENVELOPE/>',9000)[0],'needs_review')
                 self.assertEqual(len(list(Path(temp).glob('*/response.xml'))),int(company.endswith(' TEST')))
     def test_cannot_send_test_import_if_request_capture_fails(self):
         with patch('connector.worker.COMPANY','Upkar Agency TEST'),patch.object(diagnostics,'begin',side_effect=OSError()),patch('connector.worker.http.client.HTTPConnection') as factory:
