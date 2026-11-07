@@ -14,7 +14,7 @@ from connector.read_company import read, parse_response, MAX_RESPONSE
 from connector.xml_vouchers import build
 from app.domain import normalize_draft, require_masters
 from app.reporting import request_xml, flatten
-from connector.history import read_period
+from connector.history import read_period, failure_reason
 
 COMPANY = 'Upkar Agency'
 
@@ -184,8 +184,9 @@ def main():
                         result = dict(period)
                         try:
                             result['vouchers'] = read_period(args.port, COMPANY, period['from'], period['to'])
-                        except Exception:
+                        except Exception as error:
                             result['error'] = True
+                            print('History detail: '+failure_reason(error),flush=True)
                         cloud.send('history-result',result)
                         print('History '+period['from']+' to '+period['to']+(': retained previous cache; export failed.' if result.get('error') else ': synced.'),flush=True)
                 except Exception:

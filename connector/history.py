@@ -67,3 +67,49 @@ def read_period(port, company, start, end):
         if response.status != 200 or len(raw)>MAX_RESPONSE: raise ValueError('History export failed or exceeded size limit')
         return vouchers(parse_response(raw),start,end)
     finally: connection.close()
+
+
+def failure_reason(error):
+    """Safe local diagnostics: never print provider bodies or voucher contents."""
+    import socket
+    if isinstance(error, (TimeoutError, socket.timeout)):
+        return 'Tally did not finish the history export within 45 seconds'
+    if isinstance(error, ET.ParseError):
+        return 'Tally history response was not valid XML'
+    reasons = {
+        'Expected a voucher collection; history was not replaced': 'Tally returned no voucher collection (request compatibility needs checking)',
+        'Tally returned vouchers outside the requested period': 'Tally did not apply the requested date filter',
+        'Missing or duplicate voucher identity': 'Tally returned missing or duplicate voucher IDs',
+        'Voucher ledger allocations were not returned': 'Tally returned vouchers without their ledger allocations',
+        'History period too large; no partial history saved': 'This month exceeds the 5000-voucher limit',
+        'History export failed or exceeded size limit': 'Tally HTTP export failed or exceeded the 16 MiB limit',
+        'Tally rejected the read request; check company and configuration': 'Tally rejected the history export request',
+        'Invalid ledger amount': 'Tally returned an unsupported ledger amount format',
+        'Invalid ledger entry': 'Tally returned an incomplete ledger allocation',
+        'Unsafe XML response': 'Tally response contained a blocked XML declaration',
+    }
+    if type(error) is ValueError and str(error) in reasons:
+        return reasons[str(error)]
+    if isinstance(error, OSError):
+        return 'Could not read history from the local Tally server'
+    return 'History reader failed (' + type(error).__name__ + '); run the read-only history check'
+
+
+def main():
+    import argparse
+    import json
+    parser = argparse.ArgumentParser(description='Read-only voucher history diagnostic; no cloud access or posting')
+    parser.add_argument('--from', dest='start', required=True)
+    parser.add_argument('--to', dest='end', required=True)
+    parser.add_argument('--port',type=int,default=9000)
+    args = parser.parse_args()
+    if not 1 <= args.port <= 65535: parser.error('Invalid Tally port')
+    try:
+        rows = read_period(args.port, 'Upkar Agency', args.start, args.end)
+        print(json.dumps({'ok':True,'vouchers':len(rows),'ledger_allocations':sum(len(v['lines']) for v in rows)}))
+    except Exception as error:
+        print(json.dumps({'ok':False,'reason':failure_reason(error)}))
+        raise SystemExit(1) from None
+
+
+if __name__ == '__main__': main()

@@ -56,3 +56,9 @@ class HistoryTests(unittest.TestCase):
         for encoding in ('utf-8','utf-16'):
             with self.assertRaises(ValueError):
                 parse_response('<!DOC\x00TYPE x [<!ENTITY a "bad">]><x>&a;</x>'.encode(encoding))
+
+    def test_diagnostics_explain_known_errors_without_echoing_unknown_data(self):
+        from connector.history import failure_reason
+        self.assertIn('date filter',failure_reason(ValueError('Tally returned vouchers outside the requested period')))
+        self.assertIn('45 seconds',failure_reason(TimeoutError()))
+        self.assertNotIn('private-party-secret',failure_reason(ValueError('private-party-secret')))
