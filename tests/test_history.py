@@ -51,3 +51,8 @@ class HistoryTests(unittest.TestCase):
         self.assertEqual(root.findtext('.//TALLYREQUEST'),'Export')
         self.assertIn('AllLedgerEntries.*',[n.text for n in root.findall('.//NATIVEMETHOD')])
         self.assertIsNotNone(root.find('.//FILTER'))
+
+    def test_control_character_obfuscation_cannot_hide_dtd(self):
+        for encoding in ('utf-8','utf-16'):
+            with self.assertRaises(ValueError):
+                parse_response('<!DOC\x00TYPE x [<!ENTITY a "bad">]><x>&a;</x>'.encode(encoding))

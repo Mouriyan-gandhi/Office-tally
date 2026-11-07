@@ -43,6 +43,7 @@ def parse_response(data):
         data = data.decode('utf-16')
     else:
         data = data.decode('utf-8-sig')
+    data = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]', '', data)
     if '<!DOCTYPE' in data.upper() or '<!ENTITY' in data.upper():
         raise ValueError('Unsafe XML response')
     def clean_reference(match):
@@ -50,7 +51,6 @@ def parse_response(data):
         code = int(value[1:],16) if value.lower().startswith('x') else int(value)
         return '' if code < 32 and code not in (9,10,13) else match.group(0)
     data = re.sub(r'&#(x[0-9a-fA-F]+|[0-9]+);', clean_reference, data)
-    data = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]', '', data)
     root = ET.fromstring(data)
     errors = [node.text for node in root.iter('LINEERROR')]
     if errors or root.findtext('.//STATUS') == '0':

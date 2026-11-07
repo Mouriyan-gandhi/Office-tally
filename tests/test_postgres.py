@@ -62,7 +62,7 @@ class PostgresIntegrationTests(unittest.TestCase):
         store.init()
         with psycopg.connect(TEST_DSN) as db:
             self.assertEqual(db.execute("SELECT public FROM storage.buckets WHERE id='office-invoices'").fetchone()[0],False)
-            self.assertEqual(db.execute("SELECT count(*) FROM pg_tables WHERE schemaname='office' AND rowsecurity").fetchone()[0],9)
+            self.assertEqual(db.execute("SELECT count(*) FROM pg_tables WHERE schemaname='office' AND rowsecurity").fetchone()[0],10)
     def test_anonymous_and_authenticated_roles_cannot_read_data(self):
         import psycopg
         for role in ['anon','authenticated','service_role']:
