@@ -39,7 +39,7 @@ def export_request(kind, company):
     return ET.tostring(root, encoding='utf-8')
 
 
-def parse_response(data):
+def parse_response(data, *, allow_tally_errors=False):
     # Decode before security checks: UTF-16 declarations must not bypass them.
     if data.startswith((b'\xff\xfe', b'\xfe\xff')):
         data = data.decode('utf-16')
@@ -55,7 +55,7 @@ def parse_response(data):
     data = re.sub(r'&#(x[0-9a-fA-F]+|[0-9]+);', clean_reference, data)
     root = ET.fromstring(data)
     errors = [node.text for node in root.iter('LINEERROR')]
-    if errors or root.findtext('.//STATUS') == '0':
+    if not allow_tally_errors and (errors or root.findtext('.//STATUS') == '0'):
         raise ValueError('Tally rejected the read request; check company and configuration')
     return root
 

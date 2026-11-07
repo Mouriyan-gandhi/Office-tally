@@ -96,12 +96,23 @@ class Cloud:
 def import_once(xml, port):
     connection = http.client.HTTPConnection('127.0.0.1', port, timeout=30)
     try:
+        evidence = None
+        if COMPANY == 'Upkar Agency TEST':
+            from connector import import_diagnostics
+            evidence = import_diagnostics.begin(xml)
+            print('TEST import evidence: '+str(evidence),flush=True)
         connection.request('POST', '/', body=xml, headers={'Content-Type': 'text/xml; charset=utf-8'})
         response = connection.getresponse()
         raw = response.read(MAX_RESPONSE + 1)
+        if evidence is not None:
+            try:
+                import_diagnostics.received(evidence,response.status,raw)
+                print('TEST import response saved. Run: py -m connector.import_diagnostics',flush=True)
+            except OSError:
+                print('TEST response could not be saved; outcome still checked from memory.',flush=True)
         if response.status != 200 or len(raw) > MAX_RESPONSE:
             return 'needs_review', 'Import result uncertain; inspect Tally before retrying'
-        root = parse_response(raw)
+        root = parse_response(raw,allow_tally_errors=True)
         created = int(root.findtext('.//CREATED', '0'))
         errors = int(root.findtext('.//ERRORS', '0'))
         exceptions = int(root.findtext('.//EXCEPTIONS', '0'))
@@ -109,7 +120,7 @@ def import_once(xml, port):
         if created == 1 and errors == 0 and exceptions == 0 and other_changes == 0:
             return 'posted', 'Tally confirmed one voucher created'
         if created == 0 and other_changes == 0 and (errors or exceptions):
-            return 'rejected', 'Tally rejected the voucher; inspect its import log'
+            return 'rejected', ('Tally rejected the voucher; inspect its import log' + ('; run py -m connector.import_diagnostics on Windows for the saved response' if COMPANY == 'Upkar Agency TEST' else ''))
         return 'needs_review', 'No single voucher creation confirmed; inspect Tally'
     except Exception:
         return 'needs_review', 'No reliable response; inspect Tally before any retry'
