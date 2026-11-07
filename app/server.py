@@ -20,6 +20,7 @@ from app.demo import seed
 from app.domain import ValidationError, normalize_draft, require_masters
 from app.ocr import extract
 from app.reporting import REPORTS, parameters
+from app import history
 
 WEB = store.ROOT / 'web'
 COMPANY = 'Upkar Agency'
@@ -161,6 +162,16 @@ class Handler(BaseHTTPRequestHandler):
             with store.transaction() as db:
                 user = self.user(db)
                 return self.respond(200, {'email': user['email'], 'role': user['role'], 'csrf': user['csrf'], 'company': COMPANY})
+        if route.path == '/api/ledger-history':
+            from urllib.parse import parse_qs
+            ledger = parse_qs(route.query).get('ledger',[''])[0]
+            with store.transaction() as db:
+                self.user(db)
+                if cloud.enabled() and not db.execute('SELECT version FROM schema_migrations WHERE version=2').fetchone():
+                    return self.respond(200, {'rows':[], 'coverage':[], 'note':'History database update is not installed yet.'})
+                if ledger not in {r['name'] for r in store.snapshot(db,'live')['ledgers']}:
+                    raise ValidationError('Ledger not found in synced masters')
+                return self.respond(200, history.statement(db,ledger))
         if route.path == '/api/reports':
             with store.transaction() as db:
                 self.user(db)
@@ -406,6 +417,13 @@ class Handler(BaseHTTPRequestHandler):
 
     def connector(self, path, data):
         with store.transaction() as db:
+            if path in ('/api/connector/poll-history','/api/connector/history-result'):
+                if cloud.enabled() and not db.execute('SELECT version FROM schema_migrations WHERE version=2').fetchone():
+                    return self.respond(200, {'period':None, 'migration_required':2})
+                if path.endswith('poll-history'):
+                    return self.respond(200, {'period':history.poll(db,data.get('books_from'))})
+                history.accept(db,data)
+                return self.respond(200, {'ok':True})
             if path == '/api/connector/poll-read':
                 db.execute("UPDATE report_requests SET status='queued',lease=NULL WHERE status='reading' AND updated<?", (time.time()-180,))
                 row = db.execute("SELECT * FROM report_requests WHERE status='queued' ORDER BY created LIMIT 1").fetchone()

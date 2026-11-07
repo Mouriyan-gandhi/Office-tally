@@ -49,6 +49,7 @@ def init():
         CREATE TABLE IF NOT EXISTS snapshots(mode TEXT PRIMARY KEY, payload TEXT NOT NULL, updated REAL NOT NULL);
         CREATE TABLE IF NOT EXISTS audit(id INTEGER PRIMARY KEY AUTOINCREMENT, actor TEXT NOT NULL, action TEXT NOT NULL, target TEXT NOT NULL, at REAL NOT NULL);
         CREATE TABLE IF NOT EXISTS report_requests(id TEXT PRIMARY KEY, report TEXT NOT NULL, params TEXT NOT NULL, status TEXT NOT NULL, result TEXT, lease TEXT, created REAL NOT NULL, updated REAL NOT NULL);
+        CREATE TABLE IF NOT EXISTS history_periods(start TEXT PRIMARY KEY,end_date TEXT NOT NULL,payload TEXT NOT NULL,updated REAL,attempted REAL NOT NULL,lease TEXT,error TEXT NOT NULL DEFAULT '');
         CREATE TABLE IF NOT EXISTS documents(id TEXT PRIMARY KEY, mode TEXT NOT NULL, name TEXT NOT NULL, mime TEXT NOT NULL, path TEXT NOT NULL, created REAL NOT NULL);
         ''')
 

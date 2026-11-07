@@ -115,3 +115,39 @@ Official references:
 - https://supabase.com/docs/guides/storage/buckets/fundamentals
 - https://render.com/docs/blueprint-spec
 - https://render.com/docs/free
+
+## Read-only voucher history update (migration 2)
+
+The `cloud-backend` branch now includes a rolling voucher-history cache. Before
+updating the Windows connector, run `supabase/migrations/202611070002_history.sql`
+in Supabase SQL Editor. It adds one private RLS-protected table; no existing data is
+removed. Without migration 2 the hosted app and master sync continue to work, while
+history is unavailable.
+
+Deploy the updated branch on Render, then replace the Windows source files with
+the latest branch ZIP and restart `scripts/start-windows.cmd`. Keep the same Windows
+user: pairing credentials are outside the source folder, protected by DPAPI. Stop
+the old connector first so two workers do not run simultaneously. Posting stays off.
+
+The worker reads one monthly period per cycle, beginning with the company's
+`BooksFrom` date. Previously unattempted periods run first; successfully fetched
+periods become eligible for reconciliation after one hour. A complete sweep may
+therefore take longer than an hour for a large company. This is rolling, eventual
+history, not a transactionally consistent company-wide backup. An edit or deletion
+appears after that affected period is successfully read again. Dates through today
+are included; future-dated vouchers are excluded. A failed read retains the old
+period and exposes the failure/freshness in the ledger dialog.
+
+Each successful period atomically replaces its old vouchers (including an empty
+collection), preventing append duplicates and removing deleted entries. Missing
+collection containers, invalid identities/amounts and oversized exports fail closed.
+Each period currently has a 16 MiB XML / 5,000 voucher limit. Oversized periods need
+smaller partition support before they can sync; they are never silently truncated.
+
+Ledger dialogs show cached date ranges and their timestamps. They display debit
+and credit movements from active, nonoptional voucher ledger allocations. They do
+not infer opening/running balances from the current master closing balance. The
+latest 1,000 matching vouchers are displayed/exported with an explicit limit notice.
+App-recorded entries remain a separate section to avoid double-counting posted jobs.
+The real Tally 7.1 collection request still requires verification on the office PC;
+local exported XML compatibility is not proof of a live request's correctness.

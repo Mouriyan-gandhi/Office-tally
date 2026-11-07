@@ -14,6 +14,7 @@ from connector.read_company import read, parse_response, MAX_RESPONSE
 from connector.xml_vouchers import build
 from app.domain import normalize_draft, require_masters
 from app.reporting import request_xml, flatten
+from connector.history import read_period
 
 COMPANY = 'Upkar Agency'
 
@@ -52,7 +53,8 @@ def snapshot(port):
     ledgers = read('ledgers', COMPANY, port)
     stock = read('stock', COMPANY, port)
     yes = lambda value: str(value).casefold() == 'yes'
-    return {'company': COMPANY, 'ledgers': [
+    books_from = next((row.findtext('BOOKSFROM','') for row in company.iter('COMPANY') if (row.get('NAME') or row.findtext('NAME')) == COMPANY), '')
+    return {'company': COMPANY, 'books_from': books_from, 'ledgers': [
         {'name': row.get('NAME') or row.findtext('NAME') or '', 'group': category(row.findtext('PARENT', '')), 'parent':row.findtext('PARENT',''),
          'balance': balance(row.findtext('CLOSINGBALANCE', '')), 'billwise': yes(row.findtext('ISBILLWISEON'))}
         for row in ledgers.iter('LEDGER')], 'stock': [
@@ -172,6 +174,23 @@ def main():
                         status, message = process(job, masters, journal, args.port, allow)
                         cloud.send('result', {'id': job['id'], 'lease': job['lease'], 'status': status, 'message': message})
                 print('Master sync complete.', flush=True)
+                # Independent of posting and report processing: history failures must
+                # never stop master sync or erase previously saved periods.
+                try:
+                    raw_start = masters.get('books_from','')
+                    books_from = raw_start[:4]+'-'+raw_start[4:6]+'-'+raw_start[6:8] if len(raw_start)==8 else raw_start
+                    period = cloud.send('poll-history', {'books_from':books_from}).get('period')
+                    if period:
+                        result = dict(period)
+                        try:
+                            result['vouchers'] = read_period(args.port, COMPANY, period['from'], period['to'])
+                        except Exception:
+                            result['error'] = True
+                        cloud.send('history-result',result)
+                        print('History '+period['from']+' to '+period['to']+(': retained previous cache; export failed.' if result.get('error') else ': synced.'),flush=True)
+                except Exception:
+                    print('History sync unavailable; master sync remains active.',flush=True)
+
             except Exception as error:
                 print('Connection check failed (' + type(error).__name__ + '). Check Tally and app availability.', flush=True)
                 if args.once:

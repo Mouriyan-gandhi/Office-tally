@@ -27,6 +27,7 @@ class PostgresIntegrationTests(unittest.TestCase):
                     from psycopg import sql
                     db.execute(sql.SQL('CREATE ROLE {} NOLOGIN').format(sql.Identifier(role)))
             db.execute(Path('supabase/migrations/202611070001_office.sql').read_text())
+            db.execute(Path('supabase/migrations/202611070002_history.sql').read_text())
     @classmethod
     def tearDownClass(cls):cls.env.stop()
     def setUp(self):
@@ -38,7 +39,7 @@ class PostgresIntegrationTests(unittest.TestCase):
         from app.asgi import endpoint
         self.server=server
         with psycopg.connect(TEST_DSN,autocommit=True) as db:
-            db.execute('TRUNCATE office.users,office.sessions,office.drafts,office.jobs,office.snapshots,office.audit,office.report_requests,office.documents RESTART IDENTITY CASCADE')
+            db.execute('TRUNCATE office.users,office.sessions,office.drafts,office.jobs,office.snapshots,office.audit,office.report_requests,office.documents,office.history_periods RESTART IDENTITY CASCADE')
         server.PREVIEW=False;server.LIVE_WRITES=True;server.DEVICE_TOKEN='isolated-test-device-token-'+('x'*32);server.ATTEMPTS.clear()
         self.auth=patch('app.cloud.sign_in',return_value={'id':USER['id'],'email':USER['email']});self.auth.start()
         self.verify=patch('app.cloud.verify_admin');self.verify.start()
@@ -171,3 +172,21 @@ class PostgresIntegrationTests(unittest.TestCase):
             self.assertEqual(len(imports),4,'Duplicate delivery must not import again')
         finally:
             journal.close();tally.shutdown();tally.server_close();thread.join()
+
+    def test_history_roundtrip_private_period_replace(self):
+        from datetime import date
+        from app.history import periods
+        self.masters()
+        first = date.today().replace(day=1).isoformat()
+        p = self.post('connector/poll-history',{'books_from':first},device=True).json()['period']
+        voucher={'id':'synthetic-history','date':first,'kind':'Sales','number':'TEST','narration':'Synthetic',
+                 'cancelled':False,'optional':False,'lines':[{'ledger':'Customer & Co','amount':'118'},{'ledger':'Sales','amount':'-118'}]}
+        response=self.post('connector/history-result',p|{'vouchers':[voucher]},device=True)
+        self.assertEqual(response.status_code,200,response.text)
+        response=self.client.get('/api/ledger-history',params={'ledger':'Customer & Co'})
+        self.assertEqual(response.status_code,200,response.text)
+        self.assertEqual(response.json()['rows'][0]['debit'],'118')
+        from app import store
+        with store.transaction() as db:
+            self.assertEqual(db.execute('SELECT COUNT(*) FROM history_periods').fetchone()[0],1)
+        self.assertNotEqual(self.client.get('/api/ledger-history?ledger=Unknown').status_code,200)

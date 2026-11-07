@@ -8,7 +8,7 @@ import xml.etree.ElementTree as ET
 MAX_RESPONSE = 16 * 1024 * 1024
 COLLECTIONS = {
     'groups': ('Group', ('Name', 'Parent')),
-    'companies': ('Company', ('Name',)),
+    'companies': ('Company', ('Name', 'BooksFrom')),
     'ledgers': ('Ledger', ('Name', 'Parent', 'ClosingBalance', 'IsBillWiseOn')),
     'stock': ('StockItem', ('Name', 'BaseUnits', 'ClosingBalance', 'ClosingRate', 'ClosingValue', 'IsBatchWiseOn')),
 }
@@ -38,17 +38,19 @@ def export_request(kind, company):
 
 
 def parse_response(data):
-    # Never accept DTDs or entity declarations from a local HTTP response.
-    if b'<!DOCTYPE' in data.upper() or b'<!ENTITY' in data.upper():
+    # Decode before security checks: UTF-16 declarations must not bypass them.
+    if data.startswith((b'\xff\xfe', b'\xfe\xff')):
+        data = data.decode('utf-16')
+    else:
+        data = data.decode('utf-8-sig')
+    if '<!DOCTYPE' in data.upper() or '<!ENTITY' in data.upper():
         raise ValueError('Unsafe XML response')
-    if b'\x00' in data:
-        raise ValueError('Unsupported XML encoding; expected UTF-8')
-    # Tally sometimes exports XML 1.0-invalid control character references for reserved names.
     def clean_reference(match):
         value = match.group(1)
-        code = int(value[1:],16) if value.lower().startswith(b'x') else int(value)
-        return b'' if code < 32 and code not in (9,10,13) else match.group(0)
-    data = re.sub(rb'&#(x[0-9a-fA-F]+|[0-9]+);', clean_reference, data)
+        code = int(value[1:],16) if value.lower().startswith('x') else int(value)
+        return '' if code < 32 and code not in (9,10,13) else match.group(0)
+    data = re.sub(r'&#(x[0-9a-fA-F]+|[0-9]+);', clean_reference, data)
+    data = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]', '', data)
     root = ET.fromstring(data)
     errors = [node.text for node in root.iter('LINEERROR')]
     if errors or root.findtext('.//STATUS') == '0':
