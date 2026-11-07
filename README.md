@@ -1,6 +1,6 @@
 # Upkar Agency · Office
 
-A mobile-friendly accounting and inventory companion for **TallyPrime Silver 7.1**.
+A phone-first accounting and inventory companion for **TallyPrime Silver 7.1**.
 Built on the Mac; the outbound connector runs beside Tally on the Windows office laptop.
 
 ## Try it on the Mac
@@ -17,7 +17,8 @@ blocks connector endpoints and cannot access live Tally data or post entries.
 
 ## Implemented
 
-- Responsive dashboard with large actions and persistent mobile navigation.
+- Phone-first home with quick actions, thumb-sized controls and persistent bottom navigation.
+- Dedicated transaction/ledger/stock cards, camera capture, stacked item forms, bottom-sheet reviews and a fixed phone review bar.
 - Sales and purchase drafts with stock quantities, units, rates and discounts.
 - Receipt/payment drafts with optional bill allocations.
 - Single-rate CGST+SGST or IGST, server-side decimal calculations and printed-total checks.
@@ -74,7 +75,7 @@ For private production invoice handling, see the isolation and retention notes i
 
 ## Windows connector
 
-See [Windows setup](docs/WINDOWS.md). It uses XML over HTTP to **127.0.0.1:9000** only.
+Start with the [plain-language connection guide](docs/CONNECT.md), then see [Windows setup](docs/WINDOWS.md). It uses XML over HTTP to **127.0.0.1:9000** only.
 Never expose that port to the internet. The connector does not listen for incoming
 connections. Cloud URL and device credentials are supplied during the later connection
 stage; don't put them in chat or Git. Live writes require activation at both ends.

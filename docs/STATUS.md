@@ -46,3 +46,17 @@
 The preview uses fictional data in its own SQLite database and blocks connector access.
 No actual Tally company read or write was performed. Production posting is off by default,
 with activation required at both the app and Windows worker, plus per-entry owner review.
+
+## Phone-first refinement
+
+The phone now prioritizes the four everyday actions, uses dedicated entry/ledger/stock
+cards and a central New button, offers a camera capture control, and shows entry reviews
+as bottom sheets. Entry forms have stacked item fields and a fixed amount/review bar.
+
+Browser checks covered home widths 320, 360, 390, 430 and 768 pixels with no horizontal
+page overflow. The 320-pixel sales form displayed 16-pixel inputs, a visible fixed
+review bar, and the expected ₹1,062 total for two ₹450 items plus 18% GST. The phone
+receipt flow saved/reviewed/cancelled a fictional ₹99.50 draft. Entry cards and ledger
+navigation were checked at narrow phone widths. The 11 HTTP integration checks passed
+again after the update. Actual phone camera capture, home-screen installation and
+on-screen keyboard behavior still need checking on a physical phone after hosting.

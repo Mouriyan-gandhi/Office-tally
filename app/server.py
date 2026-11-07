@@ -183,7 +183,7 @@ class Handler(BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(body)
                 return
-        allowed = {'/': 'index.html', '/app.js': 'app.js', '/reports.js':'reports.js', '/styles.css': 'styles.css', '/icon.svg': 'icon.svg', '/manifest.webmanifest': 'manifest.webmanifest'}
+        allowed = {'/': 'index.html', '/app.js': 'app.js', '/reports.js':'reports.js', '/styles.css': 'styles.css', '/phone.css':'phone.css', '/icon.svg': 'icon.svg', '/manifest.webmanifest': 'manifest.webmanifest'}
         if route.path not in allowed:
             return self.respond(404, {'error': 'Not found'})
         path = WEB / allowed[route.path]
