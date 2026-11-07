@@ -51,7 +51,8 @@ def normalize_draft(payload):
     result = dict(kind=kind, date=day.isoformat(),
                   party=text(payload.get('party'), 'Party ledger'),
                   narration=text(payload.get('narration', ''), 'Notes', 2000, False),
-                  reference=text(payload.get('reference', ''), 'Reference', 100, False))
+                  reference=text(payload.get('reference', ''), 'Reference', 100, False),
+                  voucher_number=text(payload.get('voucher_number',''), 'Voucher number',100,False))
     if kind in ('Receipt', 'Payment'):
         ledger = text(payload.get('cash_bank'), 'Cash or bank ledger')
         if ledger.strip().casefold() == result['party'].casefold():
@@ -93,9 +94,17 @@ def normalize_draft(payload):
             amount = (qty * rate * (1 - discount / 100)).quantize(PAISA, rounding=ROUND_HALF_UP)
             if amount <= 0:
                 raise ValidationError('Item amount must be positive')
+            override = row.get('amount_override','')
+            reason = ''
+            if override not in ('',None):
+                amount = number(override,'Reviewed item amount',True)
+                if amount != amount.quantize(PAISA): raise ValidationError('Item amount can have at most two decimals')
+                reason = text(row.get('override_reason',''),'Reason for reviewed item amount',300)
             subtotal += amount
             result['items'].append(dict(name=text(row.get('name'), 'Stock item'), unit=text(row.get('unit'), 'Unit', 40),
-                                        qty=str(qty), rate=str(rate), discount=str(discount), amount=str(amount)))
+                                        qty=str(qty), rate=str(rate), discount=str(discount), amount=str(amount),
+                                        godown=text(row.get('godown',''),'Godown',200,False),
+                                        amount_override=str(amount) if override not in ('',None) else '',override_reason=reason))
         taxes = payload.get('taxes', [])
         if not isinstance(taxes, list) or len(taxes) > 3:
             raise ValidationError('Invalid tax lines')
@@ -121,6 +130,14 @@ def normalize_draft(payload):
             raise ValidationError('CGST and SGST rates must match')
         result['subtotal'] = str(subtotal)
         result['total'] = str(subtotal + sum(Decimal(t['amount']) for t in result['taxes']))
+    if result['items']:
+        raw = str(payload.get('round_off','0') or '0')
+        adjustment = number(raw[1:] if raw.startswith('-') else raw, 'Round off') * (-1 if raw.startswith('-') else 1)
+        if abs(adjustment)>1 or adjustment!=adjustment.quantize(PAISA):
+            raise ValidationError('Round off must be between -1 and 1 with at most two decimals')
+        result['round_off']=str(adjustment.quantize(PAISA))
+        result['round_off_ledger']=text(payload.get('round_off_ledger',''),'Round off ledger',200,bool(adjustment))
+        result['total']=str(Decimal(result['total'])+adjustment)
     number(result['total'], 'Voucher total', True)
     printed = payload.get('printed_total', '')
     if printed not in ('', None):
@@ -138,6 +155,11 @@ def require_masters(draft, snapshot):
     ledgers = {row['name']: row for row in snapshot.get('ledgers', [])}
     required = [draft['party']]
     required += [draft['cash_bank']] if draft['kind'] in ('Receipt', 'Payment') else [draft['account_ledger']] + [t['ledger'] for t in draft['taxes']]
+    if Decimal(draft.get('round_off','0')):
+        required.append(draft['round_off_ledger'])
+        if ledgers.get(draft['round_off_ledger'],{}).get('group') not in ('Indirect Expenses','Indirect Incomes'):
+            raise ValidationError('Choose an indirect expense or income ledger for round off')
+        if draft['round_off_ledger'] in required[:-1]: raise ValidationError('Round off must use a separate ledger')
     for name in required:
         if name not in ledgers:
             raise ValidationError(f'Ledger not found in the latest Tally sync: {name}')
@@ -162,10 +184,18 @@ def require_masters(draft, snapshot):
     # Bill-wise and advanced inventory must not silently lose accounting detail.
     if ledgers[draft['party']].get('billwise') and draft['kind'] in ('Receipt', 'Payment') and not draft['allocations']:
         raise ValidationError('This party uses bill-wise accounting; allocate the amount to bills first')
+    numbering = next((v.get('numbering') for v in snapshot.get('voucher_types',[]) if v['name']==draft['kind']),None)
+    if numbering and numbering.casefold()=='manual' and not draft.get('voucher_number'):
+        raise ValidationError('This voucher type requires a manual voucher number')
+    godowns = {g['name'] for g in snapshot.get('godowns',[])}
     stock = {row['name']: row for row in snapshot.get('stock', [])}
     for item in draft['items']:
         master = stock.get(item['name'])
         if not master or master.get('unit') != item['unit']:
             raise ValidationError(f'Check the stock item and unit: {item["name"]}')
-        if master.get('batchwise') or master.get('godown_required'):
+        if item.get('godown') and item['godown'] not in godowns:
+            raise ValidationError('Choose an existing synced godown')
+        if godowns and not item.get('godown'):
+            raise ValidationError('Choose a godown for each stock item')
+        if master.get('batchwise') or (master.get('godown_required') and not item.get('godown')):
             raise ValidationError('Batch/godown inventory needs additional mapping before posting')

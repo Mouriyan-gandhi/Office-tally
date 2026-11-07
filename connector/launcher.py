@@ -5,13 +5,14 @@ import os
 from pathlib import Path
 import sys
 from connector.worker import main, Cloud
+from app.company import COMPANY
 from connector.windows_secrets import protect, unprotect
 
 
 def launch():
     if os.name != 'nt':
         raise SystemExit('Use this launcher on the Windows office laptop. The Mac runs the app, not Tally.')
-    folder = Path(os.environ.get('LOCALAPPDATA', str(Path.home()))) / 'OfficeTally'
+    folder = Path(os.environ.get('LOCALAPPDATA', str(Path.home()))) / ('OfficeTally-Test' if COMPANY.endswith(' TEST') else 'OfficeTally')
     folder.mkdir(parents=True, exist_ok=True)
     path = folder / 'connector.json'
     if path.exists():

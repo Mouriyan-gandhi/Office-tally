@@ -70,3 +70,29 @@ class DomainTests(unittest.TestCase):
         self.assertEqual(balance('100 Dr'),'100')
         self.assertEqual(balance('100 Cr'),'-100')
         self.assertEqual(balance(''),'')
+
+class CompanyWriteTests(unittest.TestCase):
+    def test_number_godown_override_roundoff_balanced(self):
+        for kind in ('Sales','Purchase'):
+            for roundoff in ('0.50','-0.50'):
+                draft=invoice(kind)|{'voucher_number':'TEST-42','round_off':roundoff,'round_off_ledger':'Rounding'}
+                draft['items'][0].update(godown='Main Location',amount_override='270.00',override_reason='Rounded price on source invoice')
+                normalized=normalize_draft(draft)
+                self.assertEqual(normalize_draft(normalized),normalized)
+                root=ET.fromstring(build(normalized,'Upkar Agency','synthetic'))
+                self.assertEqual(root.findtext('.//VOUCHERNUMBER'),'TEST-42')
+                self.assertEqual(root.findtext('.//GODOWNNAME'),'Main Location')
+                voucher=root.find('.//VOUCHER')
+                self.assertEqual(sum(Decimal(n.findtext('AMOUNT')) for n in voucher if n.tag in ('ALLLEDGERENTRIES.LIST','ALLINVENTORYENTRIES.LIST')),0)
+    def test_reviewed_amount_requires_reason(self):
+        draft=invoice();draft['items'][0]['amount_override']='270'
+        with self.assertRaises(ValidationError):normalize_draft(draft)
+    def test_no_bill_allocation_for_nonbillwise_party(self):
+        self.assertIsNone(ET.fromstring(build(invoice(),'Upkar Agency','id')).find('.//BILLALLOCATIONS.LIST'))
+        self.assertEqual(ET.fromstring(build(invoice(),'Upkar Agency','id',billwise=True)).findtext('.//BILLTYPE'),'New Ref')
+    def test_test_company_cannot_use_cloud_database(self):
+        import os
+        from unittest.mock import patch
+        from app.company import company_name
+        with patch.dict(os.environ,{'OFFICE_TEST_COMPANY':'Upkar Agency TEST','OFFICE_BACKEND':'supabase'}):
+            with self.assertRaises(RuntimeError):company_name()

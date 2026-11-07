@@ -143,3 +143,19 @@ class HTTPTests(unittest.TestCase):
         row=self.draft()
         with store.transaction() as db:db.execute("UPDATE users SET role='operator'")
         self.assertEqual(self.approve(row)[0],403)
+
+    def test_offline_cached_masters_can_queue_but_missing_masters_cannot(self):
+        row=self.draft('live')
+        self.assertEqual(self.approve(row,'live')[0],400)
+        self.masters()
+        with store.transaction() as db:db.execute('UPDATE snapshots SET updated=? WHERE mode=?',(time.time()-86400,'live'))
+        self.assertEqual(self.approve(row,'live')[0],200)
+        with store.transaction() as db:
+            self.assertEqual(db.execute('SELECT status FROM jobs').fetchone()[0],'queued')
+
+    def test_duplicate_manual_number_is_blocked(self):
+        self.masters()
+        first=self.draft('live',invoice()|{'voucher_number':'TEST-1'})
+        self.assertEqual(self.approve(first,'live')[0],200)
+        second=self.draft('live',invoice()|{'voucher_number':'TEST-1'})
+        self.assertIn('voucher number was already submitted',self.approve(second,'live')[1]['error'])

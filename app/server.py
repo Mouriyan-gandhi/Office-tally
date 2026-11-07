@@ -23,7 +23,7 @@ from app.reporting import REPORTS, parameters
 from app import history
 
 WEB = store.ROOT / 'web'
-COMPANY = 'Upkar Agency'
+from app.company import COMPANY
 MAX_BODY = 12 * 1024 * 1024
 SESSION_AGE = 8 * 3600
 DEVICE_TOKEN = os.environ.get('OFFICE_CONNECTOR_TOKEN', '')
@@ -361,9 +361,14 @@ class Handler(BaseHTTPRequestHandler):
                     if not LIVE_WRITES:
                         raise ValidationError('Live posting has not been activated on the app host')
                     snap = store.snapshot(db, mode)
-                    if not snap['synced_at'] or time.time() - snap['synced_at'] > 300:
+                    if not snap['synced_at']:
                         raise ValidationError('Connect the office laptop and refresh Tally data first')
                     require_masters(payload, snap)
+                    if payload.get('voucher_number'):
+                        for candidate in db.execute("SELECT payload FROM drafts WHERE mode='live' AND id<>? AND status IN ('queued','posting','posted','needs_review')",(row['id'],)):
+                            other=json.loads(candidate['payload'])
+                            if other['kind']==payload['kind'] and (int(other['date'][:4])-(int(other['date'][5:7])<4))==(int(payload['date'][:4])-(int(payload['date'][5:7])<4)) and other.get('voucher_number','').casefold()==payload['voucher_number'].casefold():
+                                raise ValidationError('This voucher number was already submitted for this type and year')
                     if payload['kind'] == 'Purchase':
                         for candidate in db.execute("SELECT id,payload FROM drafts WHERE mode='live' AND id<>? AND status IN ('queued','posting','posted','needs_review')", (row['id'],)):
                             other = json.loads(candidate['payload'])

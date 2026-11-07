@@ -16,7 +16,7 @@ from app.domain import normalize_draft, require_masters
 from app.reporting import request_xml, flatten
 from connector.history import read_period, failure_reason
 
-COMPANY = 'Upkar Agency'
+from app.company import COMPANY
 
 
 def quantity(value):
@@ -40,10 +40,10 @@ def snapshot(port):
     company = read('companies', COMPANY, port)
     names = [row.get('NAME') or row.findtext('NAME') for row in company.iter('COMPANY')]
     if COMPANY not in names:
-        raise ValueError('Upkar Agency is not loaded in Tally')
+        raise ValueError('Configured company is not loaded in Tally')
     groups = read('groups', COMPANY, port)
     ancestry = {row.get('NAME') or row.findtext('NAME'):row.findtext('PARENT','') for row in groups.iter('GROUP')}
-    categories = {'Sundry Debtors','Sundry Creditors','Cash-in-Hand','Bank Accounts','Sales Accounts','Purchase Accounts','Duties & Taxes'}
+    categories = {'Sundry Debtors','Sundry Creditors','Cash-in-Hand','Bank Accounts','Sales Accounts','Purchase Accounts','Duties & Taxes','Indirect Incomes','Indirect Expenses'}
     def category(parent):
         seen = set()
         while parent not in categories and parent in ancestry and parent not in seen:
@@ -52,9 +52,13 @@ def snapshot(port):
         return parent
     ledgers = read('ledgers', COMPANY, port)
     stock = read('stock', COMPANY, port)
+    godowns = read('godowns',COMPANY,port)
+    types = read('voucher_types',COMPANY,port)
     yes = lambda value: str(value).casefold() == 'yes'
     books_from = next((row.findtext('BOOKSFROM','') for row in company.iter('COMPANY') if (row.get('NAME') or row.findtext('NAME')) == COMPANY), '')
-    return {'company': COMPANY, 'books_from': books_from, 'ledgers': [
+    return {'company': COMPANY, 'books_from': books_from,
+        'godowns':[{'name':v.get('NAME') or v.findtext('NAME','')} for v in godowns.iter('GODOWN')],
+        'voucher_types':[{'name':v.get('NAME') or v.findtext('NAME',''),'numbering':v.findtext('NUMBERINGMETHOD','')} for v in types.iter('VOUCHERTYPE')], 'ledgers': [
         {'name': row.get('NAME') or row.findtext('NAME') or '', 'group': category(row.findtext('PARENT', '')), 'parent':row.findtext('PARENT',''),
          'balance': balance(row.findtext('CLOSINGBALANCE', '')), 'billwise': yes(row.findtext('ISBILLWISEON'))}
         for row in ledgers.iter('LEDGER')], 'stock': [
@@ -125,7 +129,8 @@ def process(job, masters, journal, port, allow_writes):
             raise ValueError('Unexpected company')
         draft = normalize_draft(job['draft'])
         require_masters(draft, masters)
-        xml = build(draft, COMPANY, identifier)
+        billwise = next((v.get('billwise',False) for v in masters['ledgers'] if v['name']==draft['party']),False)
+        xml = build(draft, COMPANY, identifier,billwise=billwise)
     except (ValueError, KeyError, TypeError):
         return 'rejected', 'Voucher validation failed on the office device'
     journal.execute('INSERT INTO imports VALUES(?,?,?)', (identifier, 'needs_review', 'An import was started; inspect Tally before retrying'))
@@ -143,11 +148,11 @@ def main():
     args = parser.parse_args()
     cloud = Cloud(os.environ.get('OFFICE_APP_URL', ''), os.environ.get('OFFICE_CONNECTOR_TOKEN', ''))
     allow = os.environ.get('OFFICE_ALLOW_TALLY_WRITES') == 'YES'
-    folder = Path(os.environ.get('LOCALAPPDATA', str(Path.home()))) / 'OfficeTally'
+    folder = Path(os.environ.get('LOCALAPPDATA', str(Path.home()))) / ('OfficeTally-Test' if COMPANY.endswith(' TEST') else 'OfficeTally')
     folder.mkdir(parents=True, exist_ok=True)
     journal = sqlite3.connect(folder / 'import-journal.db')
     journal.execute('CREATE TABLE IF NOT EXISTS imports(id TEXT PRIMARY KEY,status TEXT NOT NULL,message TEXT NOT NULL)')
-    print('Company: Upkar Agency. Writes: ' + ('enabled' if allow else 'disabled'), flush=True)
+    print('Company: '+COMPANY+'. Writes: ' + ('enabled' if allow else 'disabled'), flush=True)
     try:
         while True:
             try:

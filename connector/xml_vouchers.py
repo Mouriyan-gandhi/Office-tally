@@ -2,10 +2,11 @@
 import xml.etree.ElementTree as ET
 from decimal import Decimal
 from app.domain import normalize_draft
+from app.company import COMPANY
 
 
-def build(draft, company, identifier):
-    if company != 'Upkar Agency':
+def build(draft, company, identifier, *, billwise=False):
+    if company != COMPANY:
         raise ValueError('Unexpected company')
     draft = normalize_draft(draft)
     root = ET.Element('ENVELOPE')
@@ -25,6 +26,7 @@ def build(draft, company, identifier):
                        ('NARRATION', draft['narration']), ('REFERENCE', draft['reference']),
                        ('ISINVOICE', 'Yes' if draft['items'] else 'No')]:
         put(voucher, tag, value)
+    if draft.get('voucher_number'): put(voucher,'VOUCHERNUMBER',draft['voucher_number'])
     total = Decimal(draft['total'])
     # Native Tally amounts use a negative sign for debits.
     party_amount = -total if kind in ('Sales', 'Payment') else total
@@ -42,7 +44,7 @@ def build(draft, company, identifier):
             put(entry, 'NAME', bill['reference'])
             put(entry, 'BILLTYPE', 'Agst Ref')
             put(entry, 'AMOUNT', format(Decimal(bill['amount']) * (-1 if party_amount < 0 else 1), '.2f'))
-    elif draft['reference'] and draft['items']:
+    elif billwise and draft['reference'] and draft['items']:
         entry = ET.SubElement(party, 'BILLALLOCATIONS.LIST')
         put(entry, 'NAME', draft['reference'])
         put(entry, 'BILLTYPE', 'New Ref')
@@ -58,10 +60,18 @@ def build(draft, company, identifier):
                                ('ACTUALQTY', item['qty'] + ' ' + item['unit']), ('BILLEDQTY', item['qty'] + ' ' + item['unit']),
                                ('AMOUNT', format(sign * Decimal(item['amount']), '.2f'))]:
                 put(entry, tag, value)
+            if item.get('godown'):
+                batch=ET.SubElement(entry,'BATCHALLOCATIONS.LIST')
+                for tag,value in [('GODOWNNAME',item['godown']),('DESTINATIONGODOWNNAME',item['godown']),('BATCHNAME','Primary Batch'),
+                                  ('ACTUALQTY',item['qty']+' '+item['unit']),('BILLEDQTY',item['qty']+' '+item['unit']),
+                                  ('AMOUNT',format(sign*Decimal(item['amount']),'.2f'))]:
+                    put(batch,tag,value)
             allocation = ET.SubElement(entry, 'ACCOUNTINGALLOCATIONS.LIST')
             put(allocation, 'LEDGERNAME', draft['account_ledger'])
             put(allocation, 'ISDEEMEDPOSITIVE', 'Yes' if sign < 0 else 'No')
             put(allocation, 'AMOUNT', format(sign * Decimal(item['amount']), '.2f'))
+        if Decimal(draft.get('round_off','0')):
+            ledger(voucher,draft['round_off_ledger'],sign*Decimal(draft['round_off']))
         for tax in draft['taxes']:
             ledger(voucher, tax['ledger'], sign * Decimal(tax['amount']))
     return ET.tostring(root, encoding='utf-8')

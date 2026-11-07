@@ -75,3 +75,34 @@ Windows user. It uses that user's DPAPI key, not a system service account, and s
 no Windows password. Review/run it locally; it has not been exercised on the actual
 office laptop. Keep the extracted repository in a permanent folder so the task's
 working directory does not change.
+
+## Isolated acceptance setup for writes
+
+Use a restored backup copy named exactly **Upkar Agency TEST**. Restore into a
+separate data location; confirm the original company remains intact. Do not rename
+the only live company to run this test. Keep the production connector running from
+its existing folder if needed; it remains read-only and targets Upkar Agency.
+
+Download the write-update release into another folder and double-click
+`scripts/test-windows-writes.cmd`. This opens only a loopback web server on port
+8767. It uses a separate local SQLite database and journal under
+`%LOCALAPPDATA%\OfficeTally-Test`. A random device token is held in memory; no Render
+or Supabase credentials are requested. The local test password is entered privately.
+
+In the Windows browser open http://127.0.0.1:8767, sign in, switch from Demo to Tally
+workspace and verify the **TEST COMPANY** banner. Create and review Sales, Purchase,
+Receipt and Payment entries using existing masters. Check the actual voucher in the
+test Tally company after each confirmation: number/date, party and cash/bank signs,
+item quantities, godown, sales/purchase and GST ledgers, rounding and total. For
+Sales use the manual voucher number; Purchase reference is the supplier invoice
+number, separate from the Tally voucher number.
+
+Test positive/negative rounding and a reviewed taxable amount where the displayed
+rate does not multiply exactly. Review the explicit override reason. Test app
+approval while Tally is closed and verify it stays queued until the test company
+is available again. Never force retry an uncertain import.
+
+This is acceptance tooling, not proof of statutory GST correctness. Mixed item GST
+rates, real batch tracking and complex inventory allocations remain unsupported.
+Verify GST registers and outstanding balances in Tally before activating production.
+Production app/device posting switches are deliberately unchanged by this setup.
