@@ -55,12 +55,12 @@ def connect():
         options['sslmode']='require'
     try:
         connection=psycopg.connect(dsn,**options)
-        connection.execute('SET LOCAL ROLE office_backend')
-        connection.execute('SET LOCAL search_path TO office, pg_catalog')
-        connection.execute("SET LOCAL statement_timeout='25s'")
-        connection.execute("SET LOCAL lock_timeout='15s'")
-        # Same serialization guarantee as SQLite BEGIN IMMEDIATE, shared across replicas.
-        connection.execute("SELECT pg_advisory_xact_lock(773121194701)")
+        # One round trip for transaction setup, preserving role/RLS and locking.
+        connection.execute("SET LOCAL ROLE office_backend; "
+                           "SET LOCAL search_path TO office, pg_catalog; "
+                           "SET LOCAL statement_timeout='25s'; "
+                           "SET LOCAL lock_timeout='15s'; "
+                           "SELECT pg_advisory_xact_lock(773121194701)")
         return Connection(connection)
     except Exception:
         if 'connection' in locals(): connection.close()

@@ -26,8 +26,8 @@ async function openRegister(kind,from='',to='',offset=0){
  const pending=result.coverage.filter(p=>p.status!=='cached');
  const rows=result.rows,columns=['date','number','party','reference','total'];
  state.report={title:title+' — displayed page of synced Tally vouchers',rows,columns};
- const cards=`<div class="phone-list">${rows.map(v=>`<article class="stock-card"><span class="entry-card-icon">${icon('invoice')}</span><div class="entry-card-copy"><strong>${esc(v.party||'Party not mapped yet')}</strong><span>${esc(dateText(v.date))} · ${esc(v.number||'Unnumbered')}</span><small>${esc(v.reference)}</small></div><div class="entry-card-value"><strong>${money(v.total)}</strong></div></article>`).join('')}</div>`;
- dialog(title,`<form id="register-filter" class="form-grid"><div><label for="register-from">From</label><input type="date" id="register-from" name="from" value="${esc(result.from)}" required></div><div><label for="register-to">To</label><input type="date" id="register-to" name="to" value="${esc(result.to)}" required></div><button class="btn primary" type="submit">Apply dates</button><button class="btn" type="button" data-action="register-refresh">${icon('refresh')} Refresh</button></form><div class="notice ${result.complete?'green':''} mt">${result.complete?'Every requested period has a cached export.':'History incomplete: '+pending.length+' date ranges are pending or need refresh.'} ${result.oldest_sync?'Oldest included period sync: '+esc(when(result.oldest_sync))+'.':''} Keep the office connector running for updates.</div><div class="summary-line mt"><span>${result.count} synced vouchers · ${offset+1>result.count?0:offset+1}–${Math.min(offset+rows.length,result.count)} shown</span><strong>${money(result.cached_total)}</strong></div><p class="field-help">Total of mapped synced vouchers in the selected dates.${result.unmapped_totals?' '+result.unmapped_totals+' vouchers need party mapping; their amounts are excluded from this total.':''}</p>${rows.length?cards+'<div class="desktop-table">'+simpleTable(rows,columns)+'</div>':empty('No synced vouchers in this period','This may be incomplete while history is importing.')}<div class="toolbar mt"><button class="btn" data-action="register-prev" ${offset===0?'disabled':''}>Previous</button><button class="btn" data-action="register-next" ${offset+rows.length>=result.count?'disabled':''}>Next</button></div><details class="mt"><summary>Period coverage</summary>${result.coverage.map(p=>`<p>${esc(p.from)} – ${esc(p.to)} · ${esc(p.status.replaceAll('_',' '))}${p.synced_at?' · '+esc(when(p.synced_at)):''}</p>`).join('')}</details><div class="notice mt">${esc(result.note)}</div>`,`<button class="btn" data-action="register-export">${icon('down')} Export all synced CSV</button><button class="btn" data-action="print-report">${icon('print')} Print this page</button>`);
+ const cards=`<div class="phone-list">${rows.map(v=>`<article class="stock-card"><span class="entry-card-icon">${icon('invoice')}</span><div class="entry-card-copy"><strong>${esc(v.party||'Party not mapped yet')}</strong><span>${esc(dateText(v.date))} · ${esc(v.number||'Unnumbered')}</span><small>${esc(v.reference)}</small><button class="text-btn" data-voucher-invoice="${esc(v.id)}">Invoice PDF</button></div><div class="entry-card-value"><strong>${money(v.total)}</strong></div></article>`).join('')}</div>`;
+ dialog(title,`<form id="register-filter" class="form-grid"><div><label for="register-from">From</label><input type="date" id="register-from" name="from" value="${esc(result.from)}" required></div><div><label for="register-to">To</label><input type="date" id="register-to" name="to" value="${esc(result.to)}" required></div><button class="btn primary" type="submit">Apply dates</button><button class="btn" type="button" data-action="register-refresh">${icon('refresh')} Refresh</button></form><div class="notice ${result.complete?'green':''} mt">${result.complete?'Every requested period has a cached export.':'History incomplete: '+pending.length+' date ranges are pending or need refresh.'} ${result.oldest_sync?'Oldest included period sync: '+esc(when(result.oldest_sync))+'.':''} Keep the office connector running for updates.</div><div class="summary-line mt"><span>${result.count} synced vouchers · ${offset+1>result.count?0:offset+1}–${Math.min(offset+rows.length,result.count)} shown</span><strong>${money(result.cached_total)}</strong></div><p class="field-help">Total of mapped synced vouchers in the selected dates.${result.unmapped_totals?' '+result.unmapped_totals+' vouchers need party mapping; their amounts are excluded from this total.':''}</p>${rows.length?cards+'<div class="desktop-table">'+simpleTable(rows,columns)+'<p class="field-help">Invoice PDFs:</p>'+rows.map(v=>`<button class="btn small" data-voucher-invoice="${esc(v.id)}">${esc(v.number||v.date)} · PDF</button>`).join(' ')+'</div>':empty('No synced vouchers in this period','This may be incomplete while history is importing.')}<div class="toolbar mt"><button class="btn" data-action="register-prev" ${offset===0?'disabled':''}>Previous</button><button class="btn" data-action="register-next" ${offset+rows.length>=result.count?'disabled':''}>Next</button></div><details class="mt"><summary>Period coverage</summary>${result.coverage.map(p=>`<p>${esc(p.from)} – ${esc(p.to)} · ${esc(p.status.replaceAll('_',' '))}${p.synced_at?' · '+esc(when(p.synced_at)):''}</p>`).join('')}</details><div class="notice mt">${esc(result.note)}</div>`,`<button class="btn" data-action="register-export">${icon('down')} Export all synced CSV</button><button class="btn" data-action="print-report">${icon('print')} Print this page</button>`);
 }
 actions['register-refresh']=()=>openRegister(registerView.kind,registerView.from,registerView.to,registerView.offset);
 actions['register-prev']=()=>openRegister(registerView.kind,registerView.from,registerView.to,Math.max(0,registerView.offset-200));
@@ -45,3 +45,41 @@ actions['register-export']=async()=>{
  toast(view.complete?'Synced register exported.':'Exported available records; history is still incomplete.');
 };
 document.addEventListener('submit',event=>{if(event.target.id!=='register-filter')return;event.preventDefault();const values=Object.fromEntries(new FormData(event.target));run(()=>openRegister(registerView.kind,values.from,values.to));});
+
+let invoiceView=null,invoiceTimer=null;
+async function openNativeInvoice(source){
+ if(state.mode!=='live')throw Error('Native invoices are available for posted Tally vouchers in the Tally workspace.');
+ clearTimeout(invoiceTimer);invoiceView={source,file:null};
+ dialog('Tally invoice PDF','<p>Requesting the original invoice from the office connector…</p>');
+ const result=await api('request-invoice',{...source,mode:'live'});
+ invoiceView.id=result.id;await refreshNativeInvoice();
+}
+async function refreshNativeInvoice(){
+ const view=invoiceView;if(!view?.id||!modal.open)return;
+ const result=await api('invoice-status?id='+encodeURIComponent(view.id));
+ if(invoiceView!==view||!modal.open)return;
+ if(result.status==='ready'){
+  const response=await fetch('/api/documents/'+encodeURIComponent(result.document_id),{credentials:'same-origin'});
+  if(!response.ok)throw Error('Sign in again or refresh to download the private invoice.');
+  const blob=await response.blob();view.file=new File([blob],result.filename||'Tally-invoice.pdf',{type:'application/pdf'});
+  dialog('Original Tally invoice',`<div class="notice green">The original PDF is ready. It uses Tally’s print layout and company details.</div><p class="mt">On phones that support file sharing, choose WhatsApp from the share sheet and select the recipient. Otherwise download the PDF and attach it in WhatsApp.</p><p class="field-help mt">This file is private. No public invoice link is created and nothing is sent automatically.</p>`,`<button class="btn" data-action="download-native-invoice">${icon('down')} Download PDF</button><button class="btn primary" data-action="share-native-invoice">${icon('whatsapp')} Share invoice</button><button class="btn" data-action="refresh-native-invoice">Get updated PDF</button>`);
+ }else if(result.status==='failed'){
+  dialog('Invoice export needs checking',`<div class="notice error">${esc(result.error||'Tally did not return its native PDF.')}</div><p class="mt">Your voucher’s posting status is unchanged. Do not submit another sale to obtain an invoice.</p>`,`<button class="btn" data-action="refresh-native-invoice">Retry PDF export only</button>`);
+ }else{
+  dialog('Waiting for Tally invoice',`<p>The office connector will export this already saved voucher. Keep Tally and the connector running.</p><p class="field-help mt">This does not create or submit another voucher.</p>`,`<button class="btn" data-action="check-native-invoice">${icon('refresh')} Check status</button>`);
+  invoiceTimer=setTimeout(()=>run(refreshNativeInvoice),5000);
+ }
+}
+actions['check-native-invoice']=refreshNativeInvoice;
+actions['refresh-native-invoice']=()=>openNativeInvoice({...invoiceView.source,refresh:true});
+actions['download-native-invoice']=()=>{const file=invoiceView?.file;if(!file)throw Error('Wait for the PDF to be ready.');const url=URL.createObjectURL(file),a=document.createElement('a');a.href=url;a.download=file.name;a.click();setTimeout(()=>URL.revokeObjectURL(url),30000);};
+actions['share-native-invoice']=async()=>{
+ const file=invoiceView?.file;if(!file)throw Error('Wait for the PDF to be ready.');
+ if(navigator.canShare?.({files:[file]})){
+  try{await navigator.share({files:[file],title:'Tally invoice'});}catch(error){if(error.name!=='AbortError')throw error;}
+ }else{
+  actions['download-native-invoice']();
+  dialog('Attach your downloaded invoice',`<p>Your PDF has been downloaded. Open WhatsApp, choose the recipient and attach the PDF using its document/paperclip option.</p><div class="notice mt">A WhatsApp web link cannot automatically attach a private PDF.</div>`,`<a class="btn primary" target="_blank" rel="noopener noreferrer" href="https://wa.me/?text=${encodeURIComponent('Please find the invoice attached.')}">${icon('whatsapp')} Open WhatsApp</a>`);
+ }
+};
+document.addEventListener('click',event=>{const button=event.target.closest('[data-native-invoice],[data-voucher-invoice]');if(!button)return;run(()=>openNativeInvoice(button.dataset.nativeInvoice?{draft_id:button.dataset.nativeInvoice}:{voucher_id:button.dataset.voucherInvoice}));});

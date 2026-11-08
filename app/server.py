@@ -20,7 +20,7 @@ from app.demo import seed
 from app.domain import ValidationError, normalize_draft, require_masters
 from app.ocr import extract
 from app.reporting import REPORTS, parameters
-from app import history
+from app import history,invoices
 
 WEB = store.ROOT / 'web'
 from app.company import COMPANY
@@ -162,6 +162,11 @@ class Handler(BaseHTTPRequestHandler):
             with store.transaction() as db:
                 user = self.user(db)
                 return self.respond(200, {'email': user['email'], 'role': user['role'], 'csrf': user['csrf'], 'company': COMPANY})
+        if route.path == '/api/invoice-status':
+            from urllib.parse import parse_qs
+            with store.transaction() as db:
+                self.user(db)
+                return self.respond(200,invoices.status(db,parse_qs(route.query).get('id',[''])[0]))
         if route.path == '/api/register':
             from urllib.parse import parse_qs
             args=parse_qs(route.query)
@@ -185,7 +190,7 @@ class Handler(BaseHTTPRequestHandler):
             with store.transaction() as db:
                 self.user(db)
                 rows = []
-                for row in db.execute('SELECT * FROM report_requests ORDER BY created DESC LIMIT 30'):
+                for row in db.execute("SELECT * FROM report_requests WHERE report<>'invoice' ORDER BY created DESC LIMIT 30"):
                     rows.append({'id': row['id'], 'report': row['report'], 'title': REPORTS[row['report']], 'params': json.loads(row['params']), 'status': row['status'], 'result': json.loads(row['result']) if row['result'] else None, 'updated': row['updated']})
                 return self.respond(200, {'reports': rows})
         if route.path == '/api/state':
@@ -311,6 +316,9 @@ class Handler(BaseHTTPRequestHandler):
                 seed(db, actor)
                 return self.respond(200, {'ok': True})
             mode = self.mode(data)
+            if path == '/api/request-invoice':
+                if PREVIEW or mode!='live':raise ValidationError('Native invoices require a confirmed Tally voucher')
+                return self.respond(200,invoices.request(db,data,actor))
             if path == '/api/request-report':
                 if PREVIEW or mode != 'live':
                     raise ValidationError('Full Tally report requests require the connected Tally workspace')
@@ -328,7 +336,7 @@ class Handler(BaseHTTPRequestHandler):
                 snap = store.snapshot(db, mode)
                 if mode == 'live':
                     snap['available_reports'] = {}
-                    for record in db.execute("SELECT * FROM report_requests WHERE status='ready' ORDER BY updated DESC"):
+                    for record in db.execute("SELECT * FROM report_requests WHERE status='ready' AND report<>'invoice' ORDER BY updated DESC"):
                         if record['report'] not in snap['available_reports']:
                             params = json.loads(record['params'])
                             snap['available_reports'][record['report']] = {'title':REPORTS[record['report']], 'from':params['from'], 'to':params['to'], 'updated':record['updated'], 'rows':json.loads(record['result'])['rows']}
@@ -430,7 +438,9 @@ class Handler(BaseHTTPRequestHandler):
         return self.respond(200, {'id': identifier, 'mime': mime, 'name': name, 'ocr': extract(target)})
 
     def connector(self, path, data):
+        if path == '/api/connector/invoice-result':return self.respond(200,invoices.receive(data))
         with store.transaction() as db:
+            if path == '/api/connector/poll-invoice':return self.respond(200,{'request':invoices.poll(db)})
             if path in ('/api/connector/poll-history','/api/connector/history-result'):
                 if cloud.enabled() and not db.execute('SELECT version FROM schema_migrations WHERE version=2').fetchone():
                     return self.respond(200, {'period':None, 'migration_required':2})
@@ -439,8 +449,8 @@ class Handler(BaseHTTPRequestHandler):
                 history.accept(db,data)
                 return self.respond(200, {'ok':True})
             if path == '/api/connector/poll-read':
-                db.execute("UPDATE report_requests SET status='queued',lease=NULL WHERE status='reading' AND updated<?", (time.time()-180,))
-                row = db.execute("SELECT * FROM report_requests WHERE status='queued' ORDER BY created LIMIT 1").fetchone()
+                db.execute("UPDATE report_requests SET status='queued',lease=NULL WHERE report<>'invoice' AND status='reading' AND updated<?", (time.time()-180,))
+                row = db.execute("SELECT * FROM report_requests WHERE report<>'invoice' AND status='queued' ORDER BY created LIMIT 1").fetchone()
                 if not row:
                     return self.respond(200, {'request': None})
                 lease = secrets.token_urlsafe(32)
@@ -506,6 +516,9 @@ class Handler(BaseHTTPRequestHandler):
                 result = str(data.get('message', ''))[:1000]
                 db.execute('UPDATE jobs SET status=?,result=? WHERE id=?', (status, result, job['id']))
                 db.execute('UPDATE drafts SET status=?,updated=?,version=version+1 WHERE id=?', (status, time.time(), job['draft_id']))
+                if status=='posted':
+                    payload=json.loads(job['payload'])
+                    if payload['kind'] in ('Sales','Purchase'):invoices.request(db,{'draft_id':job['draft_id']},'connector')
                 store.audit(db, 'connector', status, job['draft_id'])
                 return self.respond(200, {'ok': True})
             return self.respond(404, {'error': 'Not found'})

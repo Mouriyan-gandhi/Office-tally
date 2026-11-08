@@ -194,3 +194,29 @@ class PostgresIntegrationTests(unittest.TestCase):
         with store.transaction() as db:
             self.assertEqual(db.execute('SELECT COUNT(*) FROM history_periods').fetchone()[0],1)
         self.assertNotEqual(self.client.get('/api/ledger-history?ledger=Unknown').status_code,200)
+
+    def test_native_invoice_queue_private_pdf_and_document_access(self):
+        import base64
+        self.masters()
+        response=self.post('drafts',{'mode':'live','draft':invoice()})
+        self.assertEqual(response.status_code,200,response.text)
+        draft=self.client.get('/api/state?mode=live').json()['drafts'][0]
+        self.assertEqual(self.post('approve',{'mode':'live','id':draft['id'],'version':draft['version'],'confirmation':'Upkar Agency'}).status_code,200)
+        job=self.post('connector/poll',{},True).json()['job']
+        response=self.post('connector/result',{'id':job['id'],'lease':job['lease'],'status':'posted','message':'Created'},True)
+        self.assertEqual(response.status_code,200,response.text)
+        request=self.post('connector/poll-invoice',{},True).json()['request']
+        self.assertEqual(request['target']['key'],job['id'])
+        self.assertIsNone(self.post('connector/poll-read',{},True).json()['request'])
+        pdf=b'%PDF-1.4\nSynthetic native export fixture\n%%EOF'
+        with patch('app.cloud.put_file') as put:
+            response=self.post('connector/invoice-result',{'id':request['id'],'lease':request['lease'],'pdf':base64.b64encode(pdf).decode()},True)
+            self.assertEqual(response.status_code,200,response.text)
+            put.assert_called_once()
+        response=self.client.get('/api/invoice-status',params={'id':request['id']})
+        self.assertEqual(response.status_code,200,response.text)
+        self.assertEqual(response.json()['status'],'ready')
+        document=response.json()['document_id']
+        with patch('app.cloud.get_file',return_value=pdf):
+            self.assertEqual(self.client.get('/api/documents/'+document).content,pdf)
+        self.assertEqual(self.client.get('/api/reports').json()['reports'],[])

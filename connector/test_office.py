@@ -53,6 +53,8 @@ def main():
                         status,message=process(job,masters,journal,9000,True)
                         cloud.send('result',{'id':job['id'],'lease':job['lease'],'status':status,'message':message})
                         print('TEST voucher: '+status+' — '+message,flush=True)
+                    from connector.invoice_pdf import serve
+                    serve(cloud,9000,COMPANY)
                 except Exception as error:
                     print('Test connector unavailable ('+type(error).__name__+'). Check test company and port 9000.',flush=True)
                 stop.wait(5)

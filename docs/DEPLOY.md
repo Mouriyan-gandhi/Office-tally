@@ -186,3 +186,40 @@ after 60 seconds) and richer party/reference/type metadata. Older periods are
 eligible after one hour and are swept in the background; total sweep time depends
 on history size. While Tally/Windows is unavailable, registers show their previous
 cached data and timestamps. No SQL migration beyond history migration 2 is needed.
+
+## Native Tally invoice PDFs and sharing
+
+Sales/Purchase posting now queues a separate read-only native invoice export.
+The PDF path uses Tally's `Printed Invoice` report and its own logo, address, GST,
+bank and print settings; no values from the supplied sample invoice are embedded
+in code. Existing synced register vouchers can also request a native invoice.
+Requests reuse `report_requests`; PDFs use the existing private `documents` table
+and private Storage bucket. No new database migration is required.
+
+Invoice PDF / WhatsApp opens the private PDF request. Once ready, Download PDF
+returns the original Tally bytes. On browsers supporting file sharing, Share invoice
+opens the native share sheet so the user can choose WhatsApp and the recipient.
+Other browsers download the PDF and instruct the user to attach it manually. A
+wa.me link cannot attach the private PDF; there are no public document links or
+automatic WhatsApp sends. A purchase invoice's exact print format still needs a
+purchase sample and Windows-side verification.
+
+Native PDF export is implemented but **not yet verified on the office Tally 7.1
+installation**. An unsupported report/HTTP PDF export fails explicitly, leaving
+voucher posting status unchanged. No recreated HTML summary is labelled as a Tally
+invoice. If needed, the read-only check is:
+
+`py -m connector.invoice_pdf --key VOUCHER_GUID --date YYYY-MM-DD --kind Sales --output native-invoice-check.pdf`
+
+Use an identity from synced history (not just the printed voucher number). This
+command exports an existing voucher and never imports or changes one. The output
+file must not already exist. Comparing this PDF with the user-supplied invoice is
+required before claiming exact-format compatibility. New PDF requests can be made
+with Refresh PDF; previously downloaded versions remain unchanged.
+
+Slow first loads may be Render Free cold starts (after 15 idle minutes); an active
+connector normally keeps traffic flowing. Each protected request also verifies
+Supabase admin status and opens a PostgreSQL transaction. Transaction setup now
+batches role/search-path/timeout/locking setup into one round trip while preserving
+fresh admin checks and RLS. The UI displays working feedback during requests. No
+paid hosting changes are made automatically.

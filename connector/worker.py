@@ -15,6 +15,7 @@ from connector.xml_vouchers import build
 from app.domain import normalize_draft, require_masters
 from app.reporting import request_xml, flatten
 from connector.history import read_period, failure_reason
+from connector.network import reason as network_reason
 
 from app.company import COMPANY
 
@@ -86,7 +87,7 @@ class Cloud:
         class NoRedirect(urllib.request.HTTPRedirectHandler):
             def redirect_request(self, *_args, **_kwargs):
                 return None
-        with urllib.request.build_opener(NoRedirect).open(request, timeout=30) as response:
+        with urllib.request.build_opener(NoRedirect).open(request, timeout=90) as response:
             raw = response.read(MAX_RESPONSE + 1)
             if len(raw) > MAX_RESPONSE:
                 raise ValueError('App response too large')
@@ -191,6 +192,11 @@ def main():
                     if job:
                         status, message = process(job, masters, journal, args.port, allow)
                         cloud.send('result', {'id': job['id'], 'lease': job['lease'], 'status': status, 'message': message})
+                try:
+                    from connector.invoice_pdf import serve
+                    serve(cloud,args.port,COMPANY)
+                except Exception:
+                    print('Native invoice service unavailable; voucher posting is unchanged.',flush=True)
                 print('Master sync complete.', flush=True)
                 # Independent of posting and report processing: history failures must
                 # never stop master sync or erase previously saved periods.
@@ -211,7 +217,7 @@ def main():
                     print('History sync unavailable; master sync remains active.',flush=True)
 
             except Exception as error:
-                print('Connection check failed (' + type(error).__name__ + '). Check Tally and app availability.', flush=True)
+                print(('Connection check failed: '+network_reason(error)) if isinstance(error,urllib.error.URLError) else ('Local Tally/app check failed ('+type(error).__name__+'). Verify company, Tally port and app availability.'),flush=True)
                 if args.once:
                     raise SystemExit(1) from None
             if args.once:

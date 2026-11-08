@@ -18,3 +18,5 @@ dialog[open]{display:flex;flex-direction:column;max-height:calc(100dvh - 32px)}.
 @media(min-width:901px) and (max-width:1150px){.editor-layout{grid-template-columns:minmax(0,1fr)}.editor-layout .summary{position:static}.item-row{gap:12px}}
 
 .item-row .item-name,.item-row .godown-field{grid-row:1}.item-row .unit-field{grid-column:1;grid-row:2}.item-row .quantity-field{grid-column:2;grid-row:2}.item-row .rate-field{grid-column:3;grid-row:2}.item-row .discount-field{grid-column:4;grid-row:2}.item-row .line-total,.item-row .remove-row{grid-row:2}
+
+body.is-working{cursor:progress}body.is-working::after{content:'Working…';position:fixed;top:12px;right:18px;padding:8px 14px;border-radius:8px;background:var(--dark);color:#fff;font-size:13px;z-index:100;pointer-events:none}dialog[open] .btn:active{transform:translateY(1px)}
