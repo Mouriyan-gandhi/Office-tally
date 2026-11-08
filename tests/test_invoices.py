@@ -15,7 +15,7 @@ class NativeInvoiceTests(unittest.TestCase):
     def tearDown(self):store.DATA=self.original;self.temp.cleanup()
     def request(self):
         with store.transaction() as db:
-            db.execute('INSERT INTO drafts VALUES(?,?,?,?,?,?,?,?)',('draft','live',json.dumps({'kind':'Sales','date':'2026-11-02','party':'Test buyer'}),'posted',1,1,1,'owner'))
+            db.execute('INSERT INTO drafts VALUES(?,?,?,?,?,?,?,?)',('draft','live',json.dumps({'kind':'Sales','date':'2026-11-02','party':'Test buyer','total':'118.00','voucher_number':'SYNTHETIC-1'}),'posted',1,1,1,'owner'))
             db.execute('INSERT INTO jobs(id,draft_id,payload,status,created) VALUES(?,?,?,?,?)',('abc123','draft','{}','posted',1))
             result=invoices.request(db,{'draft_id':'draft'},'owner')
             self.assertEqual(invoices.request(db,{'draft_id':'draft'},'owner')['id'],result['id'])
@@ -56,3 +56,33 @@ class NativeInvoiceTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'did not return a native PDF'):export_pdf(9000,'Upkar Agency',target)
         with patch('connector.invoice_pdf.exchange',return_value=voucher):
             with self.assertRaisesRegex(ValueError,'identity did not match'):export_pdf(9000,'Upkar Agency',target|{'key':'different'})
+
+    def test_external_job_id_resolves_unique_manual_invoice_with_amount_verification(self):
+        target={'key':'abc123','kind':'Sales','date':'2026-11-02','party':'Test buyer','number':'SYNTHETIC-1','total':'118','source':'posted_app'}
+        voucher=b'<ENVELOPE><COLLECTION><VOUCHER><GUID>different-native-guid</GUID><MASTERID> 42 </MASTERID><DATE>20261102</DATE><VOUCHERTYPENAME>Sales</VOUCHERTYPENAME><VOUCHERNUMBER>SYNTHETIC-1</VOUCHERNUMBER><PARTYLEDGERNAME>Test buyer</PARTYLEDGERNAME><LEDGERENTRIES.LIST><LEDGERNAME>Test buyer</LEDGERNAME><AMOUNT>-118.00</AMOUNT></LEDGERENTRIES.LIST></VOUCHER></COLLECTION></ENVELOPE>'
+        pdf=b'%PDF-1.4\nSynthetic\n%%EOF'
+        with patch('connector.invoice_pdf.exchange',side_effect=[voucher,voucher,pdf]) as exchange:
+            self.assertEqual(export_pdf(9000,'Upkar Agency',target),pdf)
+            self.assertIn(b'$VoucherNumber',exchange.call_args_list[1].args[1])
+            self.assertIn(b'ID:42',exchange.call_args_list[2].args[1])
+        with patch('connector.invoice_pdf.exchange',side_effect=[voucher,voucher]) as exchange:
+            with self.assertRaisesRegex(ValueError,'amount did not match'):export_pdf(9000,'Upkar Agency',target|{'total':'119'})
+            self.assertEqual(exchange.call_count,2)
+        duplicate=voucher.replace(b'</COLLECTION>',voucher[voucher.index(b'<VOUCHER>'):voucher.index(b'</COLLECTION>')]+b'</COLLECTION>')
+        with patch('connector.invoice_pdf.exchange',side_effect=[voucher,duplicate]):
+            with self.assertRaisesRegex(ValueError,'ambiguous'):export_pdf(9000,'Upkar Agency',target)
+
+    def test_guid_whitespace_and_native_masterid_whitespace_are_supported(self):
+        target={'key':'ABC123','kind':'Sales','date':'2026-11-02'}
+        voucher=b'<ENVELOPE><VOUCHER><GUID> abc123 </GUID><MASTERID> 42 </MASTERID><DATE>20261102</DATE><VOUCHERTYPENAME>Sales</VOUCHERTYPENAME></VOUCHER></ENVELOPE>'
+        pdf=b'%PDF-1.4\nSynthetic\n%%EOF'
+        with patch('connector.invoice_pdf.exchange',side_effect=[voucher,pdf]):self.assertEqual(export_pdf(9000,'Upkar Agency',target),pdf)
+
+    def test_purchase_reference_resolution_checks_supplier_and_credit_amount(self):
+        target={'key':'abc123','kind':'Purchase','date':'2026-11-02','party':'Test supplier','reference':'SUP-001','total':'118','source':'posted_app'}
+        voucher=b'<ENVELOPE><VOUCHER><GUID>native-purchase</GUID><MASTERID>43</MASTERID><DATE>20261102</DATE><VOUCHERTYPENAME>Purchase</VOUCHERTYPENAME><REFERENCE>SUP-001</REFERENCE><PARTYLEDGERNAME>Test supplier</PARTYLEDGERNAME><LEDGERENTRIES.LIST><LEDGERNAME>Test supplier</LEDGERNAME><AMOUNT>118</AMOUNT></LEDGERENTRIES.LIST></VOUCHER></ENVELOPE>'
+        pdf=b'%PDF-1.4\nSynthetic\n%%EOF'
+        with patch('connector.invoice_pdf.exchange',side_effect=[voucher,voucher,pdf]) as exchange:
+            self.assertEqual(export_pdf(9000,'Upkar Agency',target),pdf)
+            self.assertIn(b'$Reference',exchange.call_args_list[1].args[1])
+        with self.assertRaises(ValueError):lookup_request('Upkar Agency','abc123','2026-11-02',number='BAD" OR TRUE',kind='Sales')

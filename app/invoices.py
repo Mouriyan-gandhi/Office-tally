@@ -17,7 +17,8 @@ def target(db,data):
         row=db.execute("SELECT d.*,j.id AS job_id FROM drafts d JOIN jobs j ON j.draft_id=d.id WHERE d.id=? AND d.mode='live' AND d.status='posted'",(data['draft_id'],)).fetchone()
         if not row:raise ValidationError('A confirmed posted voucher is required for an invoice')
         draft=json.loads(row['payload'])
-        result={'key':row['job_id'],'kind':draft['kind'],'date':draft['date'],'party':draft['party']}
+        result={'key':row['job_id'],'kind':draft['kind'],'date':draft['date'],'party':draft['party'],
+                'number':draft.get('voucher_number',''),'reference':draft.get('reference',''),'total':draft['total'],'source':'posted_app'}
     else:
         result=None
         for period in db.execute('SELECT payload,updated FROM history_periods ORDER BY updated DESC'):

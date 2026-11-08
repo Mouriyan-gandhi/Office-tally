@@ -1,5 +1,6 @@
 """Read-only native invoice export. Never imports, alters or recreates a voucher."""
 from datetime import date
+from decimal import Decimal, InvalidOperation
 import http.client
 from pathlib import Path
 import re
@@ -19,7 +20,7 @@ def exchange(port,xml,maximum):
     finally:connection.close()
 
 
-def lookup_request(company,key,day):
+def lookup_request(company,key,day,*,number=None,reference=None,kind=None):
     if not re.fullmatch(r'[A-Za-z0-9:-]{1,160}',key):raise ValueError('Unsupported voucher identity')
     day=date.fromisoformat(day).strftime('%Y%m%d')
     root=ET.fromstring(export_request('companies',company))
@@ -28,15 +29,25 @@ def lookup_request(company,key,day):
     collection=root.find('.//COLLECTION')
     for child in list(collection):collection.remove(child)
     ET.SubElement(collection,'TYPE').text='Voucher'
-    for field in ('GUID','RemoteID','MasterID','Date','VoucherTypeName','PartyLedgerName','IsCancelled','IsOptional'):
+    for field in ('GUID','RemoteID','MasterID','Date','VoucherTypeName','VoucherNumber','Reference','PartyLedgerName','IsCancelled','IsOptional','AllLedgerEntries.*'):
         ET.SubElement(collection,'NATIVEMETHOD').text=field
     ET.SubElement(collection,'FILTERS').text='OfficeInvoiceIdentity'
-    ET.SubElement(root.find('.//TDLMESSAGE'),'SYSTEM',TYPE='Formulae',NAME='OfficeInvoiceIdentity').text=f'($GUID = "{key}") OR ($RemoteID = "{key}")'
+    if number is None and reference is None:
+        condition=f'(($GUID = "{key}") OR ($RemoteID = "{key}"))'
+    else:
+        identity=number if number is not None else reference
+        if not re.fullmatch(r'[A-Za-z0-9 /_.:-]{1,100}',identity) or kind not in ('Sales','Purchase'):
+            raise ValueError('Voucher number cannot be used for safe invoice lookup; use the synced register invoice option')
+        field='VoucherNumber' if number is not None else 'Reference'
+        condition=f'(${field} = "{identity}") AND ($VoucherTypeName = "{kind}")'
+    condition+=' AND ($Date >= ##SVFromDate) AND ($Date <= ##SVToDate)'
+    ET.SubElement(root.find('.//TDLMESSAGE'),'SYSTEM',TYPE='Formulae',NAME='OfficeInvoiceIdentity').text=condition
     return ET.tostring(root,encoding='utf-8')
 
 
 def pdf_request(company,master_id):
-    if not re.fullmatch(r'[0-9]{1,15}',str(master_id)):raise ValueError('Invalid native voucher ID')
+    master_id=str(master_id).strip()
+    if not re.fullmatch(r'[0-9]{1,15}',master_id):raise ValueError('Invalid native voucher ID')
     root=ET.Element('ENVELOPE');header=ET.SubElement(root,'HEADER')
     for name,value in [('VERSION','1'),('TALLYREQUEST','Export'),('TYPE','Data'),('ID','OfficeNativeInvoice')]:ET.SubElement(header,name).text=value
     desc=ET.SubElement(ET.SubElement(root,'BODY'),'DESC');variables=ET.SubElement(desc,'STATICVARIABLES')
@@ -51,18 +62,59 @@ def pdf_request(company,master_id):
     return ET.tostring(root,encoding='utf-8')
 
 
+def normalized_identity(value):
+    value=str(value or '').strip()
+    # Hexadecimal GUID casing is cosmetic. Other external IDs stay case-sensitive.
+    return value.casefold() if re.fullmatch(r'[0-9a-fA-F-]+',value) else value
+
+
+def verify_voucher(voucher,target):
+    if voucher.findtext('VOUCHERTYPENAME','').strip()!=target['kind'] or voucher.findtext('DATE','').strip()!=target['date'].replace('-',''):
+        raise ValueError('Native voucher type/date changed; refresh before exporting')
+    if target.get('party') and voucher.findtext('PARTYLEDGERNAME','').strip()!=target['party'].strip():
+        raise ValueError('Native voucher party did not match')
+    if any(voucher.findtext(tag,'').strip().casefold()=='yes' for tag in ('ISCANCELLED','ISOPTIONAL')):
+        raise ValueError('Cancelled/optional voucher has no final invoice')
+
+
+def resolve_voucher(port,company,target):
+    root=parse_response(exchange(port,lookup_request(company,target['key'],target['date']),1024*1024))
+    vouchers=list(root.iter('VOUCHER'))
+    matches=[v for v in vouchers if normalized_identity(target['key']) in {
+        normalized_identity(v.get('REMOTEID')),normalized_identity(v.get('GUID')),
+        normalized_identity(v.findtext('GUID')),normalized_identity(v.findtext('REMOTEID'))}]
+    if len(matches)==1:
+        verify_voucher(matches[0],target)
+        return matches[0]
+    if len(matches)>1:raise ValueError('Native voucher identity was ambiguous; no PDF returned')
+    # An external import/job ID is not assumed to be Tally's native GUID.
+    # Resolve a posted app voucher using its exact number + date + type, then
+    # independently verify party and signed party amount. Never select by amount alone.
+    number=target.get('number') or None
+    reference=target.get('reference') if target['kind']=='Purchase' and not number else None
+    if target.get('source')!='posted_app' or not (number or reference) or not target.get('party') or not target.get('total'):
+        raise ValueError('Native voucher identity did not match; use this voucher from the synced Sales/Purchase register to export by its native GUID')
+    root=parse_response(exchange(port,lookup_request(company,target['key'],target['date'],number=number,reference=reference,kind=target['kind']),1024*1024))
+    candidates=list(root.iter('VOUCHER'))
+    exact=[v for v in candidates if v.findtext('VOUCHERNUMBER' if number else 'REFERENCE','').strip()==(number or reference).strip() and
+           (number is not None or v.findtext('PARTYLEDGERNAME','').strip()==target['party'].strip()) and
+           v.findtext('DATE','').strip()==target['date'].replace('-','') and
+           v.findtext('VOUCHERTYPENAME','').strip()==target['kind']]
+    if len(exact)!=1:raise ValueError('Native voucher number/date/type was missing or ambiguous; no PDF returned')
+    voucher=exact[0];verify_voucher(voucher,target)
+    try:
+        amounts=[-Decimal(v.findtext('AMOUNT','').replace(',','').strip()) for v in voucher
+                 if v.tag in ('ALLLEDGERENTRIES.LIST','LEDGERENTRIES.LIST') and v.findtext('LEDGERNAME','').strip()==target['party'].strip()]
+        expected=Decimal(target['total'])*(1 if target['kind']=='Sales' else -1)
+        if not amounts or not expected.is_finite() or any(not a.is_finite() for a in amounts) or sum(amounts,Decimal(0))!=expected:
+            raise ValueError('Native voucher party amount did not match; no PDF returned')
+    except InvalidOperation:raise ValueError('Native voucher amount could not be verified') from None
+    return voucher
+
+
 def export_pdf(port,company,target):
     if target.get('kind') not in ('Sales','Purchase'):raise ValueError('Only Sales and Purchase invoices are supported')
-    raw=exchange(port,lookup_request(company,target['key'],target['date']),1024*1024)
-    root=parse_response(raw);vouchers=list(root.iter('VOUCHER'))
-    if len(vouchers)!=1:raise ValueError('Native voucher identity could not be resolved uniquely; no PDF returned')
-    voucher=vouchers[0]
-    identities={voucher.get('REMOTEID'),voucher.findtext('GUID'),voucher.findtext('REMOTEID')}
-    if target['key'] not in identities:raise ValueError('Native voucher identity did not match')
-    if voucher.findtext('VOUCHERTYPENAME')!=target['kind'] or voucher.findtext('DATE')!=target['date'].replace('-',''):
-        raise ValueError('Native voucher type/date changed; refresh before exporting')
-    if target.get('party') and voucher.findtext('PARTYLEDGERNAME')!=target['party']:raise ValueError('Native voucher party did not match')
-    if any(voucher.findtext(tag,'').casefold()=='yes' for tag in ('ISCANCELLED','ISOPTIONAL')):raise ValueError('Cancelled/optional voucher has no final invoice')
+    voucher=resolve_voucher(port,company,target)
     pdf=exchange(port,pdf_request(company,voucher.findtext('MASTERID','')),MAX_PDF)
     if not pdf.startswith(b'%PDF-') or b'%%EOF' not in pdf[-2048:]:
         raise ValueError('Tally did not return a native PDF. Windows export compatibility needs verification; no substitute invoice was generated')

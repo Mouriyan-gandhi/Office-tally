@@ -223,3 +223,15 @@ Supabase admin status and opens a PostgreSQL transaction. Transaction setup now
 batches role/search-path/timeout/locking setup into one round trip while preserving
 fresh admin checks and RLS. The UI displays working feedback during requests. No
 paid hosting changes are made automatically.
+
+### Native voucher identity mapping
+
+An application posting ID is not assumed to equal Tally's native GUID. PDF lookup
+first tries an exact native/remote identity. A posted app invoice can instead be
+resolved by exact voucher number/date/type and verified party/signed total. For
+automatically numbered purchases the supplier reference is checked with the same
+party/date/type/amount guards. Missing or ambiguous matches fail without exporting.
+Register invoices use their synced native identity directly. Whitespace around
+native Master IDs is stripped before constructing the read-only print request.
+After updating the backend and connector, request a fresh PDF version; an old queued
+request may not contain the additional lookup metadata. No voucher retry is needed.
