@@ -185,7 +185,7 @@ Update/restart the Windows connector for current-month priority refresh (eligibl
 after 60 seconds) and richer party/reference/type metadata. Older periods are
 eligible after one hour and are swept in the background; total sweep time depends
 on history size. While Tally/Windows is unavailable, registers show their previous
-cached data and timestamps. No SQL migration beyond history migration 2 is needed.
+cached data and timestamps. Registers require history migration 2; native PDFs additionally require migration 3.
 
 ## Native Tally invoice PDFs and sharing
 
@@ -194,7 +194,7 @@ The PDF path uses Tally's `Printed Invoice` report and its own logo, address, GS
 bank and print settings; no values from the supplied sample invoice are embedded
 in code. Existing synced register vouchers can also request a native invoice.
 Requests reuse `report_requests`; PDFs use the existing private `documents` table
-and private Storage bucket. No new database migration is required.
+and private Storage bucket. Run migration 3 (`202611080003_invoices.sql`) in Supabase SQL Editor first; it adds invoice exports to the existing queue's report-type constraint. Until then, posting and register sync continue and PDFs are disabled.
 
 Invoice PDF / WhatsApp opens the private PDF request. Once ready, Download PDF
 returns the original Tally bytes. On browsers supporting file sharing, Share invoice

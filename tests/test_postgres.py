@@ -28,6 +28,7 @@ class PostgresIntegrationTests(unittest.TestCase):
                     db.execute(sql.SQL('CREATE ROLE {} NOLOGIN').format(sql.Identifier(role)))
             db.execute(Path('supabase/migrations/202611070001_office.sql').read_text())
             db.execute(Path('supabase/migrations/202611070002_history.sql').read_text())
+            db.execute(Path('supabase/migrations/202611080003_invoices.sql').read_text())
     @classmethod
     def tearDownClass(cls):cls.env.stop()
     def setUp(self):

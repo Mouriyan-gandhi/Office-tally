@@ -9,6 +9,9 @@ from app import cloud,store
 from app.domain import ValidationError
 
 
+def available(db):
+    return not cloud.enabled() or bool(db.execute('SELECT version FROM schema_migrations WHERE version=3').fetchone())
+
 def target(db,data):
     if data.get('draft_id'):
         row=db.execute("SELECT d.*,j.id AS job_id FROM drafts d JOIN jobs j ON j.draft_id=d.id WHERE d.id=? AND d.mode='live' AND d.status='posted'",(data['draft_id'],)).fetchone()
@@ -29,6 +32,7 @@ def target(db,data):
 
 
 def request(db,data,actor):
+    if not available(db):raise ValidationError('Run the native invoice database update (migration 3) before requesting PDFs')
     params=target(db,data)
     # Reuse a pending or ready request; explicit refresh creates a new PDF version.
     if not data.get('refresh'):
@@ -51,6 +55,7 @@ def status(db,identifier):
 
 
 def poll(db):
+    if not available(db):return None
     db.execute("UPDATE report_requests SET status='queued',lease=NULL WHERE report='invoice' AND status='reading' AND updated<?",(time.time()-180,))
     row=db.execute("SELECT * FROM report_requests WHERE report='invoice' AND status='queued' ORDER BY created LIMIT 1").fetchone()
     if not row:return None

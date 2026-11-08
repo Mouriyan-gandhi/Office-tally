@@ -518,7 +518,13 @@ class Handler(BaseHTTPRequestHandler):
                 db.execute('UPDATE drafts SET status=?,updated=?,version=version+1 WHERE id=?', (status, time.time(), job['draft_id']))
                 if status=='posted':
                     payload=json.loads(job['payload'])
-                    if payload['kind'] in ('Sales','Purchase'):invoices.request(db,{'draft_id':job['draft_id']},'connector')
+                    if payload['kind'] in ('Sales','Purchase') and invoices.available(db):
+                        db.execute('SAVEPOINT native_invoice_queue')
+                        try:invoices.request(db,{'draft_id':job['draft_id']},'connector')
+                        except Exception:
+                            db.execute('ROLLBACK TO SAVEPOINT native_invoice_queue')
+                            store.audit(db,'connector','invoice_export_deferred',job['draft_id'])
+                        finally:db.execute('RELEASE SAVEPOINT native_invoice_queue')
                 store.audit(db, 'connector', status, job['draft_id'])
                 return self.respond(200, {'ok': True})
             return self.respond(404, {'error': 'Not found'})
