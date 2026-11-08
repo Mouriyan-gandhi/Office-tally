@@ -60,6 +60,7 @@ def poll(db):
 
 
 def receive(data):
+    class AlreadyCompleted(Exception):pass
     def check(db):
         row=db.execute("SELECT * FROM report_requests WHERE report='invoice' AND id=?",(data.get('id'),)).fetchone()
         if not row or not row['lease'] or not hmac.compare_digest(row['lease'],str(data.get('lease',''))):raise PermissionError('Invalid invoice lease')
@@ -82,10 +83,15 @@ def receive(data):
     try:
         with store.transaction() as db:
             row=check(db)
+            if row['status'] in ('ready','failed'):raise AlreadyCompleted()
             db.execute('INSERT INTO documents VALUES(?,?,?,?,?,?)',(identifier,'live','Tally-invoice.pdf','application/pdf',key,time.time()))
             result={'rows':[],'document_id':identifier,'filename':'Tally-invoice.pdf','note':'Original PDF returned by Tally, using its native print layout.'}
             db.execute("UPDATE report_requests SET status='ready',result=?,updated=? WHERE id=?",(json.dumps(result),time.time(),data['id']))
             store.audit(db,'connector','native_invoice_received',identifier)
+    except AlreadyCompleted:
+        if cloud.enabled():cloud.delete_file(key)
+        else:Path(key).unlink(missing_ok=True)
+        return {'ok':True}
     except Exception:
         if cloud.enabled():cloud.delete_file(key)
         else:Path(key).unlink(missing_ok=True)

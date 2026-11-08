@@ -49,24 +49,25 @@ document.addEventListener('submit',event=>{if(event.target.id!=='register-filter
 let invoiceView=null,invoiceTimer=null;
 async function openNativeInvoice(source){
  if(state.mode!=='live')throw Error('Native invoices are available for posted Tally vouchers in the Tally workspace.');
- clearTimeout(invoiceTimer);invoiceView={source,file:null};
- dialog('Tally invoice PDF','<p>Requesting the original invoice from the office connector…</p>');
+ clearTimeout(invoiceTimer);invoiceView={source,file:null};const view=invoiceView;
+ dialog('Tally invoice PDF','<div id="native-invoice-panel"><p>Requesting the original invoice from the office connector…</p></div>');
  const result=await api('request-invoice',{...source,mode:'live'});
+ if(invoiceView!==view||!modal.open||!$('#native-invoice-panel'))return;
  invoiceView.id=result.id;await refreshNativeInvoice();
 }
 async function refreshNativeInvoice(){
- const view=invoiceView;if(!view?.id||!modal.open)return;
+ const view=invoiceView;if(!view?.id||!modal.open||!$('#native-invoice-panel'))return;
  const result=await api('invoice-status?id='+encodeURIComponent(view.id));
- if(invoiceView!==view||!modal.open)return;
+ if(invoiceView!==view||!modal.open||!$('#native-invoice-panel'))return;
  if(result.status==='ready'){
   const response=await fetch('/api/documents/'+encodeURIComponent(result.document_id),{credentials:'same-origin'});
   if(!response.ok)throw Error('Sign in again or refresh to download the private invoice.');
-  const blob=await response.blob();view.file=new File([blob],result.filename||'Tally-invoice.pdf',{type:'application/pdf'});
-  dialog('Original Tally invoice',`<div class="notice green">The original PDF is ready. It uses Tally’s print layout and company details.</div><p class="mt">On phones that support file sharing, choose WhatsApp from the share sheet and select the recipient. Otherwise download the PDF and attach it in WhatsApp.</p><p class="field-help mt">This file is private. No public invoice link is created and nothing is sent automatically.</p>`,`<button class="btn" data-action="download-native-invoice">${icon('down')} Download PDF</button><button class="btn primary" data-action="share-native-invoice">${icon('whatsapp')} Share invoice</button><button class="btn" data-action="refresh-native-invoice">Get updated PDF</button>`);
+  const blob=await response.blob();if(invoiceView!==view||!modal.open||!$('#native-invoice-panel'))return;view.file=new File([blob],result.filename||'Tally-invoice.pdf',{type:'application/pdf'});
+  dialog('Original Tally invoice',`<div id="native-invoice-panel"><div class="notice green">The original PDF is ready. It uses Tally’s print layout and company details.</div><p class="mt">On phones that support file sharing, choose WhatsApp from the share sheet and select the recipient. Otherwise download the PDF and attach it in WhatsApp.</p><p class="field-help mt">This file is private. No public invoice link is created and nothing is sent automatically.</p></div>`,`<button class="btn" data-action="download-native-invoice">${icon('down')} Download PDF</button><button class="btn primary" data-action="share-native-invoice">${icon('whatsapp')} Share invoice</button><button class="btn" data-action="refresh-native-invoice">Get updated PDF</button>`);
  }else if(result.status==='failed'){
-  dialog('Invoice export needs checking',`<div class="notice error">${esc(result.error||'Tally did not return its native PDF.')}</div><p class="mt">Your voucher’s posting status is unchanged. Do not submit another sale to obtain an invoice.</p>`,`<button class="btn" data-action="refresh-native-invoice">Retry PDF export only</button>`);
+  dialog('Invoice export needs checking',`<div id="native-invoice-panel"><div class="notice error">${esc(result.error||'Tally did not return its native PDF.')}</div><p class="mt">Your voucher’s posting status is unchanged. Do not submit another sale to obtain an invoice.</p></div>`,`<button class="btn" data-action="refresh-native-invoice">Retry PDF export only</button>`);
  }else{
-  dialog('Waiting for Tally invoice',`<p>The office connector will export this already saved voucher. Keep Tally and the connector running.</p><p class="field-help mt">This does not create or submit another voucher.</p>`,`<button class="btn" data-action="check-native-invoice">${icon('refresh')} Check status</button>`);
+  dialog('Waiting for Tally invoice',`<div id="native-invoice-panel"><p>The office connector will export this already saved voucher. Keep Tally and the connector running.</p><p class="field-help mt">This does not create or submit another voucher.</p></div>`,`<button class="btn" data-action="check-native-invoice">${icon('refresh')} Check status</button>`);
   invoiceTimer=setTimeout(()=>run(refreshNativeInvoice),5000);
  }
 }
