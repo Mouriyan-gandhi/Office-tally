@@ -143,7 +143,11 @@ def register(db, kind, snapshot, start='', end='', offset=0, limit=200):
     rows.sort(key=lambda v:(v['date'],v['id']),reverse=True)
     ready=[p for p in coverage if p['synced_at']]
     import hashlib
-    revision=hashlib.sha256(json.dumps([(p['start'],p['end_date'],p['updated'],p['error']) for p in cached]).encode()).hexdigest()
+    digest=hashlib.sha256()
+    for period in cached:
+        digest.update(json.dumps([period['start'],period['end_date'],period['updated'],period['error']]).encode())
+        digest.update(period['payload'].encode())
+    revision=digest.hexdigest()
     return {'revision':revision,'rows':rows[offset:offset+limit],'count':len(rows),'offset':offset,'limit':limit,
             'from':first.isoformat(),'to':last.isoformat(),'coverage':coverage,
             'complete':all(p['status']=='cached' for p in coverage),

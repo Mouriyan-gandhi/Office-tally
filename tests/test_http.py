@@ -159,3 +159,12 @@ class HTTPTests(unittest.TestCase):
         self.assertEqual(self.approve(first,'live')[0],200)
         second=self.draft('live',invoice()|{'voucher_number':'TEST-1'})
         self.assertIn('voucher number was already submitted',self.approve(second,'live')[1]['error'])
+
+    def test_pdf_queue_failure_does_not_rollback_posting_confirmation(self):
+        self.masters();draft=self.draft('live',invoice())
+        self.assertEqual(self.approve(draft,'live')[0],200)
+        _,reply=self.request('POST','/api/connector/poll',{},device=True);job=reply['job']
+        with patch('app.invoices.request',side_effect=ValueError('Synthetic PDF failure')):
+            status,result=self.request('POST','/api/connector/result',{'id':job['id'],'lease':job['lease'],'status':'posted','message':'Created'},device=True)
+            self.assertEqual(status,200,result)
+        with store.transaction() as db:self.assertEqual(db.execute('SELECT status FROM drafts WHERE id=?',(draft['id'],)).fetchone()[0],'posted')

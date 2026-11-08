@@ -105,3 +105,11 @@ class HistoryTests(unittest.TestCase):
         history.accept(self.db,p|{'vouchers':[]})
         p=history.poll(self.db,'2026-10-01')
         self.assertEqual(p['from'],'2026-10-01')
+
+    def test_export_revision_detects_changes_with_same_timestamp(self):
+        with patch('app.history.time.time',return_value=123456):
+            self.save(self.sample())
+            before=history.register(self.db,'Sales',{},'2026-11-01','2026-11-30')['revision']
+            self.save([self.sample()[0]|{'number':'CHANGED-IN-SAME-TICK'}])
+            after=history.register(self.db,'Sales',{},'2026-11-01','2026-11-30')['revision']
+        self.assertNotEqual(before,after)
