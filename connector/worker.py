@@ -58,7 +58,7 @@ def snapshot(port):
     books_from = next((row.findtext('BOOKSFROM','') for row in company.iter('COMPANY') if (row.get('NAME') or row.findtext('NAME')) == COMPANY), '')
     return {'company': COMPANY, 'books_from': books_from,
         'godowns':[{'name':v.get('NAME') or v.findtext('NAME','')} for v in godowns.iter('GODOWN')],
-        'voucher_types':[{'name':v.get('NAME') or v.findtext('NAME',''),'numbering':v.findtext('NUMBERINGMETHOD','')} for v in types.iter('VOUCHERTYPE')], 'ledgers': [
+        'voucher_types':[{'name':v.get('NAME') or v.findtext('NAME',''),'numbering':v.findtext('NUMBERINGMETHOD',''),'parent':v.findtext('PARENT','')} for v in types.iter('VOUCHERTYPE')], 'ledgers': [
         {'name': row.get('NAME') or row.findtext('NAME') or '', 'group': category(row.findtext('PARENT', '')), 'parent':row.findtext('PARENT',''),
          'balance': balance(row.findtext('CLOSINGBALANCE', '')), 'billwise': yes(row.findtext('ISBILLWISEON'))}
         for row in ledgers.iter('LEDGER')], 'stock': [

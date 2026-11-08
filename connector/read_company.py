@@ -8,7 +8,7 @@ import xml.etree.ElementTree as ET
 MAX_RESPONSE = 16 * 1024 * 1024
 COLLECTIONS = {
     'godowns': ('Godown', ('Name',)),
-    'voucher_types': ('VoucherType', ('Name','NumberingMethod')),
+    'voucher_types': ('VoucherType', ('Name','NumberingMethod','Parent')),
     'groups': ('Group', ('Name', 'Parent')),
     'companies': ('Company', ('Name', 'BooksFrom')),
     'ledgers': ('Ledger', ('Name', 'Parent', 'ClosingBalance', 'IsBillWiseOn')),

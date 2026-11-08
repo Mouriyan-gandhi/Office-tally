@@ -17,7 +17,7 @@ def request_xml(company, start, end):
     collection = root.find('.//COLLECTION')
     for child in list(collection): collection.remove(child)
     ET.SubElement(collection, 'TYPE').text = 'Voucher'
-    for field in ('GUID','MasterID','AlterID','Date','VoucherTypeName','VoucherNumber','Narration','IsCancelled','IsOptional','AllLedgerEntries.*'):
+    for field in ('GUID','MasterID','AlterID','Date','VoucherTypeName','VoucherNumber','Narration','IsCancelled','IsOptional','PartyLedgerName','Reference','AllLedgerEntries.*'):
         ET.SubElement(collection, 'NATIVEMETHOD').text = field
     ET.SubElement(collection, 'FILTERS').text = 'OfficeHistoryPeriod'
     system = ET.SubElement(root.find('.//TDLMESSAGE'), 'SYSTEM', TYPE='Formulae', NAME='OfficeHistoryPeriod')
@@ -52,7 +52,7 @@ def vouchers(root, start, end):
         if not lines and not (cancelled or optional):
             raise ValueError('Voucher ledger allocations were not returned')
         result.append({'id':identifier,'date':day,'kind':node.findtext('VOUCHERTYPENAME',''),
-            'number':node.findtext('VOUCHERNUMBER',''),'narration':node.findtext('NARRATION',''),
+            'number':node.findtext('VOUCHERNUMBER',''),'party':node.findtext('PARTYLEDGERNAME',''),'reference':node.findtext('REFERENCE',''),'narration':node.findtext('NARRATION',''),
             'cancelled':cancelled,'optional':optional,'lines':lines})
         if len(result)>5000: raise ValueError('History period too large; no partial history saved')
     return result

@@ -65,3 +65,43 @@ class HistoryTests(unittest.TestCase):
         self.assertIn('date filter',failure_reason(ValueError('Tally returned vouchers outside the requested period')))
         self.assertIn('45 seconds',failure_reason(TimeoutError()))
         self.assertNotIn('private-party-secret',failure_reason(ValueError('private-party-secret')))
+
+    def test_register_includes_tally_vouchers_without_app_drafts_and_no_duplicates(self):
+        self.save(self.sample())
+        snap={'ledgers':[{'name':'Test customer','group':'Sundry Debtors'}]}
+        result=history.register(self.db,'Sales',snap,'2026-11-01','2026-11-30')
+        self.assertEqual(result['count'],1);self.assertEqual(result['cached_total'],'118')
+        self.assertEqual(result['rows'][0]['party'],'Test customer')
+        self.assertTrue(result['complete'])
+        revision=result['revision']
+        self.save([self.sample()[0]|{'number':'ALTERED','party':'Test customer','reference':'SOURCE-REF'}])
+        result=history.register(self.db,'Sales',snap,'2026-11-01','2026-11-30')
+        self.assertEqual(result['count'],1);self.assertEqual(result['rows'][0]['number'],'ALTERED')
+        self.assertEqual(result['rows'][0]['reference'],'SOURCE-REF');self.assertNotEqual(revision,result['revision'])
+        self.save([])
+        self.assertEqual(history.register(self.db,'Sales',snap,'2026-11-01','2026-11-30')['count'],0)
+
+    def test_register_paging_custom_types_exclusions_and_pending_periods(self):
+        base=self.sample()[0]
+        self.save([base|{'id':'one','kind':'Wholesale Sale','party':'Test customer'},base|{'id':'two','optional':True},base|{'id':'three','cancelled':True}])
+        snap={'voucher_types':[{'name':'Wholesale Sale','parent':'Sales'}]}
+        result=history.register(self.db,'Sales',snap,'2026-10-01','2026-11-30',0,1)
+        self.assertEqual(result['count'],1);self.assertFalse(result['complete'])
+        self.assertEqual(result['coverage'][0]['status'],'pending')
+        self.assertEqual(history.register(self.db,'Sales',snap,'2026-10-01','2026-11-30',1,1)['rows'],[])
+        self.assertEqual(history.register(self.db,'Purchase',snap,'2026-10-01','2026-11-30')['count'],0)
+
+    def test_register_never_invents_an_unmapped_total(self):
+        self.save(self.sample())
+        result=history.register(self.db,'Sales',{},'2026-11-01','2026-11-30')
+        self.assertEqual(result['rows'][0]['total'],'');self.assertEqual(result['unmapped_totals'],1)
+        with self.assertRaises(ValidationError):history.register(self.db,'Sales',{},'bad','2026-11-30')
+        with self.assertRaises(ValidationError):history.register(self.db,'Sales',{},'2026-11-01','2026-11-30',-1)
+
+    def test_current_month_refresh_has_priority_without_starving_backfill(self):
+        self.db.execute("INSERT INTO history_periods VALUES(?,?,?,?,?,?,?)",('2026-11-01','2026-11-30','[]',1,1,None,''))
+        p=history.poll(self.db,'2026-10-01')
+        self.assertEqual(p['from'],'2026-11-01')
+        history.accept(self.db,p|{'vouchers':[]})
+        p=history.poll(self.db,'2026-10-01')
+        self.assertEqual(p['from'],'2026-10-01')

@@ -167,3 +167,22 @@ Multi-company operation is not enabled: all queues, drafts and caches currently
 belong to one pinned company. Do not change company constants to repurpose the same
 database. A second company needs a separate isolated deployment/database and connector,
 or a reviewed multi-company schema and company-specific access controls.
+
+## Sales and Purchase registers
+
+Reports → Sales/Purchase register now uses cached Tally vouchers, not app drafts.
+App-posted entries appear after history sync and are not unioned/double-counted with
+drafts. Date filtering, 200-row pages, mapped invoice totals and full selected-period
+CSV export (up to 50,000 rows) are supported. Each requested month shows pending,
+cached or failed-refresh status. Export aborts if history changes during pagination.
+
+Cancelled and optional vouchers are excluded. Custom voucher types require their
+parent mapping from the updated connector. New history exports include exact party
+and reference fields; older cache records use an unambiguous debtor/creditor/cash/bank
+ledger when possible. Unmapped totals are flagged and excluded instead of guessed.
+
+Update/restart the Windows connector for current-month priority refresh (eligible
+after 60 seconds) and richer party/reference/type metadata. Older periods are
+eligible after one hour and are swept in the background; total sweep time depends
+on history size. While Tally/Windows is unavailable, registers show their previous
+cached data and timestamps. No SQL migration beyond history migration 2 is needed.

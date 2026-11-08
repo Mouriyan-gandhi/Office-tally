@@ -162,6 +162,15 @@ class Handler(BaseHTTPRequestHandler):
             with store.transaction() as db:
                 user = self.user(db)
                 return self.respond(200, {'email': user['email'], 'role': user['role'], 'csrf': user['csrf'], 'company': COMPANY})
+        if route.path == '/api/register':
+            from urllib.parse import parse_qs
+            args=parse_qs(route.query)
+            with store.transaction() as db:
+                self.user(db)
+                if cloud.enabled() and not db.execute('SELECT version FROM schema_migrations WHERE version=2').fetchone():
+                    raise ValidationError('Install history migration 2 before opening registers')
+                return self.respond(200,history.register(db,args.get('kind',[''])[0],store.snapshot(db,'live'),
+                    args.get('from',[''])[0],args.get('to',[''])[0],args.get('offset',[0])[0],args.get('limit',[200])[0]))
         if route.path == '/api/ledger-history':
             from urllib.parse import parse_qs
             ledger = parse_qs(route.query).get('ledger',[''])[0]

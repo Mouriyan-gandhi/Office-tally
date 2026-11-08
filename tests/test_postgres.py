@@ -186,6 +186,10 @@ class PostgresIntegrationTests(unittest.TestCase):
         response=self.client.get('/api/ledger-history',params={'ledger':'Customer & Co'})
         self.assertEqual(response.status_code,200,response.text)
         self.assertEqual(response.json()['rows'][0]['debit'],'118')
+        register=self.client.get('/api/register',params={'kind':'Sales','from':first,'to':date.today().isoformat()})
+        self.assertEqual(register.status_code,200,register.text)
+        self.assertEqual(register.json()['rows'][0]['total'],'118')
+        self.assertEqual(register.json()['rows'][0]['party'],'Customer & Co')
         from app import store
         with store.transaction() as db:
             self.assertEqual(db.execute('SELECT COUNT(*) FROM history_periods').fetchone()[0],1)
