@@ -12,11 +12,18 @@ MAX_PDF=8*1024*1024
 
 def exchange(port,xml,maximum):
     connection=http.client.HTTPConnection('127.0.0.1',port,timeout=60)
+    stage='sending request'
     try:
         connection.request('POST','/',body=xml,headers={'Content-Type':'text/xml; charset=utf-8'})
-        response=connection.getresponse();raw=response.read(maximum+1)
+        stage='waiting for response headers'
+        response=connection.getresponse()
+        stage='reading response body'
+        raw=response.read(maximum+1)
         if response.status!=200 or len(raw)>maximum:raise ValueError('Tally invoice export failed or exceeded its size limit')
         return raw
+    except TimeoutError:
+        operation='PDF rendering' if maximum==MAX_PDF else 'voucher lookup'
+        raise ValueError(f'Tally {operation} timed out after 60 seconds while {stage}. Check the Windows Tally screen for an export/print dialog or prompt; do not resend the voucher') from None
     finally:connection.close()
 
 

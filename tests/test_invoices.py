@@ -86,3 +86,14 @@ class NativeInvoiceTests(unittest.TestCase):
             self.assertEqual(export_pdf(9000,'Upkar Agency',target),pdf)
             self.assertIn(b'$Reference',exchange.call_args_list[1].args[1])
         with self.assertRaises(ValueError):lookup_request('Upkar Agency','abc123','2026-11-02',number='BAD" OR TRUE',kind='Sales')
+
+    def test_timeout_identifies_operation_and_closes_connection_without_retry(self):
+        from connector.invoice_pdf import exchange, MAX_PDF
+        for maximum,operation in ((MAX_PDF,'PDF rendering'),(1024*1024,'voucher lookup')):
+            with patch('connector.invoice_pdf.http.client.HTTPConnection') as factory:
+                connection=factory.return_value
+                connection.getresponse.side_effect=TimeoutError()
+                with self.assertRaisesRegex(ValueError,operation+' timed out.*response headers'):
+                    exchange(9000,b'<ENVELOPE/>',maximum)
+                connection.request.assert_called_once()
+                connection.close.assert_called_once()
