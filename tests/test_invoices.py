@@ -139,3 +139,14 @@ class NativeInvoiceTests(unittest.TestCase):
                 self.assertEqual(invoices.request(db,source,'owner')['id'],attached['id'])
                 self.assertEqual(invoices.status(db,attached['id'])['voucher']['kind'],kind)
             self.assertEqual(db.execute('SELECT COUNT(*) FROM jobs').fetchone()[0],0)
+
+    def test_paused_pdf_dispatch_does_not_fill_queue_or_block_attachment(self):
+        self.request()
+        with store.transaction() as db:
+            db.execute("DELETE FROM report_requests")
+            for i in range(30):
+                db.execute('INSERT INTO report_requests VALUES(?,?,?,?,?,?,?,?)',(str(i),'invoice','{}','queued',None,None,1,1))
+            result=invoices.request(db,{'draft_id':'draft'},'owner',dispatch=False)
+            self.assertEqual(result['status'],'failed')
+            self.assertIn('paused',invoices.status(db,result['id'])['error'])
+            self.assertEqual(db.execute("SELECT COUNT(*) FROM report_requests WHERE status='queued'").fetchone()[0],30)

@@ -322,7 +322,7 @@ class Handler(BaseHTTPRequestHandler):
                 return self.respond(200,invoices.attach(db,data,actor))
             if path == '/api/request-invoice':
                 if PREVIEW or mode!='live':raise ValidationError('Native invoices require a confirmed Tally voucher')
-                return self.respond(200,invoices.request(db,data,actor))
+                return self.respond(200,invoices.request(db,data,actor,dispatch=os.environ.get('OFFICE_ENABLE_NATIVE_PDF')=='YES'))
             if path == '/api/request-report':
                 if PREVIEW or mode != 'live':
                     raise ValidationError('Full Tally report requests require the connected Tally workspace')

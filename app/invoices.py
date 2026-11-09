@@ -33,7 +33,7 @@ def target(db,data):
     return result
 
 
-def request(db,data,actor):
+def request(db,data,actor,*,dispatch=True):
     if not available(db):raise ValidationError('Run the native invoice database update (migration 3) before requesting PDFs')
     params=target(db,data)
     # Reuse a pending or ready request; explicit refresh creates a new PDF version.
@@ -42,11 +42,13 @@ def request(db,data,actor):
             if json.loads(row['params'])==params and row['status'] in ('queued','reading','ready'):
                 return {'id':row['id'],'status':row['status']}
     count=db.execute("SELECT COUNT(*) FROM report_requests WHERE report='invoice' AND status IN ('queued','reading')").fetchone()[0]
-    if count>=30:raise ValidationError('Wait for pending invoice exports to finish')
+    if dispatch and count>=30:raise ValidationError('Wait for pending invoice exports to finish')
     identifier=secrets.token_hex(16);now=time.time()
-    db.execute('INSERT INTO report_requests VALUES(?,?,?,?,?,?,?,?)',(identifier,'invoice',json.dumps(params),'queued',None,None,now,now))
+    status='queued' if dispatch else 'failed'
+    result=None if dispatch else json.dumps({'error':'Automatic PDF export is paused. Attach the original PDF exported from Tally or the supplier invoice.'})
+    db.execute('INSERT INTO report_requests VALUES(?,?,?,?,?,?,?,?)',(identifier,'invoice',json.dumps(params),status,result,None,now,now))
     store.audit(db,actor,'native_invoice_requested',identifier)
-    return {'id':identifier,'status':'queued'}
+    return {'id':identifier,'status':status}
 
 
 def status(db,identifier):
