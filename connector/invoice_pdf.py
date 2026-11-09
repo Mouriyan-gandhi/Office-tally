@@ -2,6 +2,7 @@
 from datetime import date
 from decimal import Decimal, InvalidOperation
 import http.client
+import os
 from pathlib import Path
 import re
 import xml.etree.ElementTree as ET
@@ -152,6 +153,11 @@ def serve(cloud,port,company):
     request=cloud.send('poll-invoice',{}).get('request')
     if not request:return
     result={'id':request['id'],'lease':request['lease']}
+    if os.environ.get('OFFICE_EXPERIMENTAL_NATIVE_PDF')!='YES':
+        result['error']=True
+        print('Native PDF export paused pending Windows compatibility verification. No PDF request was sent to Tally; voucher posting is unchanged.',flush=True)
+        cloud.send('invoice-result',result)
+        return
     try:result['pdf']=base64.b64encode(export_pdf(port,company,request['target'])).decode()
     except Exception as error:
         result['error']=True

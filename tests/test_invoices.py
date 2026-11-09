@@ -97,3 +97,13 @@ class NativeInvoiceTests(unittest.TestCase):
                     exchange(9000,b'<ENVELOPE/>',maximum)
                 connection.request.assert_called_once()
                 connection.close.assert_called_once()
+
+    def test_unverified_native_pdf_is_paused_without_contacting_tally(self):
+        from connector.invoice_pdf import serve
+        from unittest.mock import Mock
+        cloud=Mock()
+        cloud.send.return_value={'request':{'id':'test','lease':'lease','target':{}}}
+        with patch.dict('os.environ',{},clear=True), patch('connector.invoice_pdf.export_pdf') as export:
+            serve(cloud,9000,'Upkar Agency')
+            export.assert_not_called()
+        self.assertTrue(cloud.send.call_args.args[1]['error'])
