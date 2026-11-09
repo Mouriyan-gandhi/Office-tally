@@ -235,3 +235,19 @@ Register invoices use their synced native identity directly. Whitespace around
 native Master IDs is stripped before constructing the read-only print request.
 After updating the backend and connector, request a fresh PDF version; an old queued
 request may not contain the additional lookup metadata. No voucher retry is needed.
+
+
+### Original PDF attachments in Sales and Purchase registers
+
+Open either register, select a voucher's **Invoice PDF**, then **Attach original PDF**.
+Upload its existing Tally export or the supplier's original purchase invoice (PDF, up to 8 MB).
+Confirm company, party, invoice number, date and total before saving. The attachment remains
+private and is available through the same invoice button for download and phone sharing.
+The app does not automatically verify an attached PDF's contents. This does not post or
+alter a voucher, and requires no connector or database update beyond existing migration 3.
+Native automated PDF export remains paused pending Windows compatibility verification.
+
+The hosted backend also pauses native PDF dispatch by default (`OFFICE_ENABLE_NATIVE_PDF`
+is unset). Do not enable it on the live company until the export path is verified in the
+test company. Existing Windows connectors therefore do not need a new download to stop
+receiving automatic PDF tasks once this backend release is live.

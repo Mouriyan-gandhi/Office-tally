@@ -316,6 +316,10 @@ class Handler(BaseHTTPRequestHandler):
                 seed(db, actor)
                 return self.respond(200, {'ok': True})
             mode = self.mode(data)
+            if path == '/api/attach-invoice':
+                if PREVIEW or mode!='live' or user['role']!='owner':
+                    raise ForbiddenError('Only an approved admin can attach an invoice to a Tally voucher')
+                return self.respond(200,invoices.attach(db,data,actor))
             if path == '/api/request-invoice':
                 if PREVIEW or mode!='live':raise ValidationError('Native invoices require a confirmed Tally voucher')
                 return self.respond(200,invoices.request(db,data,actor))
@@ -440,7 +444,7 @@ class Handler(BaseHTTPRequestHandler):
     def connector(self, path, data):
         if path == '/api/connector/invoice-result':return self.respond(200,invoices.receive(data))
         with store.transaction() as db:
-            if path == '/api/connector/poll-invoice':return self.respond(200,{'request':invoices.poll(db)})
+            if path == '/api/connector/poll-invoice':return self.respond(200,{'request':invoices.poll(db) if os.environ.get('OFFICE_ENABLE_NATIVE_PDF')=='YES' else None})
             if path in ('/api/connector/poll-history','/api/connector/history-result'):
                 if cloud.enabled() and not db.execute('SELECT version FROM schema_migrations WHERE version=2').fetchone():
                     return self.respond(200, {'period':None, 'migration_required':2})

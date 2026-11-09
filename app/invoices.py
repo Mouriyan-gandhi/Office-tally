@@ -2,6 +2,7 @@
 import base64
 import hmac
 import json
+import os
 from pathlib import Path
 import secrets
 import time
@@ -52,7 +53,7 @@ def status(db,identifier):
     row=db.execute("SELECT * FROM report_requests WHERE id=? AND report='invoice'",(identifier,)).fetchone()
     if not row:raise ValidationError('Invoice request not found')
     result=json.loads(row['result']) if row['result'] else {}
-    return {'id':row['id'],'status':row['status'],'updated':row['updated'],**result}
+    return {'id':row['id'],'status':row['status'],'updated':row['updated'],'voucher':json.loads(row['params']),'automatic_export_enabled':os.environ.get('OFFICE_ENABLE_NATIVE_PDF')=='YES',**result}
 
 
 def poll(db):
@@ -103,3 +104,21 @@ def receive(data):
         else:Path(key).unlink(missing_ok=True)
         raise
     return {'ok':True}
+
+
+def attach(db,data,actor):
+    """Associate an admin-checked original PDF with a saved voucher, without Tally IO."""
+    if not available(db):raise ValidationError('Run native invoice migration 3 first')
+    if data.get('confirmed') is not True:
+        raise ValidationError('Confirm that the PDF company, party, invoice number, date and total match this voucher')
+    params=target(db,data)
+    document=db.execute("SELECT * FROM documents WHERE id=? AND mode='live'",(data.get('document_id'),)).fetchone()
+    if not document or document['mime']!='application/pdf':
+        raise ValidationError('Choose an uploaded PDF in the Tally workspace')
+    identifier=secrets.token_hex(16);now=time.time()
+    result={'document_id':document['id'],'filename':'Invoice.pdf','source':'admin_attachment',
+            'note':'Original PDF attached by an admin who confirmed it matches this voucher. Contents were not verified automatically.'}
+    db.execute('INSERT INTO report_requests(id,report,params,status,result,lease,created,updated) VALUES(?,?,?,?,?,?,?,?)',
+               (identifier,'invoice',json.dumps(params),'ready',json.dumps(result),None,now,now))
+    store.audit(db,actor,'invoice_pdf_attached',identifier)
+    return {'id':identifier,'status':'ready'}

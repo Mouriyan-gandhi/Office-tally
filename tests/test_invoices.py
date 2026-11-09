@@ -107,3 +107,35 @@ class NativeInvoiceTests(unittest.TestCase):
             serve(cloud,9000,'Upkar Agency')
             export.assert_not_called()
         self.assertTrue(cloud.send.call_args.args[1]['error'])
+
+    def test_admin_attachment_is_reused_and_never_reposts_voucher(self):
+        self.request()
+        with store.transaction() as db:
+            db.execute('INSERT INTO documents VALUES(?,?,?,?,?,?)',('pdf','live','Original.pdf','application/pdf','private/path',1))
+            data={'draft_id':'draft','document_id':'pdf','confirmed':True}
+            result=invoices.attach(db,data,'owner')
+            status=invoices.status(db,result['id'])
+            self.assertEqual(status['document_id'],'pdf')
+            self.assertEqual(status['source'],'admin_attachment')
+            self.assertIn('not verified automatically',status['note'])
+            self.assertEqual(invoices.request(db,{'draft_id':'draft'},'owner')['id'],result['id'])
+            self.assertEqual(db.execute('SELECT status FROM drafts').fetchone()[0],'posted')
+            self.assertEqual(db.execute('SELECT COUNT(*) FROM jobs').fetchone()[0],1)
+            for change in ({'confirmed':False},{'document_id':'missing'},{'draft_id':'missing'}):
+                with self.assertRaises(ValidationError):invoices.attach(db,data|change,'owner')
+            db.execute("UPDATE documents SET mode='demo' WHERE id='pdf'")
+            with self.assertRaises(ValidationError):invoices.attach(db,data,'owner')
+            db.execute("UPDATE documents SET mode='live',mime='image/png' WHERE id='pdf'")
+            with self.assertRaises(ValidationError):invoices.attach(db,data,'owner')
+
+    def test_both_register_types_can_store_original_pdfs_without_app_entry(self):
+        with store.transaction() as db:
+            vouchers=[{'id':kind,'kind':kind,'date':'2026-11-02','party':'Test party','cancelled':False,'optional':False} for kind in ('Sales','Purchase')]
+            db.execute('INSERT INTO history_periods VALUES(?,?,?,?,?,?,?)',('2026-11-01','2026-11-30',json.dumps(vouchers),1,1,None,''))
+            db.execute('INSERT INTO documents VALUES(?,?,?,?,?,?)',('pdf','live','Original.pdf','application/pdf','private/path',1))
+            for kind in ('Sales','Purchase'):
+                source={'voucher_id':kind}
+                attached=invoices.attach(db,source|{'document_id':'pdf','confirmed':True},'owner')
+                self.assertEqual(invoices.request(db,source,'owner')['id'],attached['id'])
+                self.assertEqual(invoices.status(db,attached['id'])['voucher']['kind'],kind)
+            self.assertEqual(db.execute('SELECT COUNT(*) FROM jobs').fetchone()[0],0)

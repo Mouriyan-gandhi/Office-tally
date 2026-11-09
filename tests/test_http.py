@@ -168,3 +168,18 @@ class HTTPTests(unittest.TestCase):
             status,result=self.request('POST','/api/connector/result',{'id':job['id'],'lease':job['lease'],'status':'posted','message':'Created'},device=True)
             self.assertEqual(status,200,result)
         with store.transaction() as db:self.assertEqual(db.execute('SELECT status FROM drafts WHERE id=?',(draft['id'],)).fetchone()[0],'posted')
+
+    def test_invoice_attachment_requires_admin_csrf_and_existing_saved_voucher(self):
+        with store.transaction() as db:
+            db.execute('INSERT INTO history_periods VALUES(?,?,?,?,?,?,?)',('2026-11-01','2026-11-30',json.dumps([{'id':'native-test','kind':'Sales','date':'2026-11-02','party':'Test buyer','cancelled':False,'optional':False}]),1,1,None,''))
+            db.execute('INSERT INTO documents VALUES(?,?,?,?,?,?)',('pdf','live','Original.pdf','application/pdf','private/path',1))
+        data={'mode':'live','voucher_id':'native-test','document_id':'pdf','confirmed':True}
+        with patch.dict('os.environ',{'OFFICE_ENABLE_NATIVE_PDF':''}):
+            self.assertIsNone(self.request('POST','/api/connector/poll-invoice',{},device=True)[1]['request'])
+        self.assertEqual(self.request('POST','/api/attach-invoice',data,headers={'X-CSRF-Token':''})[0],403)
+        status,result=self.request('POST','/api/attach-invoice',data)
+        self.assertEqual(status,200,result)
+        self.assertEqual(self.request('GET','/api/invoice-status?id='+result['id'])[1]['document_id'],'pdf')
+        self.assertEqual(self.request('POST','/api/attach-invoice',data|{'voucher_id':'missing'})[0],400)
+        with store.transaction() as db:db.execute("UPDATE users SET role='viewer'")
+        self.assertEqual(self.request('POST','/api/attach-invoice',data)[0],403)

@@ -59,16 +59,17 @@ async function refreshNativeInvoice(){
  const view=invoiceView;if(!view?.id||!modal.open||!$('#native-invoice-panel'))return;
  const result=await api('invoice-status?id='+encodeURIComponent(view.id));
  if(invoiceView!==view||!modal.open||!$('#native-invoice-panel'))return;
+ view.voucher=result.voucher;
  if(result.status==='ready'){
   const response=await fetch('/api/documents/'+encodeURIComponent(result.document_id),{credentials:'same-origin'});
   if(!response.ok)throw Error('Sign in again or refresh to download the private invoice.');
   const blob=await response.blob();if(invoiceView!==view||!modal.open||!$('#native-invoice-panel'))return;view.file=new File([blob],result.filename||'Tally-invoice.pdf',{type:'application/pdf'});
-  dialog('Original Tally invoice',`<div id="native-invoice-panel"><div class="notice green">The original PDF is ready. It uses Tally’s print layout and company details.</div><p class="mt">On phones that support file sharing, choose WhatsApp from the share sheet and select the recipient. Otherwise download the PDF and attach it in WhatsApp.</p><p class="field-help mt">This file is private. No public invoice link is created and nothing is sent automatically.</p></div>`,`<button class="btn" data-action="download-native-invoice">${icon('down')} Download PDF</button><button class="btn primary" data-action="share-native-invoice">${icon('whatsapp')} Share invoice</button><button class="btn" data-action="refresh-native-invoice">Get updated PDF</button>`);
+  dialog('Invoice PDF',`<div id="native-invoice-panel"><div class="notice green">${esc(result.note||'The invoice PDF is ready.')}</div><p class="mt">On phones that support file sharing, choose WhatsApp from the share sheet and select the recipient. Otherwise download the PDF and attach it in WhatsApp.</p><p class="field-help mt">This file is private. No public invoice link is created and nothing is sent automatically.</p></div>`,`<button class="btn" data-action="download-native-invoice">${icon('down')} Download PDF</button><button class="btn primary" data-action="share-native-invoice">${icon('whatsapp')} Share invoice</button><button class="btn" data-action="attach-invoice-pdf">Attach original PDF</button><button class="btn" data-action="refresh-native-invoice">Get updated PDF</button>`);
  }else if(result.status==='failed'){
-  dialog('Invoice export needs checking',`<div id="native-invoice-panel"><div class="notice error">${esc(result.error||'Tally did not return its native PDF.')}</div><p class="mt">Your voucher’s posting status is unchanged. Do not submit another sale to obtain an invoice.</p></div>`,`<button class="btn" data-action="refresh-native-invoice">Retry PDF export only</button>`);
+  dialog('Invoice export needs checking',`<div id="native-invoice-panel"><div class="notice error">${esc(result.error||'Tally did not return its native PDF.')}</div><p class="mt">Your voucher’s posting status is unchanged. Do not submit another sale to obtain an invoice.</p></div>`,`<button class="btn primary" data-action="attach-invoice-pdf">Attach original PDF</button><button class="btn" data-action="refresh-native-invoice">Retry PDF export only</button>`);
  }else{
-  dialog('Waiting for Tally invoice',`<div id="native-invoice-panel"><p>The office connector will export this already saved voucher. Keep Tally and the connector running.</p><p class="field-help mt">This does not create or submit another voucher.</p></div>`,`<button class="btn" data-action="check-native-invoice">${icon('refresh')} Check status</button>`);
-  invoiceTimer=setTimeout(()=>run(refreshNativeInvoice),5000);
+  dialog(result.automatic_export_enabled?'Waiting for Tally invoice':'Attach your invoice PDF',`<div id="native-invoice-panel"><p>${result.automatic_export_enabled?'The office connector will export this already saved voucher. Keep Tally and the connector running.':'Automatic PDF export is paused while Tally compatibility is checked. Attach the original PDF below to download and share it from this register.'}</p><p class="field-help mt">This does not create or submit another voucher.</p></div>`,`<button class="btn primary" data-action="attach-invoice-pdf">Attach original PDF</button><button class="btn" data-action="check-native-invoice">${icon('refresh')} Check status</button>`);
+  if(result.automatic_export_enabled)invoiceTimer=setTimeout(()=>run(refreshNativeInvoice),5000);
  }
 }
 actions['check-native-invoice']=refreshNativeInvoice;
@@ -84,3 +85,27 @@ actions['share-native-invoice']=async()=>{
  }
 };
 document.addEventListener('click',event=>{const button=event.target.closest('[data-native-invoice],[data-voucher-invoice]');if(!button)return;run(()=>openNativeInvoice(button.dataset.nativeInvoice?{draft_id:button.dataset.nativeInvoice}:{voucher_id:button.dataset.voucherInvoice}));});
+
+actions['attach-invoice-pdf']=()=>{
+ clearTimeout(invoiceTimer);
+ const voucher=invoiceView.voucher||{};
+ dialog('Attach original invoice PDF',`<form id="attach-invoice-form"><div class="notice">${esc(voucher.kind||'')} · ${esc(voucher.date||'')} · ${esc(voucher.party||'')}${voucher.number?' · '+esc(voucher.number):''}</div><p class="mt">Choose the PDF exported from Tally, or the supplier’s original purchase invoice. The app stores your file without changing its layout.</p><label for="original-invoice-file">Original PDF</label><input id="original-invoice-file" type="file" accept="application/pdf,.pdf" required><label class="mt"><input id="original-invoice-confirm" type="checkbox" style="width:22px;min-height:22px;margin-right:8px;vertical-align:middle" required> I checked that the company, party, invoice number, date and total match this voucher.</label><p class="field-help mt">The app cannot verify these details automatically. Attaching a file does not create, alter or resend a Tally voucher.</p><button class="btn primary mt" type="submit">Save invoice PDF</button></form>`);
+};
+document.addEventListener('submit',event=>{
+ if(event.target.id!=='attach-invoice-form')return;
+ event.preventDefault();
+ const view=invoiceView,file=$('#original-invoice-file').files[0],confirmed=$('#original-invoice-confirm').checked;
+ run(async()=>{
+  if(!file||!confirmed)throw Error('Choose a PDF and confirm its details.');
+  if(file.size>8*1024*1024)throw Error('Choose a PDF smaller than 8 MB.');
+  const bytes=new Uint8Array(await file.arrayBuffer());
+  if(new TextDecoder().decode(bytes.slice(0,5))!=='%PDF-'||!new TextDecoder().decode(bytes.slice(-2048)).includes('%%EOF'))throw Error('Choose a complete PDF file.');
+  const content=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result).split(',')[1]);reader.onerror=()=>reject(Error('Could not read the PDF.'));reader.readAsDataURL(file);});
+  const uploaded=await api('upload',{mode:'live',name:file.name,content});
+  const result=await api('attach-invoice',{...view.source,mode:'live',document_id:uploaded.id,confirmed:true});
+  if(invoiceView!==view)return;
+  view.id=result.id;
+  dialog('Invoice PDF','<div id="native-invoice-panel">Opening the attached invoice…</div>');
+  await refreshNativeInvoice();
+ });
+});
