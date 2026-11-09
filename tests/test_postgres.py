@@ -206,7 +206,10 @@ class PostgresIntegrationTests(unittest.TestCase):
         job=self.post('connector/poll',{},True).json()['job']
         response=self.post('connector/result',{'id':job['id'],'lease':job['lease'],'status':'posted','message':'Created'},True)
         self.assertEqual(response.status_code,200,response.text)
-        request=self.post('connector/poll-invoice',{},True).json()['request']
+        with patch.dict(os.environ,{'OFFICE_ENABLE_NATIVE_PDF':''}):
+            self.assertIsNone(self.post('connector/poll-invoice',{},True).json()['request'])
+        with patch.dict(os.environ,{'OFFICE_ENABLE_NATIVE_PDF':'YES'}):
+            request=self.post('connector/poll-invoice',{},True).json()['request']
         self.assertEqual(request['target']['key'],job['id'])
         self.assertIsNone(self.post('connector/poll-read',{},True).json()['request'])
         pdf=b'%PDF-1.4\nSynthetic native export fixture\n%%EOF'
@@ -221,3 +224,12 @@ class PostgresIntegrationTests(unittest.TestCase):
         with patch('app.cloud.get_file',return_value=pdf):
             self.assertEqual(self.client.get('/api/documents/'+document).content,pdf)
         self.assertEqual(self.client.get('/api/reports').json()['reports'],[])
+
+        attached=self.post('attach-invoice',{'mode':'live','draft_id':draft['id'],'document_id':document,'confirmed':True})
+        self.assertEqual(attached.status_code,200,attached.text)
+        result=self.client.get('/api/invoice-status',params={'id':attached.json()['id']}).json()
+        self.assertEqual(result['source'],'admin_attachment')
+        self.assertEqual(result['document_id'],document)
+        with patch.dict(os.environ,{'OFFICE_ENABLE_NATIVE_PDF':''}):
+            reused=self.post('request-invoice',{'mode':'live','draft_id':draft['id']})
+        self.assertEqual(reused.json()['id'],attached.json()['id'])
