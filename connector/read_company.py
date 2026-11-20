@@ -11,6 +11,7 @@ COLLECTIONS = {
     'companies': ('Company', ('Name',)),
     'ledgers': ('Ledger', ('Name', 'Parent', 'ClosingBalance', 'IsBillWiseOn')),
     'stock': ('StockItem', ('Name', 'BaseUnits', 'ClosingBalance', 'ClosingRate', 'ClosingValue', 'IsBatchWiseOn')),
+    'godowns': ('Godown', ('Name', 'Parent')),
 }
 
 

@@ -308,6 +308,18 @@
 .toast.visible { visibility: visible; opacity: 1; }
 
 /* Tax Invoice mobile & desktop styles */
+.godown-field { min-width: 90px; }
+@media (min-width: 701px) {
+  .item-row { grid-template-columns: minmax(130px, 2fr) minmax(100px, 1fr) 50px 65px 75px 55px 75px 24px !important; gap: 7px !important; }
+}
+@media (max-width: 700px) {
+  .item-row { grid-template-columns: 1fr 1fr !important; }
+  .item-row .item-name { grid-column: 1 / -1; }
+  .item-row .godown-field { grid-column: 1 / -1; }
+  .item-row .unit-field { grid-column: 1; }
+  .item-row .discount-field { grid-column: 2; }
+  .item-row .line-total { grid-column: 1; }
+}
 .tax-invoice-wrap { max-width: 800px; margin: 0 auto; background: #fff; padding: 20px; border: 1px solid var(--line); border-radius: 8px; font-size: 13px; color: #111; }
 .ti-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid var(--dark); padding-bottom: 14px; margin-bottom: 16px; gap: 15px; }
 .ti-company h2 { font-family: var(--serif); font-size: 24px; color: var(--dark); margin: 0 0 4px; letter-spacing: -0.5px; }

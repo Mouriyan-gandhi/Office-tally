@@ -94,8 +94,10 @@ def normalize_draft(payload):
             if amount <= 0:
                 raise ValidationError('Item amount must be positive')
             subtotal += amount
+            godown = text(row.get('godown', ''), 'Godown', 100, False) if row.get('godown') else ''
             result['items'].append(dict(name=text(row.get('name'), 'Stock item'), unit=text(row.get('unit'), 'Unit', 40),
-                                        qty=str(qty), rate=str(rate), discount=str(discount), amount=str(amount)))
+                                        qty=str(qty), rate=str(rate), discount=str(discount), amount=str(amount),
+                                        godown=godown))
         taxes = payload.get('taxes', [])
         if not isinstance(taxes, list) or len(taxes) > 3:
             raise ValidationError('Invalid tax lines')
@@ -163,9 +165,12 @@ def require_masters(draft, snapshot):
     if ledgers[draft['party']].get('billwise') and draft['kind'] in ('Receipt', 'Payment') and not draft['allocations']:
         raise ValidationError('This party uses bill-wise accounting; allocate the amount to bills first')
     stock = {row['name']: row for row in snapshot.get('stock', [])}
+    known_godowns = {g['name'].casefold() for g in snapshot.get('godowns', []) if isinstance(g, dict) and g.get('name')}
     for item in draft['items']:
         master = stock.get(item['name'])
         if not master or master.get('unit') != item['unit']:
             raise ValidationError(f'Check the stock item and unit: {item["name"]}')
-        if master.get('batchwise') or master.get('godown_required'):
+        if master.get('batchwise'):
             raise ValidationError('Batch/godown inventory needs additional mapping before posting')
+        if item.get('godown') and known_godowns and item['godown'].casefold() not in known_godowns and item['godown'].casefold() != 'main location':
+            raise ValidationError(f'Godown not found in Tally: {item["godown"]}')

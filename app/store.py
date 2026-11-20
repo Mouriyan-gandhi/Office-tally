@@ -47,4 +47,4 @@ def audit(db, actor, action, target):
 
 def snapshot(db, mode):
     row = db.execute('SELECT * FROM snapshots WHERE mode=?', (mode,)).fetchone()
-    return json.loads(row['payload']) | {'synced_at': row['updated']} if row else {'ledgers': [], 'stock': [], 'company': 'Upkar Agency', 'synced_at': None}
+    return json.loads(row['payload']) | {'synced_at': row['updated']} if row else {'ledgers': [], 'stock': [], 'godowns': [{'name':'Main Location'}], 'company': 'Upkar Agency', 'synced_at': None}
