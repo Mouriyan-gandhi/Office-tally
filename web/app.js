@@ -175,9 +175,25 @@ function dialog(title,body,footer=''){
 function closeModal(){modal.close();lastFocus?.focus();}
 function detail(id){const v=drafts().find(r=>r.id===id);if(!v)return;state.detail=id;
  const isDraft=v.status==='draft';
- dialog(`${esc(v.kind)} ${v.reference?'· '+esc(v.reference):'review'}`,`<div class="detail-grid"><div><small>Company</small><strong>Upkar Agency</strong></div><div><small>Status</small>${statusBadge(v.status)}</div><div><small>Party ledger</small><strong>${esc(v.party)}</strong></div><div><small>Date</small>${esc(v.date)}</div>${v.cash_bank?'<div><small>Cash / bank</small>'+esc(v.cash_bank)+'</div>':''}${v.account_ledger?'<div><small>Account ledger</small>'+esc(v.account_ledger)+'</div>':''}</div>${v.items?.length?simpleTable(v.items,['name','qty','unit','rate','amount']):''}${v.taxes?.length?simpleTable(v.taxes,['type','ledger','percent','amount']):''}${v.allocations?.length?simpleTable(v.allocations,['reference','amount']):''}<div class="summary-line summary-total"><span>Total</span><strong>${money(v.total)}</strong></div>${v.result?'<div class="notice mt">'+esc(v.result)+'</div>':''}${v.narration?'<p class="small mt">'+esc(v.narration)+'</p>':''}${v.document_id?`<a class="btn small mt" href="/api/documents/${esc(v.document_id)}" target="_blank" rel="noopener">${icon('file')} Original bill</a>`:''}${isDraft?`<div class="notice ${state.mode==='demo'?'green':''}">${state.mode==='demo'?'Confirming saves a fictional demo entry. It will never reach Tally.':'Confirming queues this entry for Upkar Agency. Check party, amounts, items, tax ledgers and bill references first.'}</div>`:v.status==='needs_review'?'<div class="notice error">The import result is uncertain. Inspect Tally before creating or retrying any replacement entry. Automatic retries are blocked.</div>':''}`,`${isDraft?`<button class="btn danger" data-cancel="${id}">Cancel draft</button><button class="btn" data-edit="${id}">Edit</button><button class="btn primary" data-confirm="${id}">${icon('check')} ${state.mode==='demo'?'Confirm demo entry':'Confirm & send to Tally'}</button>`:`${v.kind==='Sales'?`<button class="btn" data-invoice="${id}">${icon('invoice')} View Invoice</button>`:''}<button class="btn" data-print="${id}">${icon('print')} Print / PDF</button><button class="btn" data-share="${id}">${icon('whatsapp')} Share</button>`}`);
+ dialog(`${esc(v.kind)} ${v.reference?'· '+esc(v.reference):'review'}`,`<div class="detail-grid"><div><small>Company</small><strong>Upkar Agency</strong></div><div><small>Status</small>${statusBadge(v.status)}</div><div><small>Party ledger</small><strong>${esc(v.party)}</strong></div><div><small>Date</small>${esc(v.date)}</div>${v.cash_bank?'<div><small>Cash / bank</small>'+esc(v.cash_bank)+'</div>':''}${v.account_ledger?'<div><small>Account ledger</small>'+esc(v.account_ledger)+'</div>':''}</div>${v.items?.length?simpleTable(v.items,['name','qty','unit','rate','amount']):''}${v.taxes?.length?simpleTable(v.taxes,['type','ledger','percent','amount']):''}${v.allocations?.length?simpleTable(v.allocations,['reference','amount']):''}<div class="summary-line summary-total"><span>Total</span><strong>${money(v.total)}</strong></div>${v.result?'<div class="notice mt">'+esc(v.result)+'</div>':''}${v.narration?'<p class="small mt">'+esc(v.narration)+'</p>':''}${v.document_id?`<a class="btn small mt" href="/api/documents/${esc(v.document_id)}" target="_blank" rel="noopener">${icon('file')} Original bill</a>`:''}${isDraft?`<div class="notice ${state.mode==='demo'?'green':''}">${state.mode==='demo'?'Confirming saves a fictional demo entry. It will never reach Tally.':'Confirming queues this entry for Upkar Agency. Check party, amounts, items, tax ledgers and bill references first.'}</div>`:v.status==='needs_review'?'<div class="notice error">The import result is uncertain. Inspect Tally before creating or retrying any replacement entry. Automatic retries are blocked.</div>':''}`,`${isDraft?`<button class="btn danger" data-cancel="${id}">Cancel draft</button><button class="btn" data-edit="${id}">Edit</button><button class="btn primary" data-confirm="${id}">${icon('check')} ${state.mode==='demo'?'Confirm demo entry':'Confirm & send to Tally'}</button>`:`${v.kind==='Sales'?`<button class="btn primary" data-invoice="${id}">${icon('invoice')} Official Tax Invoice</button>`:''}<button class="btn" data-print="${id}">${icon('print')} Print / PDF</button><button class="btn" data-share="${id}">${icon('whatsapp')} Share</button>`}`);
 }
 async function confirmDraft(id){const v=drafts().find(d=>d.id===id);await api('approve',{mode:state.mode,id,version:v.version,confirmation:'Upkar Agency'});closeModal();await load();render();if(v.kind==='Sales'){toast('Sale confirmed! Opening your Tax Invoice…');setTimeout(()=>viewInvoice(id),350);}else{toast(state.mode==='demo'?'Demo entry saved. Tally is unchanged.':'Approved. Waiting for the office connector.');}}
+function fmtMoney(num){
+ const val=Number(num)||0;
+ return val.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+function tallyDate(dStr){
+ if(!dStr)return '';
+ const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+ const parts=String(dStr).split('-');
+ if(parts.length===3&&parts[0].length===4){
+  const y=parts[0].slice(-2);
+  const m=months[parseInt(parts[1],10)-1]||parts[1];
+  const d=parseInt(parts[2],10);
+  return `${d}-${m}-${y}`;
+ }
+ return dStr;
+}
 function inWords(num){
  const a=['','One ','Two ','Three ','Four ','Five ','Six ','Seven ','Eight ','Nine ','Ten ','Eleven ','Twelve ','Thirteen ','Fourteen ','Fifteen ','Sixteen ','Seventeen ','Eighteen ','Nineteen '];
  const b=['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
@@ -190,96 +206,297 @@ function inWords(num){
  if(cr)s+=tw(cr)+'Crore ';if(lk)s+=tw(lk)+'Lakh ';if(th)s+=tw(th)+'Thousand ';if(n)s+=tw(n);
  return 'Indian Rupees '+s.trim()+' Only';
 }
-function taxInvoiceHTML(v){
+function tallyWords(num){
+ const a=['','One ','Two ','Three ','Four ','Five ','Six ','Seven ','Eight ','Nine ','Ten ','Eleven ','Twelve ','Thirteen ','Fourteen ','Fifteen ','Sixteen ','Seventeen ','Eighteen ','Nineteen '];
+ const b=['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
+ let n=Math.round(Number(num)||0);if(!n)return 'INR Zero Only';
+ function tw(x){if(x<20)return a[x];if(x<100)return b[Math.floor(x/10)]+(x%10?' '+a[x%10]:' ');if(x<1000)return a[Math.floor(x/100)]+'Hundred '+(x%100?'and '+tw(x%100):'');return '';}
+ let s='';
+ const cr=Math.floor(n/10000000);n%=10000000;
+ const lk=Math.floor(n/100000);n%=100000;
+ const th=Math.floor(n/1000);n%=1000;
+ if(cr)s+=tw(cr)+'Crore ';if(lk)s+=tw(lk)+'Lakh ';if(th)s+=tw(th)+'Thousand ';if(n)s+=tw(n);
+ return 'INR '+s.trim()+' Only';
+}
+function partyDetailsHTML(partyName, isInterstate){
+ if(!partyName)return '';
+ if(partyName.includes('SKV ENTERPRISES')){
+  return 'MALACCA HEADQUARTERS,<br>CARNICOBAR - 744301<br>ANDAMAN ISLAND<br>PHONE NO: 9434273502<br><strong>GSTIN/UIN :</strong> 35BVVPK1187K1ZW<br><strong>State Name :</strong> Andaman & Nicobar Islands, Code : 35';
+ }
+ if(partyName.includes('ABSOLUTE BRANDS')){
+  return 'Bangalore / Chennai Hub<br><strong>State Name :</strong> Tamil Nadu, Code : 33';
+ }
+ return isInterstate
+  ? '<strong>State Name :</strong> Interstate, Code : —'
+  : '<strong>State Name :</strong> Tamil Nadu, Code : 33';
+}
+function officialTallyInvoiceHTML(v){
  const isSale=v.kind==='Sales';
  const invNo=v.reference||(isSale?'INV-'+v.id.slice(0,8).toUpperCase():v.kind.toUpperCase()+'-'+v.id.slice(0,6).toUpperCase());
  const items=v.items||[];
  const taxes=v.taxes||[];
- const subtotal=items.length?items.reduce((sum,it)=>sum+(Number(it.amount)||0),0):Number(v.total);
- return `<div class="tax-invoice-wrap">
-  <div class="ti-header">
-    <div class="ti-company">
-      <div class="ti-badge">${isSale?'TAX INVOICE':'ACCOUNTING VOUCHER'}</div>
-      <h2>UPKAR AGENCY</h2>
-      <p>TallyPrime Silver 7.1 · Official Companion</p>
-      <p>Company: <strong>Upkar Agency</strong></p>
-    </div>
-    <div class="ti-meta">
-      <p><strong>Invoice No:</strong> ${esc(invNo)}</p>
-      <p><strong>Date:</strong> ${esc(v.date)}</p>
-      <p><strong>Status:</strong> ${statusBadge(v.status)}</p>
-      <p><small>${state.mode==='demo'?'Fictional demo invoice':'Connected Upkar Agency record'}</small></p>
-    </div>
-  </div>
-  <div class="ti-party-grid">
-    <div class="ti-party-box">
-      <small>${isSale?'Billed to (Customer)':'Party Ledger'}</small>
-      <strong>${esc(v.party)}</strong>
-      <p>Ledger: ${esc(v.party)}</p>
-    </div>
-    <div class="ti-party-box">
-      <small>Voucher Details</small>
-      <p><strong>Type:</strong> ${esc(v.kind)}</p>
-      <p><strong>Account:</strong> ${esc(v.cash_bank||v.account_ledger||'General')}</p>
-      ${v.narration?'<p><strong>Note:</strong> '+esc(v.narration)+'</p>':''}
-    </div>
-  </div>
-  ${items.length?`<table class="ti-table">
-    <thead>
+ const isInterstate=taxes.some(t=>t.type==='IGST'||(t.ledger&&t.ledger.includes('IGST')));
+ const taxableTotal=items.length?items.reduce((sum,it)=>sum+(Number(it.amount)||0),0):Number(v.total);
+ const totalTax=taxes.reduce((sum,t)=>sum+(Number(t.amount)||0),0);
+ const grandTotal=Number(v.total)||(taxableTotal+totalTax);
+ const totalQty=items.reduce((sum,it)=>sum+(Number(it.qty)||0),0);
+ const mainUnit=items[0]?.unit||'PCS';
+ const hsnCode=items[0]?.hsn||'4601';
+ const consigneeInfo=partyDetailsHTML(v.party,isInterstate);
+
+ const itemsRowsHTML=items.map((it,idx)=>`<tr>
+  <td class="t-center">${idx+1}</td>
+  <td>
+   <strong class="t-bold">${esc(it.name)}</strong>
+   ${it.godown?`<div class="t-sub-info">Godown: ${esc(it.godown)}</div>`:''}
+  </td>
+  <td class="t-center">${esc(it.hsn||hsnCode)}</td>
+  <td class="t-right t-bold">${esc(it.qty)} ${esc(it.unit||'PCS')}</td>
+  <td class="t-right">${fmtMoney(it.rate)}</td>
+  <td class="t-center">${esc(it.unit||'PCS')}</td>
+  <td class="t-right">${Number(it.discount)?it.discount+' %':''}</td>
+  <td class="t-right t-bold">${fmtMoney(it.amount)}</td>
+ </tr>`).join('');
+
+ const taxRowsHTML=taxes.map(t=>`<tr class="t-tax-tr">
+  <td></td>
+  <td class="t-right"><em>${esc(t.ledger||(t.type+' @ '+t.percent+'%'))}</em></td>
+  <td></td>
+  <td></td>
+  <td class="t-right">${esc(t.percent)} %</td>
+  <td class="t-center"></td>
+  <td></td>
+  <td class="t-right t-bold">${fmtMoney(t.amount)}</td>
+ </tr>`).join('');
+
+ let hsnTableHTML='';
+ if(isInterstate){
+  const igst=taxes.find(t=>t.type==='IGST')||{percent:'5',amount:totalTax};
+  hsnTableHTML=`<table class="t-hsn">
+   <thead>
+    <tr>
+     <th style="width:110px;">HSN/SAC</th>
+     <th style="width:130px;">Taxable Value</th>
+     <th style="width:90px;">Rate</th>
+     <th style="width:120px;">IGST Amount</th>
+     <th style="width:120px;">Total Tax Amount</th>
+    </tr>
+   </thead>
+   <tbody>
+    <tr>
+     <td class="t-center">${esc(hsnCode)}</td>
+     <td class="t-right">${fmtMoney(taxableTotal)}</td>
+     <td class="t-center">${esc(igst.percent)}%</td>
+     <td class="t-right">${fmtMoney(igst.amount)}</td>
+     <td class="t-right">${fmtMoney(totalTax)}</td>
+    </tr>
+    <tr class="t-bold">
+     <td class="t-center">Total</td>
+     <td class="t-right">${fmtMoney(taxableTotal)}</td>
+     <td></td>
+     <td class="t-right">${fmtMoney(totalTax)}</td>
+     <td class="t-right">${fmtMoney(totalTax)}</td>
+    </tr>
+   </tbody>
+  </table>`;
+ }else{
+  const cgst=taxes.find(t=>t.type==='CGST')||{percent:'2.5',amount:totalTax/2};
+  const sgst=taxes.find(t=>t.type==='SGST')||{percent:'2.5',amount:totalTax/2};
+  hsnTableHTML=`<table class="t-hsn">
+   <thead>
+    <tr>
+     <th rowspan="2" style="width:90px;">HSN/SAC</th>
+     <th rowspan="2" style="width:110px;">Taxable Value</th>
+     <th colspan="2">Central Tax</th>
+     <th colspan="2">State Tax</th>
+     <th rowspan="2" style="width:110px;">Total Tax Amount</th>
+    </tr>
+    <tr>
+     <th style="width:55px;">Rate</th>
+     <th style="width:85px;">Amount</th>
+     <th style="width:55px;">Rate</th>
+     <th style="width:85px;">Amount</th>
+    </tr>
+   </thead>
+   <tbody>
+    <tr>
+     <td class="t-center">${esc(hsnCode)}</td>
+     <td class="t-right">${fmtMoney(taxableTotal)}</td>
+     <td class="t-center">${esc(cgst.percent)}%</td>
+     <td class="t-right">${fmtMoney(cgst.amount)}</td>
+     <td class="t-center">${esc(sgst.percent)}%</td>
+     <td class="t-right">${fmtMoney(sgst.amount)}</td>
+     <td class="t-right">${fmtMoney(totalTax)}</td>
+    </tr>
+    <tr class="t-bold">
+     <td class="t-center">Total</td>
+     <td class="t-right">${fmtMoney(taxableTotal)}</td>
+     <td></td>
+     <td class="t-right">${fmtMoney(cgst.amount)}</td>
+     <td></td>
+     <td class="t-right">${fmtMoney(sgst.amount)}</td>
+     <td class="t-right">${fmtMoney(totalTax)}</td>
+    </tr>
+   </tbody>
+  </table>`;
+ }
+
+ return `<div class="tally-sheet-wrap">
+ <div class="tally-sheet">
+  <div class="tally-main-title">${isSale?'Tax Invoice':'Accounting Voucher'}</div>
+
+  <table class="t-grid" style="border-bottom: 1.5px solid #000;">
+   <tr>
+    <td class="t-w50 t-b-r" style="padding:0;">
+     <div class="t-b-b">
+      <div class="t-seller-flex">
+       <div class="t-logo-wrap">
+        <svg class="t-flower-svg" viewBox="0 0 100 100">
+         <circle cx="50" cy="50" r="14" fill="#000"/>
+         <ellipse cx="50" cy="18" rx="7" ry="15" fill="#000"/>
+         <ellipse cx="50" cy="82" rx="7" ry="15" fill="#000"/>
+         <ellipse cx="18" cy="50" rx="15" ry="7" fill="#000"/>
+         <ellipse cx="82" cy="50" rx="15" ry="7" fill="#000"/>
+         <ellipse cx="27" cy="27" rx="8" ry="15" transform="rotate(-45 27 27)" fill="#000"/>
+         <ellipse cx="73" cy="73" rx="8" ry="15" transform="rotate(-45 73 73)" fill="#000"/>
+         <ellipse cx="73" cy="27" rx="8" ry="15" transform="rotate(45 73 27)" fill="#000"/>
+         <ellipse cx="27" cy="73" rx="8" ry="15" transform="rotate(45 27 73)" fill="#000"/>
+        </svg>
+        <div class="t-logo-label">baggbee</div>
+       </div>
+       <div class="t-seller-text">
+        <strong class="t-large">Upkar Agency</strong><br>
+        30,Strotten Muthia Mudali Street<br>
+        Sowcarpet<br>
+        Chennai 600001<br>
+        <strong>GSTIN/UIN:</strong> 33ABFPV0084P1Z7<br>
+        <strong>State Name :</strong> Tamil Nadu, <strong>Code :</strong> 33<br>
+        <strong>E-Mail :</strong> kunalgandhi2512@gmail.com
+       </div>
+      </div>
+     </div>
+
+     <div class="t-b-b t-pad">
+      <span class="t-lbl">Consignee (Ship to)</span>
+      <div class="t-party-name"><strong>${esc(v.party)}</strong></div>
+      <div>${consigneeInfo}</div>
+     </div>
+
+     <div class="t-pad">
+      <span class="t-lbl">Buyer (Bill to)</span>
+      <div class="t-party-name"><strong>${esc(v.party)}</strong></div>
+      <div>${consigneeInfo}</div>
+     </div>
+    </td>
+
+    <td class="t-w50" style="padding:0;">
+     <table class="t-grid">
       <tr>
-        <th style="width:30px">#</th>
-        <th>Stock Item & Description</th>
-        <th class="numeric">Qty</th>
-        <th class="numeric">Rate</th>
-        <th class="numeric">Disc %</th>
-        <th class="numeric">Taxable (₹)</th>
+       <td class="t-w50 t-b-r t-b-b t-pad">
+        <span class="t-lbl">Invoice No.</span><br>
+        <strong class="t-bold">${esc(invNo)}</strong>
+       </td>
+       <td class="t-w50 t-b-b t-pad">
+        <span class="t-lbl">Dated</span><br>
+        <strong class="t-bold">${tallyDate(v.date)}</strong>
+       </td>
       </tr>
-    </thead>
-    <tbody>
-      ${items.map((it,idx)=>`<tr>
-        <td>${idx+1}</td>
-        <td><strong>${esc(it.name)}</strong>${it.godown?`<br><small class="muted">Godown: ${esc(it.godown)}</small>`:''}</td>
-        <td class="numeric">${esc(it.qty)} ${esc(it.unit||'')}</td>
-        <td class="numeric">${money(it.rate)}</td>
-        <td class="numeric">${Number(it.discount)?esc(it.discount)+'%':'—'}</td>
-        <td class="numeric">${money(it.amount)}</td>
-      </tr>`).join('')}
-    </tbody>
-    <tfoot>
       <tr>
-        <td colspan="5" style="text-align:right"><strong>Taxable Amount</strong></td>
-        <td class="numeric"><strong>${money(subtotal)}</strong></td>
+       <td class="t-w50 t-b-r t-b-b t-pad"><span class="t-lbl">Delivery Note</span><br>&nbsp;</td>
+       <td class="t-w50 t-b-b t-pad"><span class="t-lbl">Mode/Terms of Payment</span><br><strong>${esc(v.cash_bank||'Credit')}</strong></td>
       </tr>
-      ${taxes.map(t=>`<tr>
-        <td colspan="5" style="text-align:right">${esc(t.type)} (${esc(t.percent)}%) · ${esc(t.ledger)}</td>
-        <td class="numeric">${money(t.amount)}</td>
-      </tr>`).join('')}
-      <tr class="ti-total-row">
-        <td colspan="5" style="text-align:right"><strong>TOTAL AMOUNT CHARGEABLE</strong></td>
-        <td class="numeric"><strong>${money(v.total)}</strong></td>
+      <tr>
+       <td class="t-w50 t-b-r t-b-b t-pad"><span class="t-lbl">Reference No. & Date.</span><br>&nbsp;</td>
+       <td class="t-w50 t-b-b t-pad"><span class="t-lbl">Other References</span><br>&nbsp;</td>
       </tr>
-    </tfoot>
-  </table>`:''}
-  <div class="ti-words">
-    <small>Amount in words:</small>
-    <p><strong>${inWords(v.total)}</strong></p>
+      <tr>
+       <td class="t-w50 t-b-r t-b-b t-pad"><span class="t-lbl">Buyer’s Order No.</span><br>&nbsp;</td>
+       <td class="t-w50 t-b-b t-pad"><span class="t-lbl">Dated</span><br>&nbsp;</td>
+      </tr>
+      <tr>
+       <td class="t-w50 t-b-r t-b-b t-pad"><span class="t-lbl">Dispatch Doc No.</span><br>&nbsp;</td>
+       <td class="t-w50 t-b-b t-pad"><span class="t-lbl">Delivery Note Date</span><br>&nbsp;</td>
+      </tr>
+      <tr>
+       <td class="t-w50 t-b-r t-b-b t-pad"><span class="t-lbl">Dispatched through</span><br>&nbsp;</td>
+       <td class="t-w50 t-b-b t-pad"><span class="t-lbl">Destination</span><br>&nbsp;</td>
+      </tr>
+      <tr>
+       <td colspan="2" class="t-pad" style="min-height:35px;"><span class="t-lbl">Terms of Delivery</span><br>&nbsp;</td>
+      </tr>
+     </table>
+    </td>
+   </tr>
+  </table>
+
+  <table class="t-items">
+   <thead>
+    <tr>
+     <th style="width:28px;">Sl<br>No.</th>
+     <th>Description of Goods</th>
+     <th style="width:65px;">HSN/SAC</th>
+     <th style="width:75px;">Quantity</th>
+     <th style="width:65px;">Rate</th>
+     <th style="width:40px;">per</th>
+     <th style="width:48px;">Disc. %</th>
+     <th style="width:85px;">Amount</th>
+    </tr>
+   </thead>
+   <tbody>
+    ${itemsRowsHTML}
+    ${taxRowsHTML}
+    <tr class="t-filler-tr"><td colspan="8"></td></tr>
+   </tbody>
+   <tfoot>
+    <tr class="t-total-row">
+     <td></td>
+     <td class="t-bold">Total</td>
+     <td></td>
+     <td class="t-right t-bold">${totalQty?totalQty+' '+mainUnit:''}</td>
+     <td></td>
+     <td></td>
+     <td></td>
+     <td class="t-right t-bold">₹ ${fmtMoney(grandTotal)}</td>
+    </tr>
+   </tfoot>
+  </table>
+
+  <div class="t-words-bar">
+   <div class="t-words-top">
+    <span>Amount Chargeable (in words)</span>
+    <span class="t-bold">E. & O.E</span>
+   </div>
+   <div class="t-words-val t-bold">${tallyWords(grandTotal)}</div>
   </div>
-  <div class="ti-footer">
-    <div class="ti-decl">
-      <p><strong>Declaration:</strong></p>
-      <p>We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.</p>
-    </div>
-    <div class="ti-sign">
-      <p>for <strong>UPKAR AGENCY</strong></p>
-      <div class="ti-sign-space"></div>
-      <p class="muted small">Authorized Signatory</p>
-    </div>
+
+  ${hsnTableHTML}
+
+  <div class="t-tax-words">
+   <span>Tax Amount (in words) : </span><strong class="t-bold">${tallyWords(totalTax)}</strong>
   </div>
- </div>`;
+
+  <div class="t-bottom-box">
+   <div class="t-decl-cell">
+    <div class="t-pan-line"><strong>Company’s PAN :</strong> ABFPV0084P</div>
+    <div>
+     <strong>Declaration:</strong><br>
+     <span class="t-decl-text">We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.</span>
+    </div>
+   </div>
+   <div class="t-sign-cell">
+    <div>for <strong>Upkar Agency</strong></div>
+    <div class="t-sign-gap"></div>
+    <div><strong>Authorised Signatory</strong></div>
+   </div>
+  </div>
+ </div>
+ <div class="t-computer-gen">This is a Computer Generated Invoice</div>
+</div>`;
 }
+function taxInvoiceHTML(v){return officialTallyInvoiceHTML(v);}
 function viewInvoice(id){
  const v=drafts().find(d=>d.id===id);if(!v)return;
- dialog(`Tax Invoice · ${esc(v.reference||v.party)}`,taxInvoiceHTML(v),`<button class="btn" data-share="${id}">${icon('whatsapp')} Share WhatsApp</button><button class="btn primary" data-print="${id}">${icon('print')} Save as PDF / Print</button>`);
+ dialog(`Tax Invoice · ${esc(v.reference||v.party)}`,officialTallyInvoiceHTML(v),`<button class="btn" data-share="${id}">${icon('whatsapp')} Share WhatsApp</button><button class="btn primary" data-print="${id}">${icon('print')} Save as PDF / Print</button>`);
 }
 function editDraft(id){const v=drafts().find(d=>d.id===id);if(!v||v.status!=='draft')return;closeModal();const tax=v.taxes||[];newDraft(v.kind,{...v,amount:v.amount||v.total,taxMode:tax.length?(tax[0].type==='IGST'?'interstate':'local'):'none',taxPercent:String(tax.reduce((a,t)=>a+Number(t.percent),0)),taxLedgers:{CGST:'CGST',SGST:'SGST',IGST:'IGST',...Object.fromEntries(tax.map(t=>[t.type,t.ledger]))}});}
 function ledgerDetail(name){const ledger=snap().ledgers.find(l=>l.name===name);const rows=saved().filter(v=>v.party===name||v.cash_bank===name);if(!ledger)return;state.report={title:name,rows,columns:['date','kind','reference','total']};dialog(esc(name),`<div class="detail-grid"><div><small>Group</small>${esc(ledger.group)}</div><div><small>Synced balance · debit positive</small><strong>${money(ledger.balance)}</strong></div></div><h3>Entries recorded through this app</h3>${rows.length?simpleTable(rows,['date','kind','reference','total']):empty('No app entries yet','This does not mean the Tally ledger has no transactions.')}<div class="notice mt">Full Tally ledger history is not synced in this pilot. Snapshot: ${esc(when(snap().synced_at))}</div>`,`<button class="btn" data-action="print-report">${icon('print')} Print statement</button><button class="btn" data-action="export-report">${icon('down')} Export CSV</button>`);}
@@ -311,11 +528,11 @@ function share(id){
  const invNo=v.reference||(isSale?'INV-'+v.id.slice(0,8).toUpperCase():v.kind.toUpperCase()+'-'+v.id.slice(0,6).toUpperCase());
  const text=`*${isSale?'TAX INVOICE':'VOUCHER SUMMARY'} — UPKAR AGENCY*\n`+
   `Invoice / Ref: ${invNo}\n`+
-  `Date: ${v.date}\n`+
+  `Date: ${tallyDate(v.date)}\n`+
   `Customer: ${v.party}\n`+
   (v.items?.length?`Items: ${v.items.map(it=>`${it.name} (${it.qty} ${it.unit||''})`).join(', ')}\n`:'')+
-  `Total Amount: ${money(v.total)}\n`+
-  `Amount in Words: ${inWords(v.total)}\n`+
+  `Total Amount: ₹ ${fmtMoney(v.total)}\n`+
+  `Amount in Words: ${tallyWords(v.total)}\n`+
   `Status: ${statuses[v.status]||v.status}\n\n`+
   `Thank you for doing business with Upkar Agency!`;
  dialog('Share on WhatsApp',`<p class="small muted">Review the message before opening WhatsApp. Choose your customer and send it in 1 tap.</p><pre class="ocr-text mt">${esc(text)}</pre><div class="notice green">${icon('shield')} Ready to send. Tally sync will record this entry automatically.</div>`,`<a class="btn primary" href="https://wa.me/?text=${encodeURIComponent(text)}" target="_blank" rel="noopener noreferrer">${icon('whatsapp')} Send via WhatsApp</a>`);
