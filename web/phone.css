@@ -306,3 +306,47 @@
 /* A hidden toast must not peek out beneath a phone's bottom navigation. */
 .toast { visibility: hidden; opacity: 0; pointer-events: none; }
 .toast.visible { visibility: visible; opacity: 1; }
+
+/* Tax Invoice mobile & desktop styles */
+.tax-invoice-wrap { max-width: 800px; margin: 0 auto; background: #fff; padding: 20px; border: 1px solid var(--line); border-radius: 8px; font-size: 13px; color: #111; }
+.ti-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid var(--dark); padding-bottom: 14px; margin-bottom: 16px; gap: 15px; }
+.ti-company h2 { font-family: var(--serif); font-size: 24px; color: var(--dark); margin: 0 0 4px; letter-spacing: -0.5px; }
+.ti-company p { margin: 2px 0; font-size: 11px; color: #444; }
+.ti-badge { display: inline-block; background: var(--dark); color: #fff; font-size: 12px; font-weight: bold; letter-spacing: 1px; padding: 4px 10px; border-radius: 4px; margin-bottom: 8px; }
+.ti-meta { text-align: right; font-size: 12px; }
+.ti-meta p { margin: 3px 0; }
+.ti-party-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; background: #fbfcf9; border: 1px solid #e2e8dc; border-radius: 6px; padding: 12px; }
+.ti-party-box small { display: block; font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+.ti-party-box strong { font-size: 15px; color: var(--ink); }
+.ti-party-box p { margin: 3px 0; font-size: 11px; }
+.ti-table { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 12px; }
+.ti-table th, .ti-table td { border: 1px solid #dee2d7; padding: 8px 10px; }
+.ti-table th { background: #eef2e7; color: #3d503f; font-weight: 600; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px; }
+.ti-total-row { background: #f2f6ee; font-weight: bold; font-size: 14px; color: var(--dark); }
+.ti-words { border: 1px solid #e2e8dc; background: #fafbf8; border-radius: 6px; padding: 10px 14px; margin-bottom: 16px; }
+.ti-words small { display: block; font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
+.ti-words p { margin: 0; font-size: 12px; color: var(--ink); }
+.ti-footer { display: flex; justify-content: space-between; align-items: flex-end; padding-top: 15px; border-top: 1px solid #e2e8dc; margin-top: 20px; gap: 20px; }
+.ti-decl { flex: 1; font-size: 10px; color: var(--muted); line-height: 1.5; }
+.ti-sign { text-align: right; min-width: 170px; }
+.ti-sign p { margin: 0; font-size: 11px; }
+.ti-sign-space { height: 45px; }
+
+@media screen and (max-width: 700px) {
+  .tax-invoice-wrap { padding: 14px; }
+  .ti-header { flex-direction: column; gap: 10px; }
+  .ti-meta { text-align: left; }
+  .ti-party-grid { grid-template-columns: 1fr; }
+  .ti-footer { flex-direction: column; align-items: flex-start; gap: 15px; }
+  .ti-sign { text-align: left; }
+  .ti-table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+}
+
+@media print {
+  body > * { display: none !important; }
+  body > #print-area { display: block !important; background: white; color: #111; font-family: var(--sans); }
+  .tax-invoice-wrap { border: 2px solid #234536 !important; max-width: 100% !important; padding: 25px !important; }
+  .ti-badge { background: #234536 !important; color: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .ti-total-row { background: #eaf0e4 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .ti-table th { background: #f0f4ec !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}

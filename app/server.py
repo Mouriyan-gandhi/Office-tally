@@ -446,6 +446,7 @@ class Handler(BaseHTTPRequestHandler):
 def main():
     parser = argparse.ArgumentParser(description='Upkar Agency local pilot')
     parser.add_argument('--port', type=int, default=8765)
+    parser.add_argument('--host', type=str, default=os.environ.get('OFFICE_HOST', '127.0.0.1'), help='Host interface to bind to (e.g. 0.0.0.0 for LAN/phone access)')
     parser.add_argument('--setup', action='store_true')
     parser.add_argument('--preview', action='store_true', help='Isolated fictional demo; cannot connect or post to Tally')
     args = parser.parse_args()
@@ -473,8 +474,8 @@ def main():
     with store.transaction() as db:
         if not db.execute('SELECT 1 FROM users LIMIT 1').fetchone():
             raise SystemExit('First run: python -m app.server --setup')
-    print(f'Upkar Agency: http://127.0.0.1:{args.port} (local pilot; Ctrl+C to stop)', flush=True)
-    server = ThreadingHTTPServer(('127.0.0.1', args.port), Handler)
+    print(f'Upkar Agency: http://{args.host}:{args.port} (Ctrl+C to stop)', flush=True)
+    server = ThreadingHTTPServer((args.host, args.port), Handler)
     server.daemon_threads = True
     try:
         server.serve_forever()
