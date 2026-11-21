@@ -499,7 +499,69 @@ function viewInvoice(id){
  dialog(`Tax Invoice · ${esc(v.reference||v.party)}`,officialTallyInvoiceHTML(v),`<button class="btn" data-share="${id}">${icon('whatsapp')} Share WhatsApp</button><button class="btn primary" data-print="${id}">${icon('print')} Save as PDF / Print</button>`);
 }
 function editDraft(id){const v=drafts().find(d=>d.id===id);if(!v||v.status!=='draft')return;closeModal();const tax=v.taxes||[];newDraft(v.kind,{...v,amount:v.amount||v.total,taxMode:tax.length?(tax[0].type==='IGST'?'interstate':'local'):'none',taxPercent:String(tax.reduce((a,t)=>a+Number(t.percent),0)),taxLedgers:{CGST:'CGST',SGST:'SGST',IGST:'IGST',...Object.fromEntries(tax.map(t=>[t.type,t.ledger]))}});}
-function historyTable(rows){return `<div class="phone-list">${rows.map(v=>`<article class="stock-card"><span class="entry-card-icon">${icon('invoice')}</span><div class="entry-card-copy"><strong>${esc(v.kind)} · ${esc(v.number||'Unnumbered')}</strong><span>${esc(dateText(v.date))}</span>${v.narration?'<small>'+esc(v.narration)+'</small>':''}</div><div class="entry-card-value"><strong>${money(Number(v.debit)>0?v.debit:v.credit)}</strong><small>${Number(v.debit)>0?'Debit':'Credit'}</small></div></article>`).join('')}</div><div class="desktop-table">${simpleTable(rows,['date','kind','number','debit','credit','narration'])}</div>`;}
+function historyToInvoicePayload(v){
+ const lines = v.lines || [];
+ const taxes = [];
+ for(const line of lines){
+  const lName = line.ledger || '';
+  const lAmt = Math.abs(Number(line.amount)||0);
+  if(lName.includes('CGST')){
+   const m = lName.match(/(\d+(?:\.\d+)?)\s*%/);
+   taxes.push({type:'CGST', ledger:lName, percent:m?m[1]:'2.5', amount:lAmt});
+  } else if(lName.includes('SGST')){
+   const m = lName.match(/(\d+(?:\.\d+)?)\s*%/);
+   taxes.push({type:'SGST', ledger:lName, percent:m?m[1]:'2.5', amount:lAmt});
+  } else if(lName.includes('IGST')){
+   const m = lName.match(/(\d+(?:\.\d+)?)\s*%/);
+   taxes.push({type:'IGST', ledger:lName, percent:m?m[1]:'5', amount:lAmt});
+  }
+ }
+ const totalAmt = Number(v.total) || (Number(v.debit) || Number(v.credit) || 0);
+ const totalTax = taxes.reduce((s,t)=>s+Number(t.amount),0);
+ const taxableAmt = totalTax > 0 ? (totalAmt - totalTax) : totalAmt;
+ const items = (v.items && v.items.length) ? v.items.map(it=>({
+  name: it.name,
+  qty: String(it.qty||'1').replace(/[^\d.]/g,'') || '1',
+  unit: String(it.qty||'').replace(/[\d. ]/g,'') || 'PCS',
+  rate: it.rate || '0',
+  amount: Math.abs(Number(it.amount)||0),
+  godown: it.godown || 'Main Location'
+ })) : [{
+  name: v.kind === 'Sales' ? 'Merchandise & Goods (as per Tally record)' : 'Stock Item',
+  qty: '1',
+  unit: 'LOT',
+  rate: taxableAmt.toFixed(2),
+  amount: taxableAmt.toFixed(2),
+  godown: 'Main Location'
+ }];
+ return {
+  id: v.id,
+  kind: v.kind || 'Sales',
+  reference: v.number || v.reference || (v.id ? v.id.slice(0,6).toUpperCase() : 'INV'),
+  date: v.date,
+  party: v.party || 'Customer Ledger',
+  cash_bank: 'Credit',
+  account_ledger: v.kind === 'Sales' ? 'Sales Accounts' : 'Purchase Accounts',
+  items,
+  taxes,
+  total: totalAmt.toFixed(2),
+  narration: v.narration || '',
+  status: 'posted'
+ };
+}
+function openRenderedInvoice(id){
+ const v = (typeof registerView !== 'undefined' && registerView?.rows?.find(r=>r.id===id)) ||
+           state.report?.rows?.find(r=>r.id===id) ||
+           drafts().find(d=>d.id===id);
+ if(!v) return;
+ const payload = (v.items && v.items[0]?.godown !== undefined) ? v : historyToInvoicePayload(v);
+ dialog(`Tax Invoice · ${esc(payload.reference||payload.party)}`, officialTallyInvoiceHTML(payload),
+  `<button class="btn" data-share-rendered="${payload.id}">${icon('whatsapp')} Share WhatsApp</button><button class="btn primary" data-print-rendered="${payload.id}">${icon('print')} Save as PDF / Print</button>`
+ );
+}
+function historyTable(rows){
+ return `<div class="phone-list">${rows.map(v=>`<article class="stock-card"><span class="entry-card-icon">${icon('invoice')}</span><div class="entry-card-copy"><strong>${esc(v.kind)} · ${esc(v.number||'Unnumbered')}</strong><span>${esc(dateText(v.date))}</span>${v.narration?'<small>'+esc(v.narration)+'</small>':''}<button class="btn small mt" data-voucher-invoice="${esc(v.id)}">${icon('invoice')} Official Tax Invoice</button></div><div class="entry-card-value"><strong>${money(Number(v.debit)>0?v.debit:v.credit)}</strong><small>${Number(v.debit)>0?'Debit':'Credit'}</small></div></article>`).join('')}</div><div class="desktop-table">${simpleTable(rows,['date','kind','number','debit','credit','narration'])}<div class="toolbar mt">${rows.filter(v=>v.kind==='Sales').map(v=>`<button class="btn small" data-voucher-invoice="${esc(v.id)}">${icon('invoice')} Invoice #${esc(v.number||v.date)}</button>`).join(' ')}</div></div>`;
+}
 async function ledgerDetail(name){const ledger=snap().ledgers.find(l=>l.name===name);const rows=saved().filter(v=>v.party===name||v.cash_bank===name);if(!ledger)return;state.report={title:name,rows,columns:['date','kind','reference','total']};dialog(esc(name),`<div class="detail-grid"><div><small>Group</small>${esc(ledger.group)}</div><div><small>Synced balance · debit positive</small><strong>${money(ledger.balance)}</strong></div></div><h3>Entries recorded through this app</h3>${rows.length?simpleTable(rows,['date','kind','reference','total']):empty('No app entries yet','This does not mean the Tally ledger has no transactions.')}<div id="tally-history" class="mt">${state.mode==='live'?'Loading synced Tally history…':'Tally history is available in the Tally workspace.'}</div>`,`<button class="btn" data-action="print-report">${icon('print')} Print statement</button><button class="btn" data-action="export-report">${icon('down')} Export CSV</button>`);
  if(state.mode==='live'){
   $('#tally-history').dataset.ledger=name;
@@ -575,6 +637,35 @@ document.addEventListener('click',event=>{
  if(button.dataset.new){if(state.user.role==='viewer'){toast('Your account has read-only access.');return;}if(modal.open)closeModal();newDraft(button.dataset.new);return;}
  if(button.dataset.detail){detail(button.dataset.detail);return;}
  if(button.dataset.invoice){viewInvoice(button.dataset.invoice);return;}
+ if(button.dataset.voucherInvoice){openRenderedInvoice(button.dataset.voucherInvoice);return;}
+ if(button.dataset.printRendered){
+  const v = (typeof registerView !== 'undefined' && registerView?.rows?.find(r=>r.id===button.dataset.printRendered)) ||
+            state.report?.rows?.find(r=>r.id===button.dataset.printRendered) ||
+            drafts().find(d=>d.id===button.dataset.printRendered);
+  if(v){
+   const payload = (v.items && v.items[0]?.godown !== undefined) ? v : historyToInvoicePayload(v);
+   $('#print-area').innerHTML = officialTallyInvoiceHTML(payload);
+   window.print();
+  }
+  return;
+ }
+ if(button.dataset.shareRendered){
+  const v = (typeof registerView !== 'undefined' && registerView?.rows?.find(r=>r.id===button.dataset.shareRendered)) ||
+            state.report?.rows?.find(r=>r.id===button.dataset.shareRendered) ||
+            drafts().find(d=>d.id===button.dataset.shareRendered);
+  if(v){
+   const payload = (v.items && v.items[0]?.godown !== undefined) ? v : historyToInvoicePayload(v);
+   const text = `*TAX INVOICE — UPKAR AGENCY*\n` +
+    `Invoice / Ref: ${payload.reference}\n` +
+    `Date: ${tallyDate(payload.date)}\n` +
+    `Customer: ${payload.party}\n` +
+    `Total Amount: ₹ ${fmtMoney(payload.total)}\n` +
+    `Amount in Words: ${tallyWords(payload.total)}\n\n` +
+    `Thank you for doing business with Upkar Agency!`;
+   dialog('Share on WhatsApp', `<p class="small muted">Review the message before opening WhatsApp.</p><pre class="ocr-text mt">${esc(text)}</pre>`, `<a class="btn primary" href="https://wa.me/?text=${encodeURIComponent(text)}" target="_blank" rel="noopener noreferrer">${icon('whatsapp')} Send via WhatsApp</a>`);
+  }
+  return;
+ }
  if(button.dataset.edit){editDraft(button.dataset.edit);return;}
  if(button.dataset.ledger){ledgerDetail(button.dataset.ledger);return;}
  if(button.dataset.report){run(()=>report(button.dataset.report));return;}

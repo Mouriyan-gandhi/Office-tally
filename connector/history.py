@@ -17,7 +17,7 @@ def request_xml(company, start, end):
     collection = root.find('.//COLLECTION')
     for child in list(collection): collection.remove(child)
     ET.SubElement(collection, 'TYPE').text = 'Voucher'
-    for field in ('GUID','MasterID','AlterID','Date','VoucherTypeName','VoucherNumber','Narration','IsCancelled','IsOptional','PartyLedgerName','Reference','AllLedgerEntries.*'):
+    for field in ('GUID','MasterID','AlterID','Date','VoucherTypeName','VoucherNumber','Narration','IsCancelled','IsOptional','PartyLedgerName','Reference','AllLedgerEntries.*','AllInventoryEntries.*'):
         ET.SubElement(collection, 'NATIVEMETHOD').text = field
     ET.SubElement(collection, 'FILTERS').text = 'OfficeHistoryPeriod'
     system = ET.SubElement(root.find('.//TDLMESSAGE'), 'SYSTEM', TYPE='Formulae', NAME='OfficeHistoryPeriod')
@@ -47,13 +47,22 @@ def vouchers(root, start, end):
             except InvalidOperation: raise ValueError('Invalid ledger amount') from None
             if not name or not amount.is_finite(): raise ValueError('Invalid ledger entry')
             lines.append({'ledger':name,'amount':str(amount)})
+        items = []
+        for inv in node.findall('.//ALLINVENTORYENTRIES.LIST'):
+            item_name = inv.findtext('STOCKITEMNAME', '')
+            rate = inv.findtext('RATE', '')
+            actual_qty = inv.findtext('ACTUALQTY', '')
+            amt = inv.findtext('AMOUNT', '')
+            godown = inv.findtext('.//GODOWNNAME', '')
+            if item_name:
+                items.append({'name': item_name, 'rate': rate, 'qty': actual_qty, 'amount': amt, 'godown': godown})
         cancelled = node.findtext('ISCANCELLED','').casefold() == 'yes'
         optional = node.findtext('ISOPTIONAL','').casefold() == 'yes'
         if not lines and not (cancelled or optional):
             raise ValueError('Voucher ledger allocations were not returned')
         result.append({'id':identifier,'date':day,'kind':node.findtext('VOUCHERTYPENAME',''),
             'number':node.findtext('VOUCHERNUMBER',''),'party':node.findtext('PARTYLEDGERNAME',''),'reference':node.findtext('REFERENCE',''),'narration':node.findtext('NARRATION',''),
-            'cancelled':cancelled,'optional':optional,'lines':lines})
+            'cancelled':cancelled,'optional':optional,'lines':lines,'items':items})
         if len(result)>5000: raise ValueError('History period too large; no partial history saved')
     return result
 

@@ -93,7 +93,8 @@ def statement(db, ledger):
             amount = sum((Decimal(line['amount']) for line in v['lines'] if line['ledger']==ledger),Decimal(0))
             if not any(line['ledger']==ledger for line in v['lines']): continue
             rows.append({'date':v['date'],'kind':v['kind'],'number':v['number'],'debit':str(max(amount,Decimal(0))),
-                         'credit':str(max(-amount,Decimal(0))),'narration':v['narration'],'id':v['id']})
+                         'credit':str(max(-amount,Decimal(0))),'narration':v['narration'],'id':v['id'],
+                         'party':ledger,'total':str(abs(amount)),'lines':v.get('lines',[]),'items':v.get('items',[])})
     rows.sort(key=lambda v:(v['date'],v['id']))
     return {'rows':rows[-1000:],'truncated':len(rows)>1000,'coverage':coverage,
             'note':'Synced Tally vouchers only. Opening balances are not included; no running balance inferred. Cancelled and optional vouchers excluded.'}
@@ -139,7 +140,8 @@ def register(db, kind, snapshot, start='', end='', offset=0, limit=200):
         total=str(abs(sum(amounts,Decimal(0)))) if amounts else ''
         if not amounts:unmapped+=1
         rows.append({'id':v['id'],'date':v['date'],'kind':v['kind'],'number':v['number'],'party':party,
-                     'reference':v.get('reference',''),'total':total,'synced_at':updated})
+                     'reference':v.get('reference',''),'total':total,'synced_at':updated,
+                     'lines':v.get('lines',[]),'items':v.get('items',[])})
     rows.sort(key=lambda v:(v['date'],v['id']),reverse=True)
     ready=[p for p in coverage if p['synced_at']]
     import hashlib
