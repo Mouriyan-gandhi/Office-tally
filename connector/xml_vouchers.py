@@ -60,12 +60,15 @@ def build(draft, company, identifier, *, billwise=False):
                                ('ACTUALQTY', item['qty'] + ' ' + item['unit']), ('BILLEDQTY', item['qty'] + ' ' + item['unit']),
                                ('AMOUNT', format(sign * Decimal(item['amount']), '.2f'))]:
                 put(entry, tag, value)
-            if item.get('godown'):
-                batch=ET.SubElement(entry,'BATCHALLOCATIONS.LIST')
-                for tag,value in [('GODOWNNAME',item['godown']),('DESTINATIONGODOWNNAME',item['godown']),('BATCHNAME','Primary Batch'),
-                                  ('ACTUALQTY',item['qty']+' '+item['unit']),('BILLEDQTY',item['qty']+' '+item['unit']),
-                                  ('AMOUNT',format(sign*Decimal(item['amount']),'.2f'))]:
-                    put(batch,tag,value)
+            batch = ET.SubElement(entry, 'BATCHALLOCATIONS.LIST')
+            godown = item.get('godown') or 'Main Location'
+            put(batch, 'GODOWNNAME', godown)
+            put(batch, 'DESTINATIONGODOWNNAME', godown)
+            put(batch, 'BATCHNAME', item.get('batch') or 'Primary Batch')
+            put(batch, 'ISDEEMEDPOSITIVE', 'Yes' if sign < 0 else 'No')
+            put(batch, 'AMOUNT', format(sign * Decimal(item['amount']), '.2f'))
+            put(batch, 'ACTUALQTY', item['qty'] + ' ' + item['unit'])
+            put(batch, 'BILLEDQTY', item['qty'] + ' ' + item['unit'])
             allocation = ET.SubElement(entry, 'ACCOUNTINGALLOCATIONS.LIST')
             put(allocation, 'LEDGERNAME', draft['account_ledger'])
             put(allocation, 'ISDEEMEDPOSITIVE', 'Yes' if sign < 0 else 'No')

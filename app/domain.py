@@ -101,9 +101,10 @@ def normalize_draft(payload):
                 if amount != amount.quantize(PAISA): raise ValidationError('Item amount can have at most two decimals')
                 reason = text(row.get('override_reason',''),'Reason for reviewed item amount',300)
             subtotal += amount
+            godown = text(row.get('godown', ''), 'Godown', 100, False) if row.get('godown') else ''
             result['items'].append(dict(name=text(row.get('name'), 'Stock item'), unit=text(row.get('unit'), 'Unit', 40),
                                         qty=str(qty), rate=str(rate), discount=str(discount), amount=str(amount),
-                                        godown=text(row.get('godown',''),'Godown',200,False),
+                                        godown=godown,
                                         amount_override=str(amount) if override not in ('',None) else '',override_reason=reason))
         taxes = payload.get('taxes', [])
         if not isinstance(taxes, list) or len(taxes) > 3:
@@ -189,13 +190,12 @@ def require_masters(draft, snapshot):
         raise ValidationError('This voucher type requires a manual voucher number')
     godowns = {g['name'] for g in snapshot.get('godowns',[])}
     stock = {row['name']: row for row in snapshot.get('stock', [])}
+    known_godowns = {g['name'].casefold() for g in snapshot.get('godowns', []) if isinstance(g, dict) and g.get('name')}
     for item in draft['items']:
         master = stock.get(item['name'])
         if not master or master.get('unit') != item['unit']:
             raise ValidationError(f'Check the stock item and unit: {item["name"]}')
-        if item.get('godown') and item['godown'] not in godowns:
-            raise ValidationError('Choose an existing synced godown')
-        if godowns and not item.get('godown'):
-            raise ValidationError('Choose a godown for each stock item')
-        if master.get('batchwise') or (master.get('godown_required') and not item.get('godown')):
+        if master.get('batchwise') and not item.get('godown'):
             raise ValidationError('Batch/godown inventory needs additional mapping before posting')
+        if item.get('godown') and known_godowns and item['godown'].casefold() not in known_godowns and item['godown'].casefold() != 'main location':
+            raise ValidationError(f'Godown not found in Tally: {item["godown"]}')

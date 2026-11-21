@@ -26,7 +26,12 @@ def seed(db, actor):
         {'name': 'Everyday Tote · Demo', 'unit': 'pcs', 'quantity': '6', 'rate': '250', 'value': '1500', 'batchwise': False},
         {'name': 'Cabin Trolley · Demo', 'unit': 'pcs', 'quantity': '14', 'rate': '1850', 'value': '25900', 'batchwise': False},
     ]
-    snap = {'company': 'Upkar Agency', 'ledgers': ledgers, 'stock': stock, 'source': 'Fictional demo data'}
+    godowns = [
+        {'name': 'Main Location', 'parent': ''},
+        {'name': 'Central Warehouse · Demo', 'parent': ''},
+        {'name': 'Retail Outlet · Demo', 'parent': ''},
+    ]
+    snap = {'company': 'Upkar Agency', 'ledgers': ledgers, 'stock': stock, 'godowns': godowns, 'source': 'Fictional demo data'}
     now = time.time()
     db.execute('INSERT OR REPLACE INTO snapshots VALUES(?,?,?)', ('demo', json.dumps(snap), now))
     if not db.execute("SELECT 1 FROM drafts WHERE mode='demo' LIMIT 1").fetchone():

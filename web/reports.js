@@ -48,6 +48,13 @@ document.addEventListener('submit',event=>{if(event.target.id!=='register-filter
 
 let invoiceView=null,invoiceTimer=null;
 async function openNativeInvoice(source){
+ if(source.draft_id){
+  const v=drafts().find(d=>d.id===source.draft_id);
+  if(v){
+   viewInvoice(source.draft_id);
+   return;
+  }
+ }
  if(state.mode!=='live')throw Error('Native invoices are available for posted Tally vouchers in the Tally workspace.');
  clearTimeout(invoiceTimer);invoiceView={source,file:null};const view=invoiceView;
  dialog('Tally invoice PDF','<div id="native-invoice-panel"><p>Requesting the original invoice from the office connector…</p></div>');

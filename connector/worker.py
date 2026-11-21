@@ -53,12 +53,19 @@ def snapshot(port):
         return parent
     ledgers = read('ledgers', COMPANY, port)
     stock = read('stock', COMPANY, port)
-    godowns = read('godowns',COMPANY,port)
-    types = read('voucher_types',COMPANY,port)
+    try:
+        godowns_xml = read('godowns', COMPANY, port)
+        godowns = [{'name': row.get('NAME') or row.findtext('NAME') or '', 'parent': row.findtext('PARENT', '')} for row in godowns_xml.iter('GODOWN')]
+        godowns = [g for g in godowns if g['name']]
+    except Exception:
+        godowns = []
+    if not any(g['name'] == 'Main Location' for g in godowns):
+        godowns.insert(0, {'name': 'Main Location', 'parent': ''})
+    types = read('voucher_types', COMPANY, port)
     yes = lambda value: str(value).casefold() == 'yes'
     books_from = next((row.findtext('BOOKSFROM','') for row in company.iter('COMPANY') if (row.get('NAME') or row.findtext('NAME')) == COMPANY), '')
     return {'company': COMPANY, 'books_from': books_from,
-        'godowns':[{'name':v.get('NAME') or v.findtext('NAME','')} for v in godowns.iter('GODOWN')],
+        'godowns': godowns,
         'voucher_types':[{'name':v.get('NAME') or v.findtext('NAME',''),'numbering':v.findtext('NUMBERINGMETHOD',''),'parent':v.findtext('PARENT','')} for v in types.iter('VOUCHERTYPE')], 'ledgers': [
         {'name': row.get('NAME') or row.findtext('NAME') or '', 'group': category(row.findtext('PARENT', '')), 'parent':row.findtext('PARENT',''),
          'balance': balance(row.findtext('CLOSINGBALANCE', '')), 'billwise': yes(row.findtext('ISBILLWISEON'))}
