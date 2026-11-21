@@ -119,9 +119,39 @@ function renderSettings(){
  const c=state.data.connector;
  $('#page').innerHTML=heading('Your office, connected.','MacBook for development. Windows for Tally. One simple workspace.')+`<div class="report-grid mobile-shortcuts"><button class="report-tile" data-nav="ledgers">${icon('people')}<h3>Ledgers</h3></button><button class="report-tile" data-nav="stock">${icon('stock')}<h3>Stock & inventory</h3></button><button class="report-tile" data-nav="reports">${icon('report')}<h3>Reports</h3></button><button class="report-tile" data-nav="scan">${icon('scan')}<h3>Scan a bill</h3></button></div><div class="split"><section class="card"><div class="card-head"><h2>Tally connection</h2>${statusBadge(c.fresh&&state.mode==='live'?'posted':'draft')}</div><div class="card-body"><div class="setting-row"><div><strong>Company</strong><p>The exact name used by the connector.</p></div><span class="setting-value">Upkar Agency</span></div><div class="setting-row"><div><strong>TallyPrime</strong><p>Windows office laptop</p></div><span class="setting-value">Silver · 7.1</span></div><div class="setting-row"><div><strong>Local Tally address</strong><p>Only used on the Windows laptop.</p></div><span class="setting-value">127.0.0.1:9000</span></div><div class="setting-row"><div><strong>Last master sync</strong></div><span class="setting-value">${state.mode==='live'?esc(when(snap().synced_at)):'Demo workspace'}</span></div><div class="setting-row"><div><strong>Voucher posting</strong><p>Requires approval and an activated office connector.</p></div><span class="setting-value">${c.posting_enabled?'Enabled on app host':'Awaiting activation'}</span></div><div class="notice mt">The connector calls the app from the office laptop. Never publish Tally’s port or share connector credentials in chat.</div><button class="btn mt" data-action="refresh">${icon('refresh')} Check status</button></div></section><section class="card"><div class="card-head"><h2>Workspace & tools</h2></div><div class="card-body"><div class="setting-row"><div><strong>Signed in as</strong><p>${esc(state.user.email)}</p></div><span class="badge">${esc(state.user.role||'owner')}</span></div><div class="setting-row"><div><strong>Local bill scanner</strong><p>Images stay on the app host. No external AI.</p></div><span class="setting-value">${state.data.ocr_available?'Tesseract available':'Manual entry available'}</span></div><div class="setting-row"><div><strong>WhatsApp</strong><p>Manual sharing is available on entry reviews. Automated delivery is optional and not connected.</p></div><span class="setting-value">Manual share</span></div><div class="setting-row"><div><strong>Data workspace</strong><p>Demo entries never enter the Tally queue.</p></div><button class="btn small" data-action="mode">${state.mode==='demo'?'Demo':'Tally data'}</button></div><button class="btn danger mt" data-action="logout">${icon('logout')} Sign out</button></div></section></div><section class="card mt"><div class="card-head"><div><h2>Activity trail</h2><p>Recent sign-ins, drafts and connection actions.</p></div></div><div class="table-wrap"><table><thead><tr><th>Action</th><th>Who</th><th>When</th></tr></thead><tbody>${state.data.audit.slice(0,20).map(a=>`<tr><td>${esc(a.action.replaceAll('_',' '))}</td><td>${esc(a.actor)}</td><td>${esc(when(a.at))}</td></tr>`).join('')}</tbody></table></div></section>`;
 }
+function suggestTaxLedgers(kind, mode, percent){
+ const isSale = kind === 'Sales';
+ const all = ledgers(['Duties & Taxes']);
+ const pool = all.filter(l => {
+  if (isSale) return !/(\bIN\b|IN\s*@|INPUT|INWARD)/i.test(l.name);
+  return !/(\bOUT\b|OUT\s*@|OUTPUT|OUTWARD)/i.test(l.name);
+ });
+ const findLedger = (type, rate) => {
+  const rStr = String(rate).replace(/\.0$/, '');
+  let match = pool.find(l => {
+   const n = l.name.toUpperCase();
+   return n.includes(type) && (n.includes(rStr + '%') || n.includes(rStr + ' %') || n.includes('@ ' + rStr) || n.includes('@' + rStr));
+  });
+  if (match) return match.name;
+  match = pool.find(l => l.name.toUpperCase().includes(type));
+  if (match) return match.name;
+  return isSale ? `${type} OUT @ ${rate} %` : `${type} IN @ ${rate} %`;
+ };
+ const pNum = Number(percent) || 18;
+ if (mode === 'interstate') {
+  return { IGST: findLedger('IGST', pNum), CGST: 'CGST', SGST: 'SGST' };
+ } else if (mode === 'local') {
+  const half = (pNum / 2);
+  return { CGST: findLedger('CGST', half), SGST: findLedger('SGST', half), IGST: 'IGST' };
+ }
+ return { CGST: 'CGST', SGST: 'SGST', IGST: 'IGST' };
+}
 function newDraft(kind,values={}){
  const def=(snap().godowns?.[0]?.name)||'Main Location';
- state.editor={kind,date:today(),party:'',cash_bank:'',account_ledger:state.mode==='demo'?(kind==='Sales'?'Sales':'Purchase'):(kind==='Sales'?'Sales':'Purchase'),reference:'',voucher_number:'',round_off:'0',round_off_ledger:'',narration:'',items:[{name:'',unit:'',qty:'1',rate:'',discount:'0',godown:def}],taxMode:'none',taxPercent:'18',taxLedgers:{CGST:'CGST',SGST:'SGST',IGST:'IGST'},amount:'',allocations:[],...values};
+ const tMode = values.taxMode || (['Sales','Purchase'].includes(kind)?'local':'none');
+ const tPct = values.taxPercent || '18';
+ const defaultLedgers = suggestTaxLedgers(kind, tMode, tPct);
+ state.editor={kind,date:today(),party:'',cash_bank:'',account_ledger:state.mode==='demo'?(kind==='Sales'?'Sales':'Purchase'):(kind==='Sales'?'Sales Accounts':'Purchase Accounts'),reference:'',voucher_number:'',round_off:'0',round_off_ledger:'',narration:'',items:[{name:'',unit:'',qty:'1',rate:'',discount:'0',godown:def}],taxMode:tMode,taxPercent:tPct,taxLedgers:{...defaultLedgers,...(values.taxLedgers||{})},amount:'',allocations:[],...values};
  state.page='editor';render();window.scrollTo(0,0);
 }
 function renderEditor(){
@@ -147,7 +177,17 @@ function itemRows(){
  </div>`).join('');
 }
 function allocationRows(){return state.editor.allocations.map((r,i)=>`<div class="allocation" data-allocation="${i}"><input data-field="reference" value="${esc(r.reference)}" aria-label="Bill reference ${i+1}" placeholder="Bill reference" required><input type="number" min="0.01" step="0.01" data-field="amount" value="${esc(r.amount)}" aria-label="Bill amount ${i+1}" placeholder="Amount" required><button type="button" class="text-btn" data-remove-allocation="${i}" aria-label="Remove allocation">${icon('close')}</button></div>`).join('');}
-function taxFields(){const e=state.editor;return e.taxMode==='none'?'':`<div class="form-grid">${(e.taxMode==='local'?['CGST','SGST']:['IGST']).map(t=>`<div><label for="tax-${t}">${t} ledger</label><input id="tax-${t}" data-tax-ledger="${t}" list="tax-list" value="${esc(e.taxLedgers[t])}" required></div>`).join('')}</div><datalist id="tax-list">${ledgers(['Duties & Taxes']).map(l=>`<option value="${esc(l.name)}"></option>`).join('')}</datalist>`;}
+function taxFields(){
+ const e=state.editor;
+ if(e.taxMode==='none')return '';
+ const isSale=e.kind==='Sales';
+ const filteredLedgers=ledgers(['Duties & Taxes']).filter(l=>{
+  if(isSale) return !/(\bIN\b|IN\s*@|INPUT|INWARD)/i.test(l.name);
+  return !/(\bOUT\b|OUT\s*@|OUTPUT|OUTWARD)/i.test(l.name);
+ });
+ const types=e.taxMode==='local'?['CGST','SGST']:['IGST'];
+ return `<div class="form-grid">${types.map(t=>`<div><label for="tax-${t}">${t} ledger (${isSale?'Output Tax':'Input Tax'})</label><input id="tax-${t}" data-tax-ledger="${t}" list="tax-list" value="${esc(e.taxLedgers[t]||'')}" required></div>`).join('')}</div><datalist id="tax-list">${filteredLedgers.map(l=>`<option value="${esc(l.name)}"></option>`).join('')}</datalist>`;
+}
 function lineAmount(row){if(row.amount_override!==undefined&&row.amount_override!=='')return Number(row.amount_override);return Math.round(Number(row.qty||0)*Number(row.rate||0)*(1-Number(row.discount||0)/100)*100)/100;}
 function previewTotals(){
  const e=state.editor;
@@ -166,7 +206,23 @@ function updateSummary(){
 }
 
 function collectEditor(){const form=$('#entry-form');if(!form)return;const e=state.editor;new FormData(form).forEach((v,k)=>e[k]=String(v));return e;}
-function draftPayload(){const e=collectEditor();const p={...e,items:e.items.map(r=>({...r})),taxes:[]};if(['Sales','Purchase'].includes(e.kind)&&e.taxMode!=='none'){if(Number(e.taxPercent)<=0)throw Error('Choose a GST rate greater than zero, or select No tax.');p.taxes=(e.taxMode==='local'?['CGST','SGST']:['IGST']).map(t=>({type:t,ledger:e.taxLedgers[t],percent:String(Number(e.taxPercent)/(e.taxMode==='local'?2:1))}));}return p;}
+function draftPayload(){
+ const e=collectEditor();
+ const p={...e,items:e.items.map(r=>({...r})),taxes:[]};
+ if(['Sales','Purchase'].includes(e.kind)&&e.taxMode!=='none'){
+  if(Number(e.taxPercent)<=0)throw Error('Choose a GST rate greater than zero, or select No tax.');
+  p.taxes=(e.taxMode==='local'?['CGST','SGST']:['IGST']).map(t=>({type:t,ledger:e.taxLedgers[t]||t,percent:String(Number(e.taxPercent)/(e.taxMode==='local'?2:1))}));
+  if(e.kind==='Sales'){
+   const bad = p.taxes.find(t=>/(\bIN\b|IN\s*@|INPUT|INWARD)/i.test(t.ledger));
+   if(bad) throw Error(`"${bad.ledger}" is an Input Tax ledger (for purchases). In Tally, Sales vouchers strictly require an Output tax ledger (e.g. IGST OUT or Output IGST).`);
+  }
+  if(e.kind==='Purchase'){
+   const bad = p.taxes.find(t=>/(\bOUT\b|OUT\s*@|OUTPUT|OUTWARD)/i.test(t.ledger));
+   if(bad) throw Error(`"${bad.ledger}" is an Output Tax ledger (for sales). In Tally, Purchase vouchers require an Input tax ledger (e.g. IGST IN or Input IGST).`);
+  }
+ }
+ return p;
+}
 async function saveDraft(){const e=state.editor;const result=await api('drafts',{mode:state.mode,id:e.id,version:e.version,draft:draftPayload()});await load();state.editor=null;state.page='entries';render();detail(result.id);toast('Draft saved. Review before confirming.');}
 function dialog(title,body,footer=''){
  lastFocus=document.activeElement;modal.innerHTML=`<div class="modal-head"><h2 id="modal-title">${title}</h2><button class="btn icon small" data-action="close-modal" aria-label="Close dialog">${icon('close')}</button></div><div id="modal-feedback" class="modal-feedback" role="status" aria-live="polite"></div><div class="modal-body">${body}</div>${footer?'<div class="modal-foot">'+footer+'</div>':''}`;
@@ -175,7 +231,11 @@ function dialog(title,body,footer=''){
 function closeModal(){modal.close();lastFocus?.focus();}
 function detail(id){const v=drafts().find(r=>r.id===id);if(!v)return;state.detail=id;
  const isDraft=v.status==='draft';
- dialog(`${esc(v.kind)} ${v.reference?'· '+esc(v.reference):'review'}`,`<div class="detail-grid"><div><small>Company</small><strong>${esc(state.data?.connector?.company||'Upkar Agency')}</strong></div><div><small>Status</small>${statusBadge(v.status)}</div><div><small>Party ledger</small><strong>${esc(v.party)}</strong></div><div><small>Date</small>${esc(v.date)}</div>${v.voucher_number?'<div><small>Tally voucher number</small>'+esc(v.voucher_number)+'</div>':''}${v.cash_bank?'<div><small>Cash / bank</small>'+esc(v.cash_bank)+'</div>':''}${v.account_ledger?'<div><small>Account ledger</small>'+esc(v.account_ledger)+'</div>':''}</div>${v.items?.length?simpleTable(v.items,['name','qty','unit','rate','godown','amount','override_reason']):''}${v.taxes?.length?simpleTable(v.taxes,['type','ledger','percent','amount']):''}${v.allocations?.length?simpleTable(v.allocations,['reference','amount']):''}${Number(v.round_off)?'<div class="notice mt">Round off: '+money(v.round_off)+' · '+esc(v.round_off_ledger)+'</div>':''}<div class="summary-line summary-total"><span>Total</span><strong>${money(v.total)}</strong></div>${v.status==='rejected'?`<div class="notice error"><strong>Tally rejected this voucher:</strong><br>${esc(v.result||'Inspect tally.imp in the Tally folder')}</div>`:v.result?`<div class="notice mt">${esc(v.result)}</div>`:''}${v.narration?'<p class="small mt">'+esc(v.narration)+'</p>':''}${v.document_id?`<a class="btn small mt" href="/api/documents/${esc(v.document_id)}" target="_blank" rel="noopener">${icon('file')} Original bill</a>`:''}${isDraft?`<div class="notice ${state.mode==='demo'?'green':''}">${state.mode==='demo'?'Confirming saves a fictional demo entry. It will never reach Tally.':'Confirming queues this entry for '+esc(state.data?.connector?.company||'Upkar Agency')+'. Check party, amounts, items, godowns, tax ledgers and bill references first.'}</div>`:v.status==='needs_review'?'<div class="notice error">The import result is uncertain. Inspect Tally before creating or retrying any replacement entry. Automatic retries are blocked.</div>':''}`,`${isDraft?`<button class="btn danger" data-cancel="${id}">Cancel draft</button><button class="btn" data-edit="${id}">Edit</button><button class="btn primary" data-confirm="${id}">${icon('check')} ${state.mode==='demo'?'Confirm demo entry':'Confirm & send to Tally'}</button>`:`${v.status==='rejected'?`<button class="btn primary" data-retry-draft="${id}">${icon('edit')} Edit & Retry Entry</button>`:''}${v.kind==='Sales'?`<button class="btn primary" data-invoice="${id}">${icon('invoice')} Official Tax Invoice</button>`:''}<button class="btn" data-print="${id}">${icon('print')} Print / PDF</button><button class="btn" data-share="${id}">${icon('whatsapp')} Share</button>`}`);
+ const badTax=v.kind==='Sales'&&(v.taxes||[]).find(t=>/(\bIN\b|IN\s*@|INPUT|INWARD)/i.test(t.ledger));
+ const rejectNotice=badTax
+  ? `<div class="notice error"><strong>Tally Statutory Rejection (Exceptions: 1):</strong><br>This voucher used an Input tax ledger (<strong>${esc(badTax.ledger)}</strong>) on a Sales voucher. In TallyPrime, Sales strictly requires an <strong>Output Tax</strong> ledger (e.g. <code>${esc(badTax.ledger.replace(/(\bIN\b|IN\s*@|INPUT|INWARD)/gi,'OUT'))}</code>).<br>Tap <strong>Edit &amp; Retry Entry</strong> below to automatically switch to the Output tax ledger and resend to Tally.</div>`
+  : (v.status==='rejected'?`<div class="notice error"><strong>Tally rejected this voucher:</strong><br>${esc(v.result||'Inspect tally.imp in the Tally folder, or press Alt+O > Exceptions in Tally')}</div>`:v.result?`<div class="notice mt">${esc(v.result)}</div>`:'');
+ dialog(`${esc(v.kind)} ${v.reference?'· '+esc(v.reference):'review'}`,`<div class="detail-grid"><div><small>Company</small><strong>${esc(state.data?.connector?.company||'Upkar Agency')}</strong></div><div><small>Status</small>${statusBadge(v.status)}</div><div><small>Party ledger</small><strong>${esc(v.party)}</strong></div><div><small>Date</small>${esc(v.date)}</div>${v.voucher_number?'<div><small>Tally voucher number</small>'+esc(v.voucher_number)+'</div>':''}${v.cash_bank?'<div><small>Cash / bank</small>'+esc(v.cash_bank)+'</div>':''}${v.account_ledger?'<div><small>Account ledger</small>'+esc(v.account_ledger)+'</div>':''}</div>${v.items?.length?simpleTable(v.items,['name','qty','unit','rate','godown','amount','override_reason']):''}${v.taxes?.length?simpleTable(v.taxes,['type','ledger','percent','amount']):''}${v.allocations?.length?simpleTable(v.allocations,['reference','amount']):''}${Number(v.round_off)?'<div class="notice mt">Round off: '+money(v.round_off)+' · '+esc(v.round_off_ledger)+'</div>':''}<div class="summary-line summary-total"><span>Total</span><strong>${money(v.total)}</strong></div>${rejectNotice}${v.narration?'<p class="small mt">'+esc(v.narration)+'</p>':''}${v.document_id?`<a class="btn small mt" href="/api/documents/${esc(v.document_id)}" target="_blank" rel="noopener">${icon('file')} Original bill</a>`:''}${isDraft?`<div class="notice ${state.mode==='demo'?'green':''}">${state.mode==='demo'?'Confirming saves a fictional demo entry. It will never reach Tally.':'Confirming queues this entry for '+esc(state.data?.connector?.company||'Upkar Agency')+'. Check party, amounts, items, godowns, tax ledgers and bill references first.'}</div>`:v.status==='needs_review'?'<div class="notice error">The import result is uncertain. Inspect Tally before creating or retrying any replacement entry. Automatic retries are blocked.</div>':''}`,`${isDraft?`<button class="btn danger" data-cancel="${id}">Cancel draft</button><button class="btn" data-edit="${id}">Edit</button><button class="btn primary" data-confirm="${id}">${icon('check')} ${state.mode==='demo'?'Confirm demo entry':'Confirm & send to Tally'}</button>`:`${v.status==='rejected'?`<button class="btn primary" data-retry-draft="${id}">${icon('edit')} Edit & Retry Entry</button>`:''}${v.kind==='Sales'?`<button class="btn primary" data-invoice="${id}">${icon('invoice')} Official Tax Invoice</button>`:''}<button class="btn" data-print="${id}">${icon('print')} Print / PDF</button><button class="btn" data-share="${id}">${icon('whatsapp')} Share</button>`}`);
 }
 async function confirmDraft(id){const v=drafts().find(d=>d.id===id);await api('approve',{mode:state.mode,id,version:v.version,confirmation:state.data?.connector?.company||'Upkar Agency'});closeModal();await load();render();if(v.kind==='Sales'){toast('Sale confirmed! Opening your Tax Invoice…');setTimeout(()=>viewInvoice(id),350);}else{toast(state.mode==='demo'?'Demo entry saved. Tally is unchanged.':'Approved. Waiting for the office connector.');}}
 function fmtMoney(num){
@@ -273,13 +333,20 @@ function officialTallyInvoiceHTML(v){
  if(isInterstate){
   const igst=taxes.find(t=>t.type==='IGST')||{percent:'5',amount:totalTax};
   hsnTableHTML=`<table class="t-hsn">
+   <colgroup>
+    <col style="width:20%;">
+    <col style="width:24%;">
+    <col style="width:12%;">
+    <col style="width:22%;">
+    <col style="width:22%;">
+   </colgroup>
    <thead>
     <tr>
-     <th style="width:20%;">HSN/SAC</th>
-     <th style="width:24%;">Taxable Value</th>
-     <th style="width:12%;">Rate</th>
-     <th style="width:22%;">IGST Amount</th>
-     <th style="width:22%;">Total Tax Amount</th>
+     <th>HSN/SAC</th>
+     <th>Taxable Value</th>
+     <th>Rate</th>
+     <th>IGST Amount</th>
+     <th>Total Tax Amount</th>
     </tr>
    </thead>
    <tbody>
@@ -303,19 +370,28 @@ function officialTallyInvoiceHTML(v){
   const cgst=taxes.find(t=>t.type==='CGST')||{percent:'2.5',amount:totalTax/2};
   const sgst=taxes.find(t=>t.type==='SGST')||{percent:'2.5',amount:totalTax/2};
   hsnTableHTML=`<table class="t-hsn">
+   <colgroup>
+    <col style="width:16%;">
+    <col style="width:18%;">
+    <col style="width:8%;">
+    <col style="width:15%;">
+    <col style="width:8%;">
+    <col style="width:15%;">
+    <col style="width:20%;">
+   </colgroup>
    <thead>
     <tr>
-     <th rowspan="2" style="width:16%;">HSN/SAC</th>
-     <th rowspan="2" style="width:18%;">Taxable Value</th>
+     <th rowspan="2">HSN/SAC</th>
+     <th rowspan="2">Taxable Value</th>
      <th colspan="2">Central Tax</th>
      <th colspan="2">State Tax</th>
-     <th rowspan="2" style="width:20%;">Total Tax Amount</th>
+     <th rowspan="2">Total Tax Amount</th>
     </tr>
     <tr>
-     <th style="width:8%;">Rate</th>
-     <th style="width:15%;">Amount</th>
-     <th style="width:8%;">Rate</th>
-     <th style="width:15%;">Amount</th>
+     <th>Rate</th>
+     <th>Amount</th>
+     <th>Rate</th>
+     <th>Amount</th>
     </tr>
    </thead>
    <tbody>
@@ -430,22 +506,32 @@ function officialTallyInvoiceHTML(v){
   </table>
 
   <table class="t-items">
+   <colgroup>
+    <col style="width:5%;">
+    <col style="width:36%;">
+    <col style="width:12%;">
+    <col style="width:13%;">
+    <col style="width:12%;">
+    <col style="width:6%;">
+    <col style="width:6%;">
+    <col style="width:10%;">
+   </colgroup>
    <thead>
     <tr>
-     <th style="width:4%;">Sl<br>No.</th>
+     <th>Sl<br>No.</th>
      <th>Description of Goods</th>
-     <th style="width:11%;">HSN/SAC</th>
-     <th style="width:13%;">Quantity</th>
-     <th style="width:11%;">Rate</th>
-     <th style="width:5%;">per</th>
-     <th style="width:6%;">Disc. %</th>
-     <th style="width:12%;">Amount</th>
+     <th>HSN/SAC</th>
+     <th>Quantity</th>
+     <th>Rate</th>
+     <th>per</th>
+     <th>Disc. %</th>
+     <th>Amount</th>
     </tr>
    </thead>
    <tbody>
     ${itemsRowsHTML}
     ${taxRowsHTML}
-    <tr class="t-filler-tr"><td colspan="8"></td></tr>
+    <tr class="t-filler-tr"><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
    </tbody>
    <tfoot>
     <tr class="t-total-row">
@@ -475,20 +561,22 @@ function officialTallyInvoiceHTML(v){
    <span>Tax Amount (in words) : </span><strong class="t-bold">${tallyWords(totalTax)}</strong>
   </div>
 
-  <div class="t-bottom-box">
-   <div class="t-decl-cell">
-    <div class="t-pan-line"><strong>Company’s PAN :</strong> ABFPV0084P</div>
-    <div>
-     <strong>Declaration:</strong><br>
-     <span class="t-decl-text">We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.</span>
-    </div>
-   </div>
-   <div class="t-sign-cell">
-    <div>for <strong>Upkar Agency</strong></div>
-    <div class="t-sign-gap"></div>
-    <div><strong>Authorised Signatory</strong></div>
-   </div>
-  </div>
+  <table class="t-bottom-table">
+   <tr>
+    <td class="t-decl-td">
+     <div class="t-pan-line"><strong>Company’s PAN :</strong> ABFPV0084P</div>
+     <div>
+      <strong>Declaration:</strong><br>
+      <span class="t-decl-text">We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.</span>
+     </div>
+    </td>
+    <td class="t-sign-td">
+     <div>for <strong>Upkar Agency</strong></div>
+     <div class="t-sign-gap"></div>
+     <div><strong>Authorised Signatory</strong></div>
+    </td>
+   </tr>
+  </table>
  </div>
  <div class="t-computer-gen">This is a Computer Generated Invoice</div>
 </div>`;
@@ -684,15 +772,32 @@ document.addEventListener('click',event=>{
   if(v){
    closeModal();
    const tax=v.taxes||[];
+   const taxMode=tax.length?(tax[0].type==='IGST'?'interstate':'local'):'none';
+   const taxPercent=String(tax.reduce((a,t)=>a+Number(t.percent),0)||'18');
+   const suggested=suggestTaxLedgers(v.kind, taxMode, taxPercent);
+   const taxLedgers={...suggested, ...Object.fromEntries(tax.map(t=>[t.type,t.ledger]))};
+   if(v.kind==='Sales'){
+    for(const k of ['CGST','SGST','IGST']){
+     if(/(\bIN\b|IN\s*@|INPUT|INWARD)/i.test(taxLedgers[k]||'')){
+      taxLedgers[k]=suggested[k]||taxLedgers[k].replace(/(\bIN\b|IN\s*@|INPUT|INWARD)/gi,'OUT');
+     }
+    }
+   }else if(v.kind==='Purchase'){
+    for(const k of ['CGST','SGST','IGST']){
+     if(/(\bOUT\b|OUT\s*@|OUTPUT|OUTWARD)/i.test(taxLedgers[k]||'')){
+      taxLedgers[k]=suggested[k]||taxLedgers[k].replace(/(\bOUT\b|OUT\s*@|OUTPUT|OUTWARD)/gi,'IN');
+     }
+    }
+   }
    newDraft(v.kind,{
     ...v,
     id:undefined,
     voucher_number:'',
-    taxMode:tax.length?(tax[0].type==='IGST'?'interstate':'local'):'none',
-    taxPercent:String(tax.reduce((a,t)=>a+Number(t.percent),0)),
-    taxLedgers:{CGST:'CGST',SGST:'SGST',IGST:'IGST',...Object.fromEntries(tax.map(t=>[t.type,t.ledger]))}
+    taxMode,
+    taxPercent,
+    taxLedgers
    });
-   toast('Draft prefilled. Check voucher date/details and confirm.');
+   toast('Draft prefilled with corrected tax ledgers. Check and confirm.');
   }
   return;
  }
@@ -732,7 +837,16 @@ document.addEventListener('change',event=>{const el=event.target;
  if(el.id==='entry-filter'){state.kind=el.value;$('#entry-results').innerHTML=entryTable(filteredEntries());}
  if(el.id==='ledger-filter'){state.kind=el.value;$('#ledger-results').innerHTML=ledgerTable();}
  if(el.id==='stock-filter'){state.kind=el.value;$('#stock-results').innerHTML=stockTable();}
- if(el.id==='tax-mode'){$('#tax-ledger-fields').innerHTML=taxFields();}
+ if(el.id==='tax-mode'||el.id==='tax-percent'){
+  if(state.editor){
+   state.editor.taxMode=$('#tax-mode').value;
+   state.editor.taxPercent=$('#tax-percent').value;
+   const suggested=suggestTaxLedgers(state.editor.kind, state.editor.taxMode, state.editor.taxPercent);
+   state.editor.taxLedgers={...state.editor.taxLedgers, ...suggested};
+   $('#tax-ledger-fields').innerHTML=taxFields();
+   updateSummary();
+  }
+ }
 });
 modal.addEventListener('click',e=>{if(e.target===modal){const r=modal.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)closeModal();}});
 async function boot(){try{const config=await api('config');state.preview=config.preview;state.cloud=Boolean(config.cloud);if(state.cloud)state.mode='live';try{state.user=await api('session');await load();render();}catch{renderLogin();}}catch{root.innerHTML='<div class="boot">The app could not load. Check that the local server is running, then refresh.</div>';}}

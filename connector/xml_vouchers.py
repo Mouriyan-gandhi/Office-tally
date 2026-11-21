@@ -63,7 +63,6 @@ def build(draft, company, identifier, *, billwise=False):
             batch = ET.SubElement(entry, 'BATCHALLOCATIONS.LIST')
             godown = item.get('godown') or 'Main Location'
             put(batch, 'GODOWNNAME', godown)
-            put(batch, 'DESTINATIONGODOWNNAME', godown)
             put(batch, 'BATCHNAME', item.get('batch') or 'Primary Batch')
             put(batch, 'ISDEEMEDPOSITIVE', 'Yes' if sign < 0 else 'No')
             put(batch, 'AMOUNT', format(sign * Decimal(item['amount']), '.2f'))
