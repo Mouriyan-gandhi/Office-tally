@@ -105,19 +105,19 @@ def import_once(xml, port):
     connection = http.client.HTTPConnection('127.0.0.1', port, timeout=30)
     try:
         evidence = None
-        if COMPANY == 'Upkar Agency TEST':
+        try:
             from connector import import_diagnostics
             evidence = import_diagnostics.begin(xml)
-            print('TEST import evidence: '+str(evidence),flush=True)
+        except Exception:
+            pass
         connection.request('POST', '/', body=xml, headers={'Content-Type': 'text/xml; charset=utf-8'})
         response = connection.getresponse()
         raw = response.read(MAX_RESPONSE + 1)
         if evidence is not None:
             try:
                 import_diagnostics.received(evidence,response.status,raw)
-                print('TEST import response saved. Run: py -m connector.import_diagnostics',flush=True)
             except OSError:
-                print('TEST response could not be saved; outcome still checked from memory.',flush=True)
+                pass
         if response.status != 200 or len(raw) > MAX_RESPONSE:
             return 'needs_review', 'Import result uncertain; inspect Tally before retrying'
         root = parse_response(raw,allow_tally_errors=True)
@@ -127,11 +127,16 @@ def import_once(xml, port):
         other_changes = sum(int(root.findtext('.//'+tag,'0')) for tag in ('ALTERED','DELETED','CANCELLED'))
         if created == 1 and errors == 0 and exceptions == 0 and other_changes == 0:
             return 'posted', 'Tally confirmed one voucher created'
+
+        error_msgs = [n.text.strip() for n in root.iter()
+            if n.tag.upper() in ('LINEERROR','ERROR','EXCEPTION','ERRORMSG','DESCRIPTION') and n.text and n.text.strip()]
+        err_detail = (': ' + '; '.join(error_msgs[:3])) if error_msgs else ''
+
         if exceptions:
-            return 'needs_review', 'Tally recorded an import exception; inspect Alt+O > Exceptions before resolving or resubmitting'
+            return 'needs_review', f'Tally recorded an import exception{err_detail}; inspect Alt+O > Exceptions before resolving or resubmitting'
         if created == 0 and other_changes == 0 and errors:
-            return 'rejected', ('Tally rejected the voucher; inspect its import log' + ('; run py -m connector.import_diagnostics on Windows for the saved response' if COMPANY == 'Upkar Agency TEST' else ''))
-        return 'needs_review', 'No single voucher creation confirmed; inspect Tally'
+            return 'rejected', f'Tally rejected the voucher{err_detail}. Run py -m connector.import_diagnostics or check tally.imp.'
+        return 'needs_review', f'No single voucher creation confirmed{err_detail}; inspect Tally'
     except Exception:
         return 'needs_review', 'No reliable response; inspect Tally before any retry'
     finally:

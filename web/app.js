@@ -175,7 +175,7 @@ function dialog(title,body,footer=''){
 function closeModal(){modal.close();lastFocus?.focus();}
 function detail(id){const v=drafts().find(r=>r.id===id);if(!v)return;state.detail=id;
  const isDraft=v.status==='draft';
- dialog(`${esc(v.kind)} ${v.reference?'· '+esc(v.reference):'review'}`,`<div class="detail-grid"><div><small>Company</small><strong>${esc(state.data?.connector?.company||'Upkar Agency')}</strong></div><div><small>Status</small>${statusBadge(v.status)}</div><div><small>Party ledger</small><strong>${esc(v.party)}</strong></div><div><small>Date</small>${esc(v.date)}</div>${v.voucher_number?'<div><small>Tally voucher number</small>'+esc(v.voucher_number)+'</div>':''}${v.cash_bank?'<div><small>Cash / bank</small>'+esc(v.cash_bank)+'</div>':''}${v.account_ledger?'<div><small>Account ledger</small>'+esc(v.account_ledger)+'</div>':''}</div>${v.items?.length?simpleTable(v.items,['name','qty','unit','rate','godown','amount','override_reason']):''}${v.taxes?.length?simpleTable(v.taxes,['type','ledger','percent','amount']):''}${v.allocations?.length?simpleTable(v.allocations,['reference','amount']):''}${Number(v.round_off)?'<div class="notice mt">Round off: '+money(v.round_off)+' · '+esc(v.round_off_ledger)+'</div>':''}<div class="summary-line summary-total"><span>Total</span><strong>${money(v.total)}</strong></div>${v.result?'<div class="notice mt">'+esc(v.result)+'</div>':''}${v.narration?'<p class="small mt">'+esc(v.narration)+'</p>':''}${v.document_id?`<a class="btn small mt" href="/api/documents/${esc(v.document_id)}" target="_blank" rel="noopener">${icon('file')} Original bill</a>`:''}${isDraft?`<div class="notice ${state.mode==='demo'?'green':''}">${state.mode==='demo'?'Confirming saves a fictional demo entry. It will never reach Tally.':'Confirming queues this entry for '+esc(state.data?.connector?.company||'Upkar Agency')+'. Check party, amounts, items, godowns, tax ledgers and bill references first.'}</div>`:v.status==='needs_review'?'<div class="notice error">The import result is uncertain. Inspect Tally before creating or retrying any replacement entry. Automatic retries are blocked.</div>':''}`,`${isDraft?`<button class="btn danger" data-cancel="${id}">Cancel draft</button><button class="btn" data-edit="${id}">Edit</button><button class="btn primary" data-confirm="${id}">${icon('check')} ${state.mode==='demo'?'Confirm demo entry':'Confirm & send to Tally'}</button>`:`${v.kind==='Sales'?`<button class="btn primary" data-invoice="${id}">${icon('invoice')} Official Tax Invoice</button>`:''}<button class="btn" data-print="${id}">${icon('print')} Print / PDF</button><button class="btn" data-share="${id}">${icon('whatsapp')} Share</button>`}`);
+ dialog(`${esc(v.kind)} ${v.reference?'· '+esc(v.reference):'review'}`,`<div class="detail-grid"><div><small>Company</small><strong>${esc(state.data?.connector?.company||'Upkar Agency')}</strong></div><div><small>Status</small>${statusBadge(v.status)}</div><div><small>Party ledger</small><strong>${esc(v.party)}</strong></div><div><small>Date</small>${esc(v.date)}</div>${v.voucher_number?'<div><small>Tally voucher number</small>'+esc(v.voucher_number)+'</div>':''}${v.cash_bank?'<div><small>Cash / bank</small>'+esc(v.cash_bank)+'</div>':''}${v.account_ledger?'<div><small>Account ledger</small>'+esc(v.account_ledger)+'</div>':''}</div>${v.items?.length?simpleTable(v.items,['name','qty','unit','rate','godown','amount','override_reason']):''}${v.taxes?.length?simpleTable(v.taxes,['type','ledger','percent','amount']):''}${v.allocations?.length?simpleTable(v.allocations,['reference','amount']):''}${Number(v.round_off)?'<div class="notice mt">Round off: '+money(v.round_off)+' · '+esc(v.round_off_ledger)+'</div>':''}<div class="summary-line summary-total"><span>Total</span><strong>${money(v.total)}</strong></div>${v.status==='rejected'?`<div class="notice error"><strong>Tally rejected this voucher:</strong><br>${esc(v.result||'Inspect tally.imp in the Tally folder')}</div>`:v.result?`<div class="notice mt">${esc(v.result)}</div>`:''}${v.narration?'<p class="small mt">'+esc(v.narration)+'</p>':''}${v.document_id?`<a class="btn small mt" href="/api/documents/${esc(v.document_id)}" target="_blank" rel="noopener">${icon('file')} Original bill</a>`:''}${isDraft?`<div class="notice ${state.mode==='demo'?'green':''}">${state.mode==='demo'?'Confirming saves a fictional demo entry. It will never reach Tally.':'Confirming queues this entry for '+esc(state.data?.connector?.company||'Upkar Agency')+'. Check party, amounts, items, godowns, tax ledgers and bill references first.'}</div>`:v.status==='needs_review'?'<div class="notice error">The import result is uncertain. Inspect Tally before creating or retrying any replacement entry. Automatic retries are blocked.</div>':''}`,`${isDraft?`<button class="btn danger" data-cancel="${id}">Cancel draft</button><button class="btn" data-edit="${id}">Edit</button><button class="btn primary" data-confirm="${id}">${icon('check')} ${state.mode==='demo'?'Confirm demo entry':'Confirm & send to Tally'}</button>`:`${v.status==='rejected'?`<button class="btn primary" data-retry-draft="${id}">${icon('edit')} Edit & Retry Entry</button>`:''}${v.kind==='Sales'?`<button class="btn primary" data-invoice="${id}">${icon('invoice')} Official Tax Invoice</button>`:''}<button class="btn" data-print="${id}">${icon('print')} Print / PDF</button><button class="btn" data-share="${id}">${icon('whatsapp')} Share</button>`}`);
 }
 async function confirmDraft(id){const v=drafts().find(d=>d.id===id);await api('approve',{mode:state.mode,id,version:v.version,confirmation:state.data?.connector?.company||'Upkar Agency'});closeModal();await load();render();if(v.kind==='Sales'){toast('Sale confirmed! Opening your Tax Invoice…');setTimeout(()=>viewInvoice(id),350);}else{toast(state.mode==='demo'?'Demo entry saved. Tally is unchanged.':'Approved. Waiting for the office connector.');}}
 function fmtMoney(num){
@@ -275,11 +275,11 @@ function officialTallyInvoiceHTML(v){
   hsnTableHTML=`<table class="t-hsn">
    <thead>
     <tr>
-     <th style="width:110px;">HSN/SAC</th>
-     <th style="width:130px;">Taxable Value</th>
-     <th style="width:90px;">Rate</th>
-     <th style="width:120px;">IGST Amount</th>
-     <th style="width:120px;">Total Tax Amount</th>
+     <th style="width:20%;">HSN/SAC</th>
+     <th style="width:24%;">Taxable Value</th>
+     <th style="width:12%;">Rate</th>
+     <th style="width:22%;">IGST Amount</th>
+     <th style="width:22%;">Total Tax Amount</th>
     </tr>
    </thead>
    <tbody>
@@ -305,17 +305,17 @@ function officialTallyInvoiceHTML(v){
   hsnTableHTML=`<table class="t-hsn">
    <thead>
     <tr>
-     <th rowspan="2" style="width:90px;">HSN/SAC</th>
-     <th rowspan="2" style="width:110px;">Taxable Value</th>
+     <th rowspan="2" style="width:16%;">HSN/SAC</th>
+     <th rowspan="2" style="width:18%;">Taxable Value</th>
      <th colspan="2">Central Tax</th>
      <th colspan="2">State Tax</th>
-     <th rowspan="2" style="width:110px;">Total Tax Amount</th>
+     <th rowspan="2" style="width:20%;">Total Tax Amount</th>
     </tr>
     <tr>
-     <th style="width:55px;">Rate</th>
-     <th style="width:85px;">Amount</th>
-     <th style="width:55px;">Rate</th>
-     <th style="width:85px;">Amount</th>
+     <th style="width:8%;">Rate</th>
+     <th style="width:15%;">Amount</th>
+     <th style="width:8%;">Rate</th>
+     <th style="width:15%;">Amount</th>
     </tr>
    </thead>
    <tbody>
@@ -432,14 +432,14 @@ function officialTallyInvoiceHTML(v){
   <table class="t-items">
    <thead>
     <tr>
-     <th style="width:28px;">Sl<br>No.</th>
+     <th style="width:4%;">Sl<br>No.</th>
      <th>Description of Goods</th>
-     <th style="width:65px;">HSN/SAC</th>
-     <th style="width:75px;">Quantity</th>
-     <th style="width:65px;">Rate</th>
-     <th style="width:40px;">per</th>
-     <th style="width:48px;">Disc. %</th>
-     <th style="width:85px;">Amount</th>
+     <th style="width:11%;">HSN/SAC</th>
+     <th style="width:13%;">Quantity</th>
+     <th style="width:11%;">Rate</th>
+     <th style="width:5%;">per</th>
+     <th style="width:6%;">Disc. %</th>
+     <th style="width:12%;">Amount</th>
     </tr>
    </thead>
    <tbody>
@@ -549,10 +549,20 @@ function historyToInvoicePayload(v){
   status: 'posted'
  };
 }
-function openRenderedInvoice(id){
- const v = (typeof registerView !== 'undefined' && registerView?.rows?.find(r=>r.id===id)) ||
-           state.report?.rows?.find(r=>r.id===id) ||
-           drafts().find(d=>d.id===id);
+async function openRenderedInvoice(id){
+ let v = (typeof registerView !== 'undefined' && registerView?.rows?.find(r=>r.id===id)) ||
+         state.ledgerHistory?.find(r=>r.id===id) ||
+         state.report?.rows?.find(r=>r.id===id) ||
+         drafts().find(d=>d.id===id);
+ if(!v){
+  try {
+   const res = await api('voucher?id=' + encodeURIComponent(id));
+   v = res.voucher;
+  } catch (err) {
+   toast('Voucher details not found.');
+   return;
+  }
+ }
  if(!v) return;
  const payload = (v.items && v.items[0]?.godown !== undefined) ? v : historyToInvoicePayload(v);
  dialog(`Tax Invoice · ${esc(payload.reference||payload.party)}`, officialTallyInvoiceHTML(payload),
@@ -560,7 +570,9 @@ function openRenderedInvoice(id){
  );
 }
 function historyTable(rows){
- return `<div class="phone-list">${rows.map(v=>`<article class="stock-card"><span class="entry-card-icon">${icon('invoice')}</span><div class="entry-card-copy"><strong>${esc(v.kind)} · ${esc(v.number||'Unnumbered')}</strong><span>${esc(dateText(v.date))}</span>${v.narration?'<small>'+esc(v.narration)+'</small>':''}<button class="btn small mt" data-voucher-invoice="${esc(v.id)}">${icon('invoice')} Official Tax Invoice</button></div><div class="entry-card-value"><strong>${money(Number(v.debit)>0?v.debit:v.credit)}</strong><small>${Number(v.debit)>0?'Debit':'Credit'}</small></div></article>`).join('')}</div><div class="desktop-table">${simpleTable(rows,['date','kind','number','debit','credit','narration'])}<div class="toolbar mt">${rows.filter(v=>v.kind==='Sales').map(v=>`<button class="btn small" data-voucher-invoice="${esc(v.id)}">${icon('invoice')} Invoice #${esc(v.number||v.date)}</button>`).join(' ')}</div></div>`;
+ const cards = `<div class="phone-list">${rows.map(v=>`<article class="stock-card" style="cursor:pointer;" data-voucher-invoice="${esc(v.id)}"><span class="entry-card-icon">${icon('invoice')}</span><div class="entry-card-copy"><strong style="font-size:14px;">${esc(v.kind)} · ${esc(v.number||'Unnumbered')}</strong><span>${esc(dateText(v.date))}</span>${v.narration?'<small>'+esc(v.narration)+'</small>':''}<div style="display:flex;gap:8px;margin-top:8px;"><button class="btn small primary" data-voucher-invoice="${esc(v.id)}">${icon('invoice')} Official Tax Invoice</button><button class="btn small" data-share-rendered="${esc(v.id)}">${icon('whatsapp')} Share</button></div></div><div class="entry-card-value"><strong>${money(Number(v.debit)>0?v.debit:v.credit)}</strong><small>${Number(v.debit)>0?'Debit':'Credit'}</small></div></article>`).join('')}</div>`;
+ const desktopTable = `<div class="desktop-table"><div class="table-wrap"><table><thead><tr><th>Date</th><th>Type</th><th>Voucher #</th><th>Debit</th><th>Credit</th><th>Narration</th><th>Action</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${esc(r.date)}</td><td><span class="badge ${esc((r.kind||'').toLowerCase())}">${esc(r.kind)}</span></td><td><strong>${esc(r.number||'—')}</strong></td><td class="numeric">${Number(r.debit)>0?money(r.debit):'—'}</td><td class="numeric">${Number(r.credit)>0?money(r.credit):'—'}</td><td class="small muted">${esc(r.narration||'')}</td><td><button class="btn small" data-voucher-invoice="${esc(r.id)}">${icon('invoice')} Tax Invoice</button></td></tr>`).join('')}</tbody></table></div></div>`;
+ return cards + desktopTable;
 }
 async function ledgerDetail(name){const ledger=snap().ledgers.find(l=>l.name===name);const rows=saved().filter(v=>v.party===name||v.cash_bank===name);if(!ledger)return;state.report={title:name,rows,columns:['date','kind','reference','total']};dialog(esc(name),`<div class="detail-grid"><div><small>Group</small>${esc(ledger.group)}</div><div><small>Synced balance · debit positive</small><strong>${money(ledger.balance)}</strong></div></div><h3>Entries recorded through this app</h3>${rows.length?simpleTable(rows,['date','kind','reference','total']):empty('No app entries yet','This does not mean the Tally ledger has no transactions.')}<div id="tally-history" class="mt">${state.mode==='live'?'Loading synced Tally history…':'Tally history is available in the Tally workspace.'}</div>`,`<button class="btn" data-action="print-report">${icon('print')} Print statement</button><button class="btn" data-action="export-report">${icon('down')} Export CSV</button>`);
  if(state.mode==='live'){
@@ -568,8 +580,9 @@ async function ledgerDetail(name){const ledger=snap().ledgers.find(l=>l.name===n
   try{
    const h=await api('ledger-history?ledger='+encodeURIComponent(name));
    const target=$('#tally-history');if(!target||target.dataset.ledger!==name)return;
+   state.ledgerHistory = h.rows || [];
    const complete=(h.coverage||[]).filter(p=>p.synced_at), failed=(h.coverage||[]).filter(p=>p.error);
-   target.innerHTML=`<h3>Tally voucher history</h3><p>${complete.length} date ranges cached${failed.length?'; '+failed.length+' need another sync':''}. Initial import and periodic checks may still be in progress.</p>${h.rows.length?historyTable(h.rows):empty('No cached transactions yet','Keep the updated Windows connector running to import history.')}<div class="notice mt">${esc(h.note)}${h.truncated?' Showing the latest 1,000 matching vouchers.':''}</div><details class="mt"><summary>Synced periods and freshness</summary>${(h.coverage||[]).map(p=>`<p>${esc(p.from)} – ${esc(p.to)} · ${p.synced_at?esc(when(p.synced_at)):'Pending'} ${p.error?'· Refresh failed; old cache retained':''}</p>`).join('')}</details>`;
+   target.innerHTML=`<h3>Tally voucher history</h3><p>${complete.length} date ranges cached${failed.length?'; '+failed.length+' need another sync':''}. Tap any voucher to view its Official Tax Invoice.</p>${h.rows.length?historyTable(h.rows):empty('No cached transactions yet','Keep the updated Windows connector running to import history.')}<div class="notice mt">${esc(h.note)}${h.truncated?' Showing the latest 1,000 matching vouchers.':''}</div><details class="mt"><summary>Synced periods and freshness</summary>${(h.coverage||[]).map(p=>`<p>${esc(p.from)} – ${esc(p.to)} · ${p.synced_at?esc(when(p.synced_at)):'Pending'} ${p.error?'· Refresh failed; old cache retained':''}</p>`).join('')}</details>`;
    state.report={title:name+' — cached Tally vouchers (opening balance excluded)',rows:h.rows,columns:['date','kind','number','debit','credit','narration']};
   }catch(error){const target=$('#tally-history');if(target)target.textContent='History could not be loaded. Your last synced ledger balance remains available.';}
  }
@@ -663,6 +676,23 @@ document.addEventListener('click',event=>{
     `Amount in Words: ${tallyWords(payload.total)}\n\n` +
     `Thank you for doing business with Upkar Agency!`;
    dialog('Share on WhatsApp', `<p class="small muted">Review the message before opening WhatsApp.</p><pre class="ocr-text mt">${esc(text)}</pre>`, `<a class="btn primary" href="https://wa.me/?text=${encodeURIComponent(text)}" target="_blank" rel="noopener noreferrer">${icon('whatsapp')} Send via WhatsApp</a>`);
+  }
+  return;
+ }
+ if(button.dataset.retryDraft){
+  const v=drafts().find(d=>d.id===button.dataset.retryDraft);
+  if(v){
+   closeModal();
+   const tax=v.taxes||[];
+   newDraft(v.kind,{
+    ...v,
+    id:undefined,
+    voucher_number:'',
+    taxMode:tax.length?(tax[0].type==='IGST'?'interstate':'local'):'none',
+    taxPercent:String(tax.reduce((a,t)=>a+Number(t.percent),0)),
+    taxLedgers:{CGST:'CGST',SGST:'SGST',IGST:'IGST',...Object.fromEntries(tax.map(t=>[t.type,t.ledger]))}
+   });
+   toast('Draft prefilled. Check voucher date/details and confirm.');
   }
   return;
  }

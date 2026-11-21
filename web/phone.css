@@ -335,9 +335,10 @@
   border: 1.5px solid #000;
   box-sizing: border-box;
   color: #000;
-  font-size: 10.5px;
+  font-size: 10px;
   line-height: 1.3;
-  min-width: 620px;
+  width: 100%;
+  max-width: 100%;
 }
 .tally-main-title {
   text-align: center;
@@ -427,7 +428,7 @@
   padding-bottom: 6px;
 }
 .t-filler-tr td {
-  height: 60px;
+  height: 25px;
 }
 .t-total-row td {
   border-top: 1.5px solid #000 !important;
@@ -460,6 +461,7 @@
   width: 100%;
   border-collapse: collapse;
   border-bottom: 1.5px solid #000;
+  table-layout: fixed;
 }
 .t-hsn th, .t-hsn td {
   border: 1px solid #000;
@@ -503,23 +505,47 @@
   flex-direction: column;
   justify-content: space-between;
   text-align: right;
-  min-height: 85px;
+  min-height: 70px;
 }
 .t-sign-gap {
   flex: 1;
-  min-height: 40px;
+  min-height: 25px;
 }
 .t-computer-gen {
   text-align: center;
-  font-size: 9.5px;
-  padding: 6px 0 2px;
+  font-size: 9px;
+  padding: 5px 0 2px;
   color: #333;
 }
 
 @media print {
   body > * { display: none !important; }
-  body > #print-area { display: block !important; margin: 0; padding: 0; }
-  .tally-sheet-wrap { max-width: 100% !important; margin: 0 !important; }
-  .tally-sheet { border: 1.5px solid #000 !important; }
-  @page { size: A4 portrait; margin: 7mm; }
+  body::after, body::before, .is-working::after { display: none !important; }
+  body > #print-area { display: block !important; margin: 0 !important; padding: 0 !important; }
+  .tally-sheet-wrap { max-width: 100% !important; width: 100% !important; margin: 0 !important; padding: 0 !important; }
+  .tally-sheet {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    border: 1.5px solid #000 !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+    page-break-inside: avoid !important;
+    font-size: 8.5pt !important;
+    line-height: 1.25 !important;
+  }
+  .t-grid td { padding: 3px 5px !important; font-size: 8pt !important; }
+  .t-seller-text { font-size: 8pt !important; line-height: 1.25 !important; }
+  .t-items { page-break-inside: avoid !important; }
+  .t-items th { padding: 3px 4px !important; font-size: 8pt !important; background: #fff !important; }
+  .t-items td { padding: 2.5px 4px !important; font-size: 8pt !important; }
+  .t-filler-tr td { height: 14px !important; }
+  .t-hsn { page-break-inside: avoid !important; }
+  .t-hsn th { padding: 2px 3px !important; font-size: 7.5pt !important; background: #fff !important; }
+  .t-hsn td { padding: 2px 4px !important; font-size: 7.5pt !important; }
+  .t-bottom-box { page-break-inside: avoid !important; }
+  .t-sign-cell { min-height: 55px !important; }
+  .t-sign-gap { min-height: 22px !important; }
+  .t-computer-gen { font-size: 7pt !important; padding: 3px 0 0 !important; }
+  @page { size: A4 portrait; margin: 8mm 6mm; }
 }

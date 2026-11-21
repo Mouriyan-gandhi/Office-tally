@@ -8,12 +8,13 @@ import xml.etree.ElementTree as ET
 
 
 def folder():
-    return Path(os.environ.get('LOCALAPPDATA',str(Path.home())))/'OfficeTally-Test'/'diagnostics'
+    base = Path(os.environ.get('LOCALAPPDATA',str(Path.home())))/'OfficeTally'/'diagnostics'
+    return base
 
 
 def begin(xml):
     target=folder()/secrets.token_hex(16)
-    target.mkdir(parents=True,exist_ok=False)
+    target.mkdir(parents=True,exist_ok=True)
     (target/'request.xml').write_bytes(xml)
     (target/'result.json').write_text(json.dumps({'stage':'prepared','note':'Request prepared; no import outcome recorded yet'}))
     return target
@@ -22,6 +23,14 @@ def begin(xml):
 def received(target,status,raw):
     (target/'response.xml').write_bytes(raw)
     (target/'result.json').write_text(json.dumps({'stage':'response_received','http_status':status,'bytes_saved':len(raw)}))
+    try:
+        from connector.read_company import parse_response
+        root = parse_response(raw, allow_tally_errors=True)
+        errors = [n.text.strip() for n in root.iter() if n.tag.upper() in ('LINEERROR','ERROR','EXCEPTION','ERRORMSG','DESCRIPTION') and n.text and n.text.strip()]
+        if errors:
+            Path('last_import_error.txt').write_text('\n'.join(errors), encoding='utf-8')
+    except Exception:
+        pass
 
 
 def inspect(target):

@@ -186,6 +186,22 @@ class Handler(BaseHTTPRequestHandler):
                 if ledger not in {r['name'] for r in store.snapshot(db,'live')['ledgers']}:
                     raise ValidationError('Ledger not found in synced masters')
                 return self.respond(200, history.statement(db,ledger))
+        if route.path == '/api/voucher':
+            from urllib.parse import parse_qs
+            voucher_id = parse_qs(route.query).get('id',[''])[0]
+            with store.transaction() as db:
+                self.user(db)
+                if not voucher_id: raise ValidationError('Voucher ID is required')
+                draft = db.execute("SELECT * FROM drafts WHERE id=?", (voucher_id,)).fetchone()
+                if draft:
+                    payload = json.loads(draft['payload'])
+                    return self.respond(200, {'voucher': {'id': draft['id'], 'status': draft['status'], **payload}})
+                for period in db.execute('SELECT payload, updated FROM history_periods ORDER BY updated DESC'):
+                    if not period['updated']: continue
+                    v = next((x for x in json.loads(period['payload']) if x['id'] == voucher_id), None)
+                    if v:
+                        return self.respond(200, {'voucher': v})
+                raise ValidationError('Voucher not found')
         if route.path == '/api/reports':
             with store.transaction() as db:
                 self.user(db)
