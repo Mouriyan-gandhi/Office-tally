@@ -105,19 +105,19 @@ def import_once(xml, port):
     connection = http.client.HTTPConnection('127.0.0.1', port, timeout=30)
     try:
         evidence = None
-        try:
+        if COMPANY == 'Upkar Agency TEST':
             from connector import import_diagnostics
             evidence = import_diagnostics.begin(xml)
-        except Exception:
-            pass
+            print('TEST import evidence: '+str(evidence),flush=True)
         connection.request('POST', '/', body=xml, headers={'Content-Type': 'text/xml; charset=utf-8'})
         response = connection.getresponse()
         raw = response.read(MAX_RESPONSE + 1)
         if evidence is not None:
             try:
                 import_diagnostics.received(evidence,response.status,raw)
+                print('TEST import response saved. Run: py -m connector.import_diagnostics',flush=True)
             except OSError:
-                pass
+                print('TEST response could not be saved; outcome still checked from memory.',flush=True)
         if response.status != 200 or len(raw) > MAX_RESPONSE:
             return 'needs_review', 'Import result uncertain; inspect Tally before retrying'
         root = parse_response(raw,allow_tally_errors=True)

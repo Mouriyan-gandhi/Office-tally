@@ -8,8 +8,7 @@ import xml.etree.ElementTree as ET
 
 
 def folder():
-    base = Path(os.environ.get('LOCALAPPDATA',str(Path.home())))/'OfficeTally'/'diagnostics'
-    return base
+    return Path(os.environ.get('LOCALAPPDATA',str(Path.home())))/'OfficeTally-Test'/'diagnostics'
 
 
 def begin(xml):
