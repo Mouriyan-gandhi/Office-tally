@@ -279,17 +279,85 @@ function tallyWords(num) {
   if (cr) s += tw(cr) + 'Crore '; if (lk) s += tw(lk) + 'Lakh '; if (th) s += tw(th) + 'Thousand '; if (n) s += tw(n);
   return 'INR ' + s.trim() + ' Only';
 }
-function partyDetailsHTML(partyName, isInterstate) {
+const GST_STATES = {
+  '01': 'Jammu & Kashmir', '02': 'Himachal Pradesh', '03': 'Punjab', '04': 'Chandigarh',
+  '05': 'Uttarakhand', '06': 'Haryana', '07': 'Delhi', '08': 'Rajasthan',
+  '09': 'Uttar Pradesh', '10': 'Bihar', '11': 'Sikkim', '12': 'Arunachal Pradesh',
+  '13': 'Nagaland', '14': 'Manipur', '15': 'Mizoram', '16': 'Tripura',
+  '17': 'Meghalaya', '18': 'Assam', '19': 'West Bengal', '20': 'Jharkhand',
+  '21': 'Odisha', '22': 'Chhattisgarh', '23': 'Madhya Pradesh', '24': 'Gujarat',
+  '26': 'Dadra & Nagar Haveli and Daman & Diu', '27': 'Maharashtra', '28': 'Andhra Pradesh',
+  '29': 'Karnataka', '30': 'Goa', '31': 'Lakshadweep', '32': 'Kerala',
+  '33': 'Tamil Nadu', '34': 'Puducherry', '35': 'Andaman & Nicobar Islands',
+  '36': 'Telangana', '37': 'Andhra Pradesh', '38': 'Ladakh'
+};
+const GST_STATE_CODES = Object.fromEntries(
+  Object.entries(GST_STATES).map(([code, name]) => [name.toUpperCase(), code])
+);
+
+function partyDetailsHTML(partyName, isInterstate, v = {}) {
   if (!partyName) return '';
-  if (partyName.includes('SKV ENTERPRISES')) {
+  const pUpper = partyName.toUpperCase();
+
+  // Known fallback details for SKV ENTERPRISES if master is incomplete
+  if (pUpper.includes('SKV ENTERPRISES')) {
     return 'MALACCA HEADQUARTERS,<br>CARNICOBAR - 744301<br>ANDAMAN ISLAND<br>PHONE NO: 9434273502<br><strong>GSTIN/UIN :</strong> 35BVVPK1187K1ZW<br><strong>State Name :</strong> Andaman & Nicobar Islands, Code : 35';
   }
-  if (partyName.includes('ABSOLUTE BRANDS')) {
-    return 'Bangalore / Chennai Hub<br><strong>State Name :</strong> Tamil Nadu, Code : 33';
+
+  // Look up party master from snapshot ledgers
+  const master = (typeof snap === 'function' && snap()?.ledgers?.find(l =>
+    l.name === partyName || l.name?.trim().toUpperCase() === partyName.trim().toUpperCase()
+  )) || {};
+
+  const gstin = (v?.party_gstin || v?.gstin || master.gstin || '').trim();
+  let address = v?.party_address || v?.address || master.address || [];
+  if (typeof address === 'string') {
+    address = address.split('\n').map(s => s.trim()).filter(Boolean);
   }
-  return isInterstate
-    ? '<strong>State Name :</strong> Interstate, Code : —'
-    : '<strong>State Name :</strong> Tamil Nadu, Code : 33';
+  const pincode = (v?.party_pincode || master.pincode || '').trim();
+  const phone = (v?.party_phone || v?.phone || master.phone || '').trim();
+  let stateName = (v?.party_state || v?.state || master.state || '').trim();
+
+  // Deduce State & State Code
+  let stateCode = '';
+  if (gstin && /^\d{2}/.test(gstin)) {
+    stateCode = gstin.slice(0, 2);
+    if (!stateName && GST_STATES[stateCode]) {
+      stateName = GST_STATES[stateCode];
+    }
+  }
+  if (!stateCode && stateName) {
+    stateCode = GST_STATE_CODES[stateName.toUpperCase()] || '';
+  }
+  if (!stateName) {
+    stateName = isInterstate ? 'Interstate' : 'Tamil Nadu';
+    if (!stateCode && !isInterstate) stateCode = '33';
+  }
+
+  const lines = [];
+  if (Array.isArray(address) && address.length) {
+    for (const line of address) {
+      if (line && typeof line === 'string' && line.trim()) lines.push(line.trim());
+    }
+  } else if (pUpper.includes('ABSOLUTE BRANDS')) {
+    lines.push('Bangalore / Chennai Hub');
+  }
+
+  if (pincode && !lines.some(l => l.includes(pincode))) {
+    lines.push(`PIN: ${pincode}`);
+  }
+  if (phone) {
+    lines.push(`Phone: ${phone}`);
+  }
+
+  let html = lines.map(l => esc(l)).join('<br>');
+  if (html) html += '<br>';
+
+  if (gstin) {
+    html += `<strong>GSTIN/UIN :</strong> ${esc(gstin)}<br>`;
+  }
+  html += `<strong>State Name :</strong> ${esc(stateName)}${stateCode ? `, Code : ${esc(stateCode)}` : ''}`;
+  return html;
 }
 function officialTallyInvoiceHTML(v) {
   const isSale = v.kind === 'Sales';
@@ -307,7 +375,7 @@ function officialTallyInvoiceHTML(v) {
   const totalQty = items.reduce((sum, it) => sum + (Number(it.qty) || 0), 0);
   const mainUnit = items[0]?.unit || 'PCS';
   const hsnCode = items[0]?.hsn || '4601';
-  const consigneeInfo = partyDetailsHTML(v.party, isInterstate);
+  const consigneeInfo = partyDetailsHTML(v.party, isInterstate, v);
 
   const itemsRowsHTML = items.map((it, idx) => `<tr>
   <td class="t-center">${idx + 1}</td>
@@ -705,6 +773,9 @@ function historyToInvoicePayload(v){
   reference: v.number || v.reference || (v.id ? v.id.slice(0,6).toUpperCase() : 'INV'),
   date: v.date,
   party: v.party || 'Customer Ledger',
+  party_gstin: v.party_gstin || v.gstin || '',
+  party_address: v.party_address || v.address || [],
+  party_state: v.party_state || v.state || '',
   cash_bank: 'Credit',
   account_ledger: v.kind === 'Sales' ? 'Sales Accounts' : 'Purchase Accounts',
   items,

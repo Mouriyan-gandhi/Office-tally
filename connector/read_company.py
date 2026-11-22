@@ -11,7 +11,7 @@ COLLECTIONS = {
     'voucher_types': ('VoucherType', ('Name','NumberingMethod','Parent')),
     'groups': ('Group', ('Name', 'Parent')),
     'companies': ('Company', ('Name', 'BooksFrom')),
-    'ledgers': ('Ledger', ('Name', 'Parent', 'ClosingBalance', 'IsBillWiseOn')),
+    'ledgers': ('Ledger', ('Name', 'Parent', 'ClosingBalance', 'IsBillWiseOn', 'PartyGSTIN', 'StateName', 'PinCode', 'LedgerPhone', 'Address.*')),
     'stock': ('StockItem', ('Name', 'BaseUnits', 'ClosingBalance', 'ClosingRate', 'ClosingValue', 'IsBatchWiseOn')),
     'godowns': ('Godown', ('Name', 'Parent')),
 }

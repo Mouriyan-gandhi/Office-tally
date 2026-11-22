@@ -11,9 +11,15 @@ def seed(db, actor):
         return
     today = business_today()
     ledgers = [
-        {'name': 'Asha Retail · Demo', 'group': 'Sundry Debtors', 'balance': '28400.00', 'billwise': False},
-        {'name': 'City Stores · Demo', 'group': 'Sundry Debtors', 'balance': '12600.00', 'billwise': False},
-        {'name': 'Premier Supply · Demo', 'group': 'Sundry Creditors', 'balance': '-18750.00', 'billwise': False},
+        {'name': 'Asha Retail · Demo', 'group': 'Sundry Debtors', 'balance': '28400.00', 'billwise': False,
+         'gstin': '33AABCA1234A1Z1', 'state': 'Tamil Nadu', 'pincode': '600002',
+         'address': ['Shop No. 12, Commercial Complex', 'Anna Salai', 'Chennai 600002']},
+        {'name': 'City Stores · Demo', 'group': 'Sundry Debtors', 'balance': '12600.00', 'billwise': False,
+         'gstin': '33AABCC5678B1Z2', 'state': 'Tamil Nadu', 'pincode': '641001',
+         'address': ['45, Main Bazaar', 'Coimbatore 641001']},
+        {'name': 'Premier Supply · Demo', 'group': 'Sundry Creditors', 'balance': '-18750.00', 'billwise': False,
+         'gstin': '33PREMS9876C1Z3', 'state': 'Tamil Nadu', 'pincode': '600001',
+         'address': ['102, Wholesale Market', 'Chennai 600001']},
         {'name': 'Cash', 'group': 'Cash-in-Hand', 'balance': '8500.00', 'billwise': False},
         {'name': 'Current Account · Demo', 'group': 'Bank Accounts', 'balance': '72000.00', 'billwise': False},
         {'name': 'Sales', 'group': 'Sales Accounts', 'balance': '0'},

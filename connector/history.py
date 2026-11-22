@@ -17,7 +17,7 @@ def request_xml(company, start, end):
     collection = root.find('.//COLLECTION')
     for child in list(collection): collection.remove(child)
     ET.SubElement(collection, 'TYPE').text = 'Voucher'
-    for field in ('GUID','MasterID','AlterID','Date','VoucherTypeName','VoucherNumber','Narration','IsCancelled','IsOptional','PartyLedgerName','PartyName','BasicBuyerName','Reference','RemoteID','AllLedgerEntries.*','AllInventoryEntries.*'):
+    for field in ('GUID','MasterID','AlterID','Date','VoucherTypeName','VoucherNumber','Narration','IsCancelled','IsOptional','PartyLedgerName','PartyName','BasicBuyerName','Reference','RemoteID','PartyGSTIN','StateName','PlaceOfSupply','BasicBuyerAddress.*','Address.*','AllLedgerEntries.*','AllInventoryEntries.*'):
         ET.SubElement(collection, 'NATIVEMETHOD').text = field
     ET.SubElement(collection, 'FILTERS').text = 'OfficeHistoryPeriod'
     system = ET.SubElement(root.find('.//TDLMESSAGE'), 'SYSTEM', TYPE='Formulae', NAME='OfficeHistoryPeriod')
@@ -65,9 +65,15 @@ def vouchers(root, start, end):
         if not lines and not (cancelled or optional):
             raise ValueError('Voucher ledger allocations were not returned')
         party_name = node.findtext('PARTYLEDGERNAME', '').strip() or node.findtext('PARTYNAME', '').strip() or node.findtext('BASICBUYERNAME', '').strip()
+        party_gstin = node.findtext('PARTYGSTIN', '').strip()
+        party_state = node.findtext('STATENAME', '').strip() or node.findtext('PLACEOFSUPPLY', '').strip()
+        addr_nodes = node.findall('.//BASICBUYERADDRESS.LIST/BASICBUYERADDRESS') or node.findall('.//ADDRESS.LIST/ADDRESS')
+        party_address = [a.text.strip() for a in addr_nodes if a.text and a.text.strip()]
         remote_id = node.findtext('REMOTEID', '').strip()
         result.append({'id':identifier,'remote_id':remote_id,'date':day,'kind':node.findtext('VOUCHERTYPENAME',''),
-            'number':node.findtext('VOUCHERNUMBER',''),'party':party_name,'reference':node.findtext('REFERENCE',''),'narration':node.findtext('NARRATION',''),
+            'number':node.findtext('VOUCHERNUMBER',''),'party':party_name,
+            'party_gstin':party_gstin,'party_state':party_state,'party_address':party_address,
+            'reference':node.findtext('REFERENCE',''),'narration':node.findtext('NARRATION',''),
             'cancelled':cancelled,'optional':optional,'lines':lines,'items':items})
         if len(result)>5000: raise ValueError('History period too large; no partial history saved')
     return result

@@ -68,7 +68,12 @@ def snapshot(port):
         'godowns': godowns,
         'voucher_types':[{'name':v.get('NAME') or v.findtext('NAME',''),'numbering':v.findtext('NUMBERINGMETHOD',''),'parent':v.findtext('PARENT','')} for v in types.iter('VOUCHERTYPE')], 'ledgers': [
         {'name': row.get('NAME') or row.findtext('NAME') or '', 'group': category(row.findtext('PARENT', '')), 'parent':row.findtext('PARENT',''),
-         'balance': balance(row.findtext('CLOSINGBALANCE', '')), 'billwise': yes(row.findtext('ISBILLWISEON'))}
+         'balance': balance(row.findtext('CLOSINGBALANCE', '')), 'billwise': yes(row.findtext('ISBILLWISEON')),
+         'gstin': row.findtext('PARTYGSTIN', '').strip(),
+         'state': row.findtext('STATENAME', '').strip(),
+         'pincode': row.findtext('PINCODE', '').strip(),
+         'phone': row.findtext('LEDGERPHONE', '').strip() or row.findtext('LEDGERMOBILE', '').strip(),
+         'address': [a.text.strip() for a in row.findall('.//ADDRESS') if a.text and a.text.strip()] or [line.strip() for line in (row.findtext('ADDRESS', '') or '').split('\n') if line.strip()]}
         for row in ledgers.iter('LEDGER')], 'stock': [
         {'name': row.get('NAME') or row.findtext('NAME') or '', 'unit': row.findtext('BASEUNITS', ''),
          'quantity': quantity(row.findtext('CLOSINGBALANCE')), 'value': quantity(row.findtext('CLOSINGVALUE')),
