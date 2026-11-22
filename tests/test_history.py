@@ -113,3 +113,61 @@ class HistoryTests(unittest.TestCase):
             self.save([self.sample()[0]|{'number':'CHANGED-IN-SAME-TICK'}])
             after=history.register(self.db,'Sales',{},'2026-11-01','2026-11-30')['revision']
         self.assertNotEqual(before,after)
+
+    def test_clean_lines_deduplication_and_no_doubled_totals(self):
+        # Exact doubled half list (ALLLEDGERENTRIES + LEDGERENTRIES bug)
+        doubled = [
+            {'ledger': 'Customer A', 'amount': '70800'},
+            {'ledger': 'Sales @ 18%', 'amount': '-60000'},
+            {'ledger': 'CGST @ 9%', 'amount': '-5400'},
+            {'ledger': 'SGST @ 9%', 'amount': '-5400'},
+            {'ledger': 'Customer A', 'amount': '70800'},
+            {'ledger': 'Sales @ 18%', 'amount': '-60000'},
+            {'ledger': 'CGST @ 9%', 'amount': '-5400'},
+            {'ledger': 'SGST @ 9%', 'amount': '-5400'},
+        ]
+        cleaned = history.clean_lines(doubled)
+        self.assertEqual(len(cleaned), 4)
+        customer_amt = sum(float(l['amount']) for l in cleaned if l['ledger'] == 'Customer A')
+        self.assertEqual(customer_amt, 70800.0)
+
+        # Legitimate multi-line voucher with two items allocated to same Sales Account
+        multi = [
+            {'ledger': 'Customer B', 'amount': '2360'},
+            {'ledger': 'Sales Accounts', 'amount': '-1000'},
+            {'ledger': 'Sales Accounts', 'amount': '-1000'},
+            {'ledger': 'CGST', 'amount': '-180'},
+            {'ledger': 'SGST', 'amount': '-180'},
+        ]
+        cleaned_multi = history.clean_lines(multi)
+        self.assertEqual(len(cleaned_multi), 5)
+
+    def test_reconcile_drafts_with_tally_updates_altered_fields(self):
+        self.db.execute("CREATE TABLE IF NOT EXISTS drafts(id TEXT PRIMARY KEY, mode TEXT, payload TEXT, status TEXT, version INTEGER, created REAL, updated REAL, author TEXT)")
+        self.db.execute("CREATE TABLE IF NOT EXISTS jobs(id TEXT PRIMARY KEY, draft_id TEXT UNIQUE, payload TEXT, status TEXT, lease TEXT, leased_at REAL, result TEXT, created REAL)")
+        initial_payload = json.dumps({'kind': 'Sales', 'party': 'Old Party', 'total': '5000', 'voucher_number': '101', 'reference': 'REF-1'})
+        self.db.execute("INSERT INTO drafts VALUES('draft-1', 'live', ?, 'posted', 1, 100, 100, 'test')", (initial_payload,))
+        self.db.execute("INSERT INTO jobs VALUES('job-1', 'draft-1', '{}', 'completed', NULL, NULL, 'Confirmed', 100)")
+
+        tally_voucher = {
+            'id': 'tally-guid-1',
+            'remote_id': 'job-1',
+            'kind': 'Sales',
+            'number': '101-ALTERED',
+            'party': 'New Overwritten Party',
+            'date': '2026-11-15',
+            'reference': 'REF-1',
+            'lines': [
+                {'ledger': 'New Overwritten Party', 'amount': '70800'},
+                {'ledger': 'Sales Accounts', 'amount': '-60000'},
+                {'ledger': 'CGST', 'amount': '-5400'},
+                {'ledger': 'SGST', 'amount': '-5400'}
+            ]
+        }
+        history.reconcile_drafts_with_tally(self.db, [tally_voucher])
+        updated_row = self.db.execute("SELECT payload FROM drafts WHERE id='draft-1'").fetchone()
+        updated_payload = json.loads(updated_row['payload'])
+        self.assertEqual(updated_payload['party'], 'New Overwritten Party')
+        self.assertEqual(updated_payload['total'], '70800')
+        self.assertEqual(updated_payload['voucher_number'], '101-ALTERED')
+

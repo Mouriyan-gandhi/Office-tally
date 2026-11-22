@@ -195,11 +195,18 @@ class Handler(BaseHTTPRequestHandler):
                 draft = db.execute("SELECT * FROM drafts WHERE id=?", (voucher_id,)).fetchone()
                 if draft:
                     payload = json.loads(draft['payload'])
+                    for period in db.execute('SELECT payload, updated FROM history_periods ORDER BY updated DESC'):
+                        if not period['updated']: continue
+                        for x in json.loads(period['payload']):
+                            if x.get('remote_id') == voucher_id or (x.get('kind') == payload.get('kind') and x.get('number') and x.get('number') == payload.get('voucher_number')) or (x.get('reference') and x.get('reference') == payload.get('reference') and x.get('date') == payload.get('date')):
+                                x['lines'] = history.clean_lines(x.get('lines', []))
+                                return self.respond(200, {'voucher': {'id': draft['id'], 'status': draft['status'], **x}})
                     return self.respond(200, {'voucher': {'id': draft['id'], 'status': draft['status'], **payload}})
                 for period in db.execute('SELECT payload, updated FROM history_periods ORDER BY updated DESC'):
                     if not period['updated']: continue
-                    v = next((x for x in json.loads(period['payload']) if x['id'] == voucher_id), None)
+                    v = next((x for x in json.loads(period['payload']) if x['id'] == voucher_id or x.get('remote_id') == voucher_id), None)
                     if v:
+                        v['lines'] = history.clean_lines(v.get('lines', []))
                         return self.respond(200, {'voucher': v})
                 raise ValidationError('Voucher not found')
         if route.path == '/api/reports':
@@ -216,6 +223,23 @@ class Handler(BaseHTTPRequestHandler):
                 user = self.user(db)
                 snap = store.snapshot(db, mode)
                 drafts = [draft_row(row) for row in db.execute('SELECT d.*,j.result FROM drafts d LEFT JOIN jobs j ON j.draft_id=d.id WHERE mode=? ORDER BY d.created DESC', (mode,))]
+                if mode == 'live' and drafts:
+                    recent = {}
+                    for period in db.execute('SELECT payload FROM history_periods WHERE updated IS NOT NULL ORDER BY updated DESC LIMIT 3'):
+                        for v in json.loads(period['payload']):
+                            if v.get('remote_id'): recent[v['remote_id']] = v
+                            if v.get('kind') and v.get('number'): recent[(v['kind'], v['number'])] = v
+                            if v.get('kind') and v.get('reference') and v.get('date'): recent[(v['kind'], v['reference'], v['date'])] = v
+                    for d in drafts:
+                        if d.get('status') == 'posted':
+                            match = recent.get(d.get('id')) or recent.get((d.get('kind'), d.get('voucher_number'))) or recent.get((d.get('kind'), d.get('reference'), d.get('date')))
+                            if match:
+                                if match.get('party'): d['party'] = match['party']
+                                if match.get('number'): d['voucher_number'] = match['number']
+                                if match.get('narration'): d['narration'] = match['narration']
+                                c_lines = history.clean_lines(match.get('lines', []))
+                                p_amounts = [Decimal(line['amount']) for line in c_lines if line['ledger'] == match.get('party')]
+                                if p_amounts: d['total'] = str(abs(sum(p_amounts, Decimal(0))))
                 logs = [dict(row) for row in db.execute('SELECT actor,action,target,at FROM audit ORDER BY id DESC LIMIT 100')]
                 return self.respond(200, {'snapshot': snap, 'drafts': drafts, 'audit': logs,
                     'connector': {'configured': len(DEVICE_TOKEN) >= 32, 'posting_enabled': LIVE_WRITES,

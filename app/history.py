@@ -75,6 +75,79 @@ def accept(db, data):
             except (InvalidOperation,KeyError,TypeError): raise ValidationError('Invalid history amount') from None
             if not amount.is_finite() or abs(amount)>Decimal('1e18'): raise ValidationError('Invalid history amount')
     db.execute('UPDATE history_periods SET end_date=?,payload=?,updated=?,lease=NULL,error=? WHERE start=?',(end,json.dumps(entries),time.time(),'',row['start']))
+    reconcile_drafts_with_tally(db, entries)
+
+
+def clean_lines(lines):
+    if not lines or not isinstance(lines, list):
+        return []
+    # If the list was doubled because Tally exported both ALLLEDGERENTRIES and LEDGERENTRIES
+    if len(lines) >= 2 and len(lines) % 2 == 0:
+        half = len(lines) // 2
+        if lines[:half] == lines[half:]:
+            return lines[:half]
+    seen = set()
+    cleaned = []
+    for line in lines:
+        if not isinstance(line, dict): continue
+        key = (line.get('ledger', ''), line.get('amount', ''))
+        if key not in seen:
+            seen.add(key)
+            cleaned.append(line)
+        elif not (line.get('ledger') and ('Sales' in line.get('ledger') or 'Purchase' in line.get('ledger'))):
+            continue
+        else:
+            cleaned.append(line)
+    return cleaned
+
+
+def reconcile_drafts_with_tally(db, entries):
+    """If an entry posted from the app was overwritten or altered in Tally, update the draft to match Tally."""
+    if not entries: return
+    try:
+        draft_rows = db.execute("SELECT d.id, d.payload, j.id as job_id FROM drafts d LEFT JOIN jobs j ON j.draft_id=d.id WHERE d.mode='live' AND d.status='posted'").fetchall()
+        if not draft_rows: return
+        by_remote, by_num, by_ref = {}, {}, {}
+        for v in entries:
+            if v.get('remote_id'): by_remote[v['remote_id']] = v
+            if v.get('kind') and v.get('number'): by_num[(v['kind'], v['number'])] = v
+            if v.get('kind') and v.get('reference') and v.get('date'): by_ref[(v['kind'], v['reference'], v['date'])] = v
+        for d in draft_rows:
+            payload = json.loads(d['payload'])
+            match = None
+            if d['job_id'] and d['job_id'] in by_remote: match = by_remote[d['job_id']]
+            elif d['id'] in by_remote: match = by_remote[d['id']]
+            elif payload.get('voucher_number') and (payload.get('kind'), payload.get('voucher_number')) in by_num:
+                match = by_num[(payload.get('kind'), payload.get('voucher_number'))]
+            elif payload.get('reference') and (payload.get('kind'), payload.get('reference'), payload.get('date')) in by_ref:
+                match = by_ref[(payload.get('kind'), payload.get('reference'), payload.get('date'))]
+            if match:
+                tally_party = match.get('party') or ''
+                tally_num = match.get('number') or ''
+                tally_narration = match.get('narration') or ''
+                c_lines = clean_lines(match.get('lines', []))
+                party_amounts = [Decimal(line['amount']) for line in c_lines if line['ledger'] == tally_party]
+                tally_total = str(abs(sum(party_amounts, Decimal(0)))) if party_amounts else payload.get('total', '')
+                changed = False
+                if tally_party and tally_party != payload.get('party'):
+                    payload['party'] = tally_party
+                    changed = True
+                if tally_total and tally_total != payload.get('total'):
+                    payload['total'] = tally_total
+                    changed = True
+                if tally_num and tally_num != payload.get('voucher_number'):
+                    payload['voucher_number'] = tally_num
+                    changed = True
+                if tally_narration and tally_narration != payload.get('narration'):
+                    payload['narration'] = tally_narration
+                    changed = True
+                if match.get('cancelled') and payload.get('tally_cancelled') != True:
+                    payload['tally_cancelled'] = True
+                    changed = True
+                if changed:
+                    db.execute("UPDATE drafts SET payload=?, updated=? WHERE id=?", (json.dumps(payload), time.time(), d['id']))
+    except Exception:
+        pass
 
 
 def statement(db, ledger):
@@ -90,11 +163,12 @@ def statement(db, ledger):
     # rolling refresh is in progress. Prefer the most recently fetched record.
     for _,v in latest.values():
             if v['cancelled'] or v['optional']: continue
-            amount = sum((Decimal(line['amount']) for line in v['lines'] if line['ledger']==ledger),Decimal(0))
-            if not any(line['ledger']==ledger for line in v['lines']): continue
+            v_lines = clean_lines(v.get('lines', []))
+            amount = sum((Decimal(line['amount']) for line in v_lines if line['ledger']==ledger),Decimal(0))
+            if not any(line['ledger']==ledger for line in v_lines): continue
             rows.append({'date':v['date'],'kind':v['kind'],'number':v['number'],'debit':str(max(amount,Decimal(0))),
                          'credit':str(max(-amount,Decimal(0))),'narration':v['narration'],'id':v['id'],
-                         'party':ledger,'total':str(abs(amount)),'lines':v.get('lines',[]),'items':v.get('items',[])})
+                         'party':ledger,'total':str(abs(amount)),'lines':v_lines,'items':v.get('items',[])})
     rows.sort(key=lambda v:(v['date'],v['id']))
     return {'rows':rows[-1000:],'truncated':len(rows)>1000,'coverage':coverage,
             'note':'Synced Tally vouchers only. Opening balances are not included; no running balance inferred. Cancelled and optional vouchers excluded.'}
@@ -132,16 +206,17 @@ def register(db, kind, snapshot, start='', end='', offset=0, limit=200):
         while base not in ('Sales','Purchase') and base in types and base not in seen:
             seen.add(base);base=types[base]
         if base!=kind or v['cancelled'] or v['optional'] or not first.isoformat()<=v['date']<=last.isoformat():continue
+        v_lines = clean_lines(v.get('lines', []))
         party=v.get('party','')
         if not party:
-            choices={line['ledger'] for line in v['lines'] if groups.get(line['ledger']) in ('Sundry Debtors','Sundry Creditors','Cash-in-Hand','Bank Accounts')}
+            choices={line['ledger'] for line in v_lines if groups.get(line['ledger']) in ('Sundry Debtors','Sundry Creditors','Cash-in-Hand','Bank Accounts')}
             if len(choices)==1:party=choices.pop()
-        amounts=[Decimal(line['amount']) for line in v['lines'] if line['ledger']==party]
+        amounts=[Decimal(line['amount']) for line in v_lines if line['ledger']==party]
         total=str(abs(sum(amounts,Decimal(0)))) if amounts else ''
         if not amounts:unmapped+=1
         rows.append({'id':v['id'],'date':v['date'],'kind':v['kind'],'number':v['number'],'party':party,
                      'reference':v.get('reference',''),'total':total,'synced_at':updated,
-                     'lines':v.get('lines',[]),'items':v.get('items',[])})
+                     'lines':v_lines,'items':v.get('items',[])})
     rows.sort(key=lambda v:(v['date'],v['id']),reverse=True)
     ready=[p for p in coverage if p['synced_at']]
     import hashlib

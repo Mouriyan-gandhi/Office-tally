@@ -17,7 +17,7 @@ def request_xml(company, start, end):
     collection = root.find('.//COLLECTION')
     for child in list(collection): collection.remove(child)
     ET.SubElement(collection, 'TYPE').text = 'Voucher'
-    for field in ('GUID','MasterID','AlterID','Date','VoucherTypeName','VoucherNumber','Narration','IsCancelled','IsOptional','PartyLedgerName','Reference','AllLedgerEntries.*','AllInventoryEntries.*'):
+    for field in ('GUID','MasterID','AlterID','Date','VoucherTypeName','VoucherNumber','Narration','IsCancelled','IsOptional','PartyLedgerName','PartyName','BasicBuyerName','Reference','RemoteID','AllLedgerEntries.*','AllInventoryEntries.*'):
         ET.SubElement(collection, 'NATIVEMETHOD').text = field
     ET.SubElement(collection, 'FILTERS').text = 'OfficeHistoryPeriod'
     system = ET.SubElement(root.find('.//TDLMESSAGE'), 'SYSTEM', TYPE='Formulae', NAME='OfficeHistoryPeriod')
@@ -39,9 +39,11 @@ def vouchers(root, start, end):
         if not identifier or identifier in seen:
             raise ValueError('Missing or duplicate voucher identity')
         seen.add(identifier)
+        entries = node.findall('ALLLEDGERENTRIES.LIST')
+        if not entries:
+            entries = node.findall('LEDGERENTRIES.LIST')
         lines = []
-        for entry in list(node):
-            if entry.tag not in ('ALLLEDGERENTRIES.LIST','LEDGERENTRIES.LIST'): continue
+        for entry in entries:
             name, raw = entry.findtext('LEDGERNAME',''), entry.findtext('AMOUNT','')
             try: amount = -Decimal(raw.replace(',',''))
             except InvalidOperation: raise ValueError('Invalid ledger amount') from None
@@ -55,13 +57,17 @@ def vouchers(root, start, end):
             amt = inv.findtext('AMOUNT', '')
             godown = inv.findtext('.//GODOWNNAME', '')
             if item_name:
-                items.append({'name': item_name, 'rate': rate, 'qty': actual_qty, 'amount': amt, 'godown': godown})
+                try: clean_amt = str(abs(Decimal(amt.replace(',', ''))))
+                except (InvalidOperation, TypeError): clean_amt = amt
+                items.append({'name': item_name, 'rate': rate, 'qty': actual_qty, 'amount': clean_amt, 'godown': godown})
         cancelled = node.findtext('ISCANCELLED','').casefold() == 'yes'
         optional = node.findtext('ISOPTIONAL','').casefold() == 'yes'
         if not lines and not (cancelled or optional):
             raise ValueError('Voucher ledger allocations were not returned')
-        result.append({'id':identifier,'date':day,'kind':node.findtext('VOUCHERTYPENAME',''),
-            'number':node.findtext('VOUCHERNUMBER',''),'party':node.findtext('PARTYLEDGERNAME',''),'reference':node.findtext('REFERENCE',''),'narration':node.findtext('NARRATION',''),
+        party_name = node.findtext('PARTYLEDGERNAME', '').strip() or node.findtext('PARTYNAME', '').strip() or node.findtext('BASICBUYERNAME', '').strip()
+        remote_id = node.findtext('REMOTEID', '').strip()
+        result.append({'id':identifier,'remote_id':remote_id,'date':day,'kind':node.findtext('VOUCHERTYPENAME',''),
+            'number':node.findtext('VOUCHERNUMBER',''),'party':party_name,'reference':node.findtext('REFERENCE',''),'narration':node.findtext('NARRATION',''),
             'cancelled':cancelled,'optional':optional,'lines':lines,'items':items})
         if len(result)>5000: raise ValueError('History period too large; no partial history saved')
     return result

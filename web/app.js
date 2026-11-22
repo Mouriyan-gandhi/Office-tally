@@ -1,326 +1,331 @@
 'use strict';
-const $ = (s, el=document) => el.querySelector(s);
+const $ = (s, el = document) => el.querySelector(s);
 const root = $('#root');
 const modal = $('#modal');
 const paths = {
- home:'M3 10 12 3l9 7v10H3Z M9 20v-7h6v7',
- invoice:'M6 3h12v18l-3-2-3 2-3-2-3 2Z M9 8h6 M9 12h6',
- wallet:'M4 6h15v14H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h13 M16 11h5v5h-5Z',
- stock:'m3 7 9-4 9 4-9 4Z M3 7v10l9 4 9-4V7 M12 11v10 M7 5l10 5',
- report:'M4 20h17 M6 16v-5 M12 16V5 M18 16V8',
- chat:'M4 4h16v12H9l-5 4Z M8 8h8 M8 12h5',
- settings:'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8 M9 3h6l1 3 3 1 2 5-2 5-3 1-1 3H9l-1-3-3-1-2-5 2-5 3-1Z',
- plus:'M12 5v14 M5 12h14', arrow:'M5 12h14 M14 7l5 5-5 5',
- down:'M12 4v15 M6 13l6 6 6-6', up:'M12 20V5 M6 11l6-6 6 6',
- scan:'M8 3H3v5 M16 3h5v5 M21 16v5h-5 M8 21H3v-5 M8 8h8v8H8Z M2 12h20',
- search:'M10 3a7 7 0 1 0 0 14 7 7 0 0 0 0-14 M15 15l6 6',
- close:'m6 6 12 12 M18 6 6 18', check:'m5 12 4 4L19 6',
- clock:'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18 M12 7v5l3 2',
- refresh:'M20 9a8 8 0 0 0-14-4L3 8 M3 3v5h5 M4 15a8 8 0 0 0 14 4l3-3 M21 21v-5h-5',
- people:'M8 4a3 3 0 1 0 0 6 3 3 0 0 0 0-6 M2 20v-4a5 5 0 0 1 10 0v4 M16 4a3 3 0 0 1 0 6 M16 12a5 5 0 0 1 6 5v3',
- logout:'M9 3H3v18h6 M10 12h11 M17 8l4 4-4 4',
- print:'M6 9V3h12v6 M6 17H3V9h18v8h-3 M6 14h12v7H6Z',
- upload:'M12 16V3 M6 9l6-6 6 6 M3 15v6h18v-6',
- shield:'m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6Z m-4 9 3 3 5-5',
- file:'M5 3h10l4 4v14H5Z M14 3v5h5 M8 12h8 M8 16h8',
- whatsapp:'M12 3a9 9 0 0 0-8 13l-1 5 5-1a9 9 0 1 0 4-17 M9 8c0 4 3 7 7 7l1-2-3-1-1 1-2-2 1-1-1-3Z',
- link:'m10 7 2-2a5 5 0 0 1 7 7l-2 2 M14 17l-2 2a5 5 0 0 1-7-7l2-2 M8 16l8-8'
+  home: 'M3 10 12 3l9 7v10H3Z M9 20v-7h6v7',
+  invoice: 'M6 3h12v18l-3-2-3 2-3-2-3 2Z M9 8h6 M9 12h6',
+  wallet: 'M4 6h15v14H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h13 M16 11h5v5h-5Z',
+  stock: 'm3 7 9-4 9 4-9 4Z M3 7v10l9 4 9-4V7 M12 11v10 M7 5l10 5',
+  report: 'M4 20h17 M6 16v-5 M12 16V5 M18 16V8',
+  chat: 'M4 4h16v12H9l-5 4Z M8 8h8 M8 12h5',
+  settings: 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8 M9 3h6l1 3 3 1 2 5-2 5-3 1-1 3H9l-1-3-3-1-2-5 2-5 3-1Z',
+  plus: 'M12 5v14 M5 12h14', arrow: 'M5 12h14 M14 7l5 5-5 5',
+  down: 'M12 4v15 M6 13l6 6 6-6', up: 'M12 20V5 M6 11l6-6 6 6',
+  scan: 'M8 3H3v5 M16 3h5v5 M21 16v5h-5 M8 21H3v-5 M8 8h8v8H8Z M2 12h20',
+  search: 'M10 3a7 7 0 1 0 0 14 7 7 0 0 0 0-14 M15 15l6 6',
+  close: 'm6 6 12 12 M18 6 6 18', check: 'm5 12 4 4L19 6',
+  clock: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18 M12 7v5l3 2',
+  refresh: 'M20 9a8 8 0 0 0-14-4L3 8 M3 3v5h5 M4 15a8 8 0 0 0 14 4l3-3 M21 21v-5h-5',
+  people: 'M8 4a3 3 0 1 0 0 6 3 3 0 0 0 0-6 M2 20v-4a5 5 0 0 1 10 0v4 M16 4a3 3 0 0 1 0 6 M16 12a5 5 0 0 1 6 5v3',
+  logout: 'M9 3H3v18h6 M10 12h11 M17 8l4 4-4 4',
+  print: 'M6 9V3h12v6 M6 17H3V9h18v8h-3 M6 14h12v7H6Z',
+  upload: 'M12 16V3 M6 9l6-6 6 6 M3 15v6h18v-6',
+  shield: 'm12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6Z m-4 9 3 3 5-5',
+  file: 'M5 3h10l4 4v14H5Z M14 3v5h5 M8 12h8 M8 16h8',
+  whatsapp: 'M12 3a9 9 0 0 0-8 13l-1 5 5-1a9 9 0 1 0 4-17 M9 8c0 4 3 7 7 7l1-2-3-1-1 1-2-2 1-1-1-3Z',
+  link: 'm10 7 2-2a5 5 0 0 1 7 7l-2 2 M14 17l-2 2a5 5 0 0 1-7-7l2-2 M8 16l8-8'
 };
-const icon = (name, cls='') => `<svg viewBox="0 0 24 24" aria-hidden="true" class="${cls}"><path d="${paths[name] || paths.file}"/></svg>`;
-const esc = v => String(v ?? '').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const money = v => v === '' || v == null || !Number.isFinite(Number(v)) ? '—' : new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:2,minimumFractionDigits:2}).format(Number(v));
-const today = () => new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Kolkata'});
-const dateText = v => new Date(`${v}T12:00:00`).toLocaleDateString('en-IN',{day:'numeric',month:'short'});
-const when = v => v ? new Date(v*1000).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : 'Not connected yet';
-const statuses = {draft:'Draft',demo_saved:'Demo saved',queued:'Waiting for Tally',posting:'Saving in Tally',posted:'Saved in Tally',needs_review:'Check in Tally',rejected:'Rejected by Tally',cancelled:'Cancelled'};
+const icon = (name, cls = '') => `<svg viewBox="0 0 24 24" aria-hidden="true" class="${cls}"><path d="${paths[name] || paths.file}"/></svg>`;
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const money = v => v === '' || v == null || !Number.isFinite(Number(v)) ? '—' : new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2, minimumFractionDigits: 2 }).format(Number(v));
+const today = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+const dateText = v => new Date(`${v}T12:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+const when = v => v ? new Date(v * 1000).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Not connected yet';
+const statuses = { draft: 'Draft', demo_saved: 'Demo saved', queued: 'Waiting for Tally', posting: 'Saving in Tally', posted: 'Saved in Tally', needs_review: 'Check in Tally', rejected: 'Rejected by Tally', cancelled: 'Cancelled' };
 const statusBadge = status => `<span class="badge ${esc(status)}">${esc(statuses[status] || status)}</span>`;
-const kindIcon = kind => ({Sales:'invoice',Purchase:'stock',Receipt:'down',Payment:'up'}[kind] || 'file');
-let state={user:null,mode:'demo',page:'home',data:null,search:'',kind:'all',from:'',to:'',chat:[],editor:null,scan:null,preview:false,cloud:false};
-let toastTimer, lastFocus, busy=false;
+const kindIcon = kind => ({ Sales: 'invoice', Purchase: 'stock', Receipt: 'down', Payment: 'up' }[kind] || 'file');
+let state = { user: null, mode: 'demo', page: 'home', data: null, search: '', kind: 'all', from: '', to: '', chat: [], editor: null, scan: null, preview: false, cloud: false };
+let toastTimer, lastFocus, busy = false;
 
-async function api(path, data){
- const response=await fetch('/api/'+path,{method:data?'POST':'GET',credentials:'same-origin',headers:data?{'Content-Type':'application/json','X-CSRF-Token':state.user?.csrf || ''}:{},body:data?JSON.stringify(data):undefined});
- const result=await response.json();
- if(!response.ok){if(response.status===401 && !path.startsWith('login')){state.user=null;renderLogin();} throw new Error(result.error || 'Something went wrong. Please try again.');}
- return result;
+async function api(path, data) {
+  const response = await fetch('/api/' + path, { method: data ? 'POST' : 'GET', credentials: 'same-origin', headers: data ? { 'Content-Type': 'application/json', 'X-CSRF-Token': state.user?.csrf || '' } : {}, body: data ? JSON.stringify(data) : undefined });
+  const result = await response.json();
+  if (!response.ok) { if (response.status === 401 && !path.startsWith('login')) { state.user = null; renderLogin(); } throw new Error(result.error || 'Something went wrong. Please try again.'); }
+  return result;
 }
-function toast(message,error=false){clearTimeout(toastTimer);const el=$('#toast');if(modal.open){el.classList.remove('visible');const feedback=$('#modal-feedback');feedback.textContent=message;feedback.className='modal-feedback visible'+(error?' error':'');feedback.setAttribute('role',error?'alert':'status');return;}el.textContent=message;el.className='toast visible'+(error?' error':'');toastTimer=setTimeout(()=>el.classList.remove('visible'),7000);}
-async function run(work){if(busy)return;busy=true;const button=document.activeElement?.closest('button');const original=button?.innerHTML;if(button){button.disabled=true;button.textContent='Working…';}document.body.classList.add('is-working');document.documentElement.setAttribute('aria-busy','true');try{await work();}catch(error){toast(error.message,true);}finally{busy=false;if(button?.isConnected){button.disabled=false;button.innerHTML=original;}document.body.classList.remove('is-working');document.documentElement.removeAttribute('aria-busy');}}
-async function load(){state.data=await api('state?mode='+state.mode);}
-async function refresh(){await load();render();toast('View refreshed');}
-function nav(page){state.page=page;state.search='';state.kind='all';state.from='';state.to='';render();window.scrollTo(0,0);}
-function snap(){return state.data?.snapshot || {ledgers:[],stock:[],godowns:[]};}
-function drafts(){return state.data?.drafts || [];}
-function saved(){return drafts().filter(v=>['posted','demo_saved'].includes(v.status));}
-function options(rows,value='',blank='Choose a ledger'){return `<option value="">${esc(blank)}</option>`+rows.map(r=>`<option value="${esc(r.name)}" ${r.name===value?'selected':''}>${esc(r.name)}</option>`).join('');}
-function ledgers(group){return snap().ledgers.filter(l=>!group || group.includes(l.group));}
-function brand(){return '<div class="brand"><img src="/icon.svg" alt=""><div><strong>upkar<span class="muted">.</span></strong><small>Agency Office</small></div></div>';}
+function toast(message, error = false) { clearTimeout(toastTimer); const el = $('#toast'); if (modal.open) { el.classList.remove('visible'); const feedback = $('#modal-feedback'); feedback.textContent = message; feedback.className = 'modal-feedback visible' + (error ? ' error' : ''); feedback.setAttribute('role', error ? 'alert' : 'status'); return; } el.textContent = message; el.className = 'toast visible' + (error ? ' error' : ''); toastTimer = setTimeout(() => el.classList.remove('visible'), 7000); }
+async function run(work) { if (busy) return; busy = true; const button = document.activeElement?.closest('button'); const original = button?.innerHTML; if (button) { button.disabled = true; button.textContent = 'Working…'; } document.body.classList.add('is-working'); document.documentElement.setAttribute('aria-busy', 'true'); try { await work(); } catch (error) { toast(error.message, true); } finally { busy = false; if (button?.isConnected) { button.disabled = false; button.innerHTML = original; } document.body.classList.remove('is-working'); document.documentElement.removeAttribute('aria-busy'); } }
+async function load() { state.data = await api('state?mode=' + state.mode); }
+async function refresh() { await load(); render(); toast('View refreshed'); }
+function nav(page) { state.page = page; state.search = ''; state.kind = 'all'; state.from = ''; state.to = ''; render(); window.scrollTo(0, 0); }
+function snap() { return state.data?.snapshot || { ledgers: [], stock: [], godowns: [] }; }
+function drafts() { return state.data?.drafts || []; }
+function saved() { return drafts().filter(v => ['posted', 'demo_saved'].includes(v.status)); }
+function options(rows, value = '', blank = 'Choose a ledger') { return `<option value="">${esc(blank)}</option>` + rows.map(r => `<option value="${esc(r.name)}" ${r.name === value ? 'selected' : ''}>${esc(r.name)}</option>`).join(''); }
+function ledgers(group) { return snap().ledgers.filter(l => !group || group.includes(l.group)); }
+function brand() { return '<div class="brand"><img src="/icon.svg" alt=""><div><strong>upkar<span class="muted">.</span></strong><small>Agency Office</small></div></div>'; }
 
-function renderLogin(){
- root.innerHTML=`<div class="login"><section class="login-story">${brand()}<div><div class="login-rule"></div><h1>Your business.<br>Your books.<br><em>Within reach.</em></h1><p>Sales, purchases, payments and stock. A simpler way to keep your office moving.</p></div><div class="tiny">MADE FOR UPKAR AGENCY &nbsp; · &nbsp; POWERED BY YOUR TALLY</div></section><section class="login-main"><div class="login-form"><span class="eyebrow">Welcome to your office</span><h2>Let’s get to business.</h2><p>Sign in to keep your accounts close.</p><form id="login-form"><div class="field"><label for="email">Email address</label><input id="email" type="email" name="email" required autocomplete="username" placeholder="Your email address"></div><div class="field"><label for="password">Password</label><input id="password" type="password" name="password" required autocomplete="current-password" placeholder="Your password"></div><button class="btn primary" type="submit">Open my office ${icon('arrow')}</button></form>${state.preview?'<div class="divider">OR TAKE A LOOK AROUND</div><button class="btn soft" data-action="preview">Explore the demo '+icon('arrow')+'</button><div class="notice">This preview uses fictional data. It cannot connect to Tally or create real entries.</div>':'<div class="field-help mt">Use your approved admin account. Public signup is not available.</div>'}</div></section></div>`;
+function renderLogin() {
+  root.innerHTML = `<div class="login"><section class="login-story">${brand()}<div><div class="login-rule"></div><h1>Your business.<br>Your books.<br><em>Within reach.</em></h1><p>Sales, purchases, payments and stock. A simpler way to keep your office moving.</p></div><div class="tiny">MADE FOR UPKAR AGENCY &nbsp; · &nbsp; POWERED BY YOUR TALLY</div></section><section class="login-main"><div class="login-form"><span class="eyebrow">Welcome to your office</span><h2>Let’s get to business.</h2><p>Sign in to keep your accounts close.</p><form id="login-form"><div class="field"><label for="email">Email address</label><input id="email" type="email" name="email" required autocomplete="username" placeholder="Your email address"></div><div class="field"><label for="password">Password</label><input id="password" type="password" name="password" required autocomplete="current-password" placeholder="Your password"></div><button class="btn primary" type="submit">Open my office ${icon('arrow')}</button></form>${state.preview ? '<div class="divider">OR TAKE A LOOK AROUND</div><button class="btn soft" data-action="preview">Explore the demo ' + icon('arrow') + '</button><div class="notice">This preview uses fictional data. It cannot connect to Tally or create real entries.</div>' : '<div class="field-help mt">Use your approved admin account. Public signup is not available.</div>'}</div></section></div>`;
 }
-function render(){
- if(!state.user)return renderLogin();
- const pageNames={home:'Overview',entries:'Transactions',ledgers:'Ledgers',stock:'Stock',reports:'Reports',chat:'Ask your accounts',settings:'Office settings',scan:'Scan a purchase bill',editor:state.editor?.kind || 'New entry'};
- const navItem=(page,label,name)=>`<button data-nav="${page}" class="${state.page===page?'active':''}">${icon(name)}<span>${label}</span>${page==='entries'&&drafts().some(v=>v.status==='draft')?'<span class="count">'+drafts().filter(v=>v.status==='draft').length+'</span>':''}</button>`;
- root.innerHTML=`<div class="layout"><aside class="sidebar">${brand()}<div class="nav-label">Your workspace</div><nav class="nav" aria-label="Main navigation">${navItem('home','Overview','home')}${navItem('entries','Transactions','invoice')}${navItem('ledgers','Ledgers','people')}${navItem('stock','Stock & inventory','stock')}${navItem('reports','Reports','report')}</nav><div class="nav-label mt">A little help</div><nav class="nav" aria-label="Tools">${navItem('chat','Ask your accounts','chat')}${navItem('settings','Office settings','settings')}</nav><div class="sidebar-bottom"><div class="company-card"><span class="initials">UA</span><strong>Upkar Agency</strong><span class="tiny">TallyPrime Silver · 7.1</span></div><button class="text-btn sidebar-footer" data-action="logout">${icon('logout')} Sign out</button></div></aside><div class="workspace"><header class="topbar"><div class="breadcrumb">Upkar Agency <span aria-hidden="true"> / </span> <strong>${esc(pageNames[state.page])}</strong></div><div class="top-tools"><span class="date-label">${new Date().toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'})}</span><button class="mode-switch" data-action="mode"><span class="mode-dot"></span>${state.mode==='demo'?'Demo workspace':'Tally workspace'}</button><div class="avatar" aria-label="Owner account">UA</div></div></header><main id="main" tabindex="-1">${state.mode==='demo'?`<div class="mode-banner">${icon('shield')}<span><strong>Demo workspace.</strong> All names and amounts here are fictional. Nothing is sent to Tally.</span>${!state.preview?'<button data-action="mode">View Tally data</button>':''}</div>`:!state.data.connector.fresh?`<div class="mode-banner">${icon('clock')}<span><strong>Office laptop not connected.</strong> ${snap().synced_at?'Last synced '+esc(when(snap().synced_at))+'.':'Balances will appear after the first connection.'}</span><button data-nav="settings">Connection details</button></div>`:''}${state.mode==='live'&&state.data.connector.company!=='Upkar Agency'?'<div class="mode-banner"><strong>TEST COMPANY: '+esc(state.data.connector.company)+'</strong></div>':''}<div id="page"></div><footer class="footnote"><span>Upkar Agency · A clearer view of your business.</span><span>${state.mode==='demo'?'FICTIONAL DEMO DATA':'TALLY DATA · '+esc(when(snap().synced_at))}</span></footer></main></div><nav class="mobile-nav" aria-label="Mobile navigation">${navItem('home','Home','home')}${navItem('entries','Entries','invoice')}<button class="nav-create" data-action="new-menu" aria-label="New entry"><span>${icon('plus')}</span><span>New</span></button>${navItem('chat','Ask','chat')}${navItem('settings','More','settings')}</nav></div>`;
- const pages={home:renderHome,entries:renderEntries,ledgers:renderLedgers,stock:renderStock,reports:renderReports,chat:renderChat,settings:renderSettings,scan:renderScan,editor:renderEditor};
- (pages[state.page]||renderHome)();
+function render() {
+  if (!state.user) return renderLogin();
+  const pageNames = { home: 'Overview', entries: 'Transactions', ledgers: 'Ledgers', stock: 'Stock', reports: 'Reports', chat: 'Ask your accounts', settings: 'Office settings', scan: 'Scan a purchase bill', editor: state.editor?.kind || 'New entry' };
+  const navItem = (page, label, name) => `<button data-nav="${page}" class="${state.page === page ? 'active' : ''}">${icon(name)}<span>${label}</span>${page === 'entries' && drafts().some(v => v.status === 'draft') ? '<span class="count">' + drafts().filter(v => v.status === 'draft').length + '</span>' : ''}</button>`;
+  root.innerHTML = `<div class="layout"><aside class="sidebar">${brand()}<div class="nav-label">Your workspace</div><nav class="nav" aria-label="Main navigation">${navItem('home', 'Overview', 'home')}${navItem('entries', 'Transactions', 'invoice')}${navItem('ledgers', 'Ledgers', 'people')}${navItem('stock', 'Stock & inventory', 'stock')}${navItem('reports', 'Reports', 'report')}</nav><div class="nav-label mt">A little help</div><nav class="nav" aria-label="Tools">${navItem('chat', 'Ask your accounts', 'chat')}${navItem('settings', 'Office settings', 'settings')}</nav><div class="sidebar-bottom"><div class="company-card"><span class="initials">UA</span><strong>Upkar Agency</strong><span class="tiny">TallyPrime Silver · 7.1</span></div><button class="text-btn sidebar-footer" data-action="logout">${icon('logout')} Sign out</button></div></aside><div class="workspace"><header class="topbar"><div class="breadcrumb">Upkar Agency <span aria-hidden="true"> / </span> <strong>${esc(pageNames[state.page])}</strong></div><div class="top-tools"><span class="date-label">${new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</span><button class="mode-switch" data-action="mode"><span class="mode-dot"></span>${state.mode === 'demo' ? 'Demo workspace' : 'Tally workspace'}</button><div class="avatar" aria-label="Owner account">UA</div></div></header><main id="main" tabindex="-1">${state.mode === 'demo' ? `<div class="mode-banner">${icon('shield')}<span><strong>Demo workspace.</strong> All names and amounts here are fictional. Nothing is sent to Tally.</span>${!state.preview ? '<button data-action="mode">View Tally data</button>' : ''}</div>` : !state.data.connector.fresh ? `<div class="mode-banner">${icon('clock')}<span><strong>Office laptop not connected.</strong> ${snap().synced_at ? 'Last synced ' + esc(when(snap().synced_at)) + '.' : 'Balances will appear after the first connection.'}</span><button data-nav="settings">Connection details</button></div>` : ''}${state.mode === 'live' && state.data.connector.company !== 'Upkar Agency' ? '<div class="mode-banner"><strong>TEST COMPANY: ' + esc(state.data.connector.company) + '</strong></div>' : ''}<div id="page"></div><footer class="footnote"><span>Upkar Agency · A clearer view of your business.</span><span>${state.mode === 'demo' ? 'FICTIONAL DEMO DATA' : 'TALLY DATA · ' + esc(when(snap().synced_at))}</span></footer></main></div><nav class="mobile-nav" aria-label="Mobile navigation">${navItem('home', 'Home', 'home')}${navItem('entries', 'Entries', 'invoice')}<button class="nav-create" data-action="new-menu" aria-label="New entry"><span>${icon('plus')}</span><span>New</span></button>${navItem('chat', 'Ask', 'chat')}${navItem('settings', 'More', 'settings')}</nav></div>`;
+  const pages = { home: renderHome, entries: renderEntries, ledgers: renderLedgers, stock: renderStock, reports: renderReports, chat: renderChat, settings: renderSettings, scan: renderScan, editor: renderEditor };
+  (pages[state.page] || renderHome)();
 }
-function heading(title,subtitle,actions=''){return `<div class="page-heading"><div><h1>${title}</h1><p>${subtitle}</p></div>${actions?'<div class="heading-actions">'+actions+'</div>':''}</div>`;}
-function empty(title,description,name='file'){return `<div class="empty">${icon(name)}<h3>${title}</h3><p>${description}</p></div>`;}
-function metrics(){
- const sum=group=>{const rows=ledgers([group]);return !rows.length || rows.some(l=>l.balance==='')?null:rows.reduce((a,l)=>a+Math.max(0,Number(l.balance)*(group==='Sundry Creditors'?-1:1)),0);};
- const cash=ledgers(['Bank Accounts','Cash-in-Hand']);
- return {receivable:sum('Sundry Debtors'),payable:sum('Sundry Creditors'),sales:saved().filter(v=>v.kind==='Sales'&&v.date===today()).reduce((a,v)=>a+Number(v.total),0),cash:!cash.length||cash.some(l=>l.balance==='')?null:cash.reduce((a,l)=>a+Number(l.balance),0)};
+function heading(title, subtitle, actions = '') { return `<div class="page-heading"><div><h1>${title}</h1><p>${subtitle}</p></div>${actions ? '<div class="heading-actions">' + actions + '</div>' : ''}</div>`; }
+function empty(title, description, name = 'file') { return `<div class="empty">${icon(name)}<h3>${title}</h3><p>${description}</p></div>`; }
+function metrics() {
+  const sum = group => { const rows = ledgers([group]); return !rows.length || rows.some(l => l.balance === '') ? null : rows.reduce((a, l) => a + Math.max(0, Number(l.balance) * (group === 'Sundry Creditors' ? -1 : 1)), 0); };
+  const cash = ledgers(['Bank Accounts', 'Cash-in-Hand']);
+  return { receivable: sum('Sundry Debtors'), payable: sum('Sundry Creditors'), sales: saved().filter(v => v.kind === 'Sales' && v.date === today()).reduce((a, v) => a + Number(v.total), 0), cash: !cash.length || cash.some(l => l.balance === '') ? null : cash.reduce((a, l) => a + Number(l.balance), 0) };
 }
-function quickActions(){return `<div class="quick-grid"><button class="quick" data-new="Sales"><span class="symbol">${icon('invoice')}</span><span><strong>New sale</strong><small>Create a sales invoice</small></span></button><button class="quick" data-new="Receipt"><span class="symbol">${icon('down')}</span><span><strong>Record receipt</strong><small>Money received</small></span></button><button class="quick" data-nav="scan"><span class="symbol">${icon('scan')}</span><span><strong>Scan purchase bill</strong><small>Photo to purchase draft</small></span></button><button class="quick" data-new="Payment"><span class="symbol">${icon('up')}</span><span><strong>Pay supplier</strong><small>Record a payment</small></span></button></div>`;}
-function chart(){
- const days=Array.from({length:7},(_,i)=>{let d=new Date();d.setDate(d.getDate()-6+i);return d.toLocaleDateString('en-CA',{timeZone:'Asia/Kolkata'});});
- const totals=days.map(d=>saved().filter(v=>v.kind==='Sales'&&v.date===d).reduce((a,v)=>a+Number(v.total),0));
- const max=Math.max(...totals,1);
- return `<div class="chart"><div class="chart-top"><strong>${money(totals.reduce((a,b)=>a+b,0))}</strong><span>last 7 days · app-recorded sales</span></div><svg class="sales-chart" viewBox="0 0 650 160" role="img" aria-label="Sales recorded through this app over the last seven days: ${esc(totals.map((t,i)=>days[i]+': '+money(t)).join(', '))}">${[20,65,110,155].map(y=>`<path d="M0 ${y}H650" stroke="#e9ede2" stroke-width="1"/>`).join('')}${totals.map((t,i)=>`<rect x="${i*93+22}" y="${155-Math.max(t/max*130,3)}" width="43" height="${Math.max(t/max*130,3)}" rx="3" fill="${i===6?'#315947':'#cad8bf'}" stroke="none"/>`).join('')}</svg><div class="bar-labels">${days.map(d=>'<span>'+dateText(d)+'</span>').join('')}</div></div>`;
+function quickActions() { return `<div class="quick-grid"><button class="quick" data-new="Sales"><span class="symbol">${icon('invoice')}</span><span><strong>New sale</strong><small>Create a sales invoice</small></span></button><button class="quick" data-new="Receipt"><span class="symbol">${icon('down')}</span><span><strong>Record receipt</strong><small>Money received</small></span></button><button class="quick" data-nav="scan"><span class="symbol">${icon('scan')}</span><span><strong>Scan purchase bill</strong><small>Photo to purchase draft</small></span></button><button class="quick" data-new="Payment"><span class="symbol">${icon('up')}</span><span><strong>Pay supplier</strong><small>Record a payment</small></span></button></div>`; }
+function chart() {
+  const days = Array.from({ length: 7 }, (_, i) => { let d = new Date(); d.setDate(d.getDate() - 6 + i); return d.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }); });
+  const totals = days.map(d => saved().filter(v => v.kind === 'Sales' && v.date === d).reduce((a, v) => a + Number(v.total), 0));
+  const max = Math.max(...totals, 1);
+  return `<div class="chart"><div class="chart-top"><strong>${money(totals.reduce((a, b) => a + b, 0))}</strong><span>last 7 days · app-recorded sales</span></div><svg class="sales-chart" viewBox="0 0 650 160" role="img" aria-label="Sales recorded through this app over the last seven days: ${esc(totals.map((t, i) => days[i] + ': ' + money(t)).join(', '))}">${[20, 65, 110, 155].map(y => `<path d="M0 ${y}H650" stroke="#e9ede2" stroke-width="1"/>`).join('')}${totals.map((t, i) => `<rect x="${i * 93 + 22}" y="${155 - Math.max(t / max * 130, 3)}" width="43" height="${Math.max(t / max * 130, 3)}" rx="3" fill="${i === 6 ? '#315947' : '#cad8bf'}" stroke="none"/>`).join('')}</svg><div class="bar-labels">${days.map(d => '<span>' + dateText(d) + '</span>').join('')}</div></div>`;
 }
-function entryTable(rows,compact=false){
- if(!rows.length)return empty('A fresh page for your business','Your entries will appear here. Start with a sale or purchase.','invoice');
- return `<div class="phone-list entry-list">${rows.map(v=>`<button class="entry-card" data-detail="${esc(v.id)}"><span class="entry-card-icon">${icon(kindIcon(v.kind))}</span><span class="entry-card-copy"><strong>${esc(v.party)}</strong><span>${esc(v.kind)} · ${dateText(v.date)}</span>${v.reference?'<small>'+esc(v.reference)+'</small>':''}</span><span class="entry-card-value"><strong>${money(v.total)}</strong>${statusBadge(v.status)}</span></button>`).join('')}</div><div class="table-wrap desktop-table"><table><thead><tr><th>Party / entry</th>${!compact?'<th>Date</th>':''}<th>Status</th><th class="numeric">Amount</th><th><span class="sr-only">View</span></th></tr></thead><tbody>${rows.map(v=>`<tr><td><span class="type-icon">${icon(kindIcon(v.kind))}</span><button class="row-button party-cell" data-detail="${esc(v.id)}">${esc(v.party)}<small>${esc(v.kind)} ${v.reference?'· '+esc(v.reference):''}</small></button></td>${!compact?'<td>'+dateText(v.date)+'</td>':''}<td>${statusBadge(v.status)}</td><td class="numeric">${money(v.total)}</td><td><button class="text-btn" data-detail="${esc(v.id)}" aria-label="View ${esc(v.kind)} for ${esc(v.party)}">${icon('arrow')}</button></td></tr>`).join('')}</tbody></table></div>`;
+function entryTable(rows, compact = false) {
+  if (!rows.length) return empty('A fresh page for your business', 'Your entries will appear here. Start with a sale or purchase.', 'invoice');
+  return `<div class="phone-list entry-list">${rows.map(v => `<button class="entry-card" data-detail="${esc(v.id)}"><span class="entry-card-icon">${icon(kindIcon(v.kind))}</span><span class="entry-card-copy"><strong>${esc(v.party)}</strong><span>${esc(v.kind)} · ${dateText(v.date)}</span>${v.reference ? '<small>' + esc(v.reference) + '</small>' : ''}</span><span class="entry-card-value"><strong>${money(v.total)}</strong>${statusBadge(v.status)}</span></button>`).join('')}</div><div class="table-wrap desktop-table"><table><thead><tr><th>Party / entry</th>${!compact ? '<th>Date</th>' : ''}<th>Status</th><th class="numeric">Amount</th><th><span class="sr-only">View</span></th></tr></thead><tbody>${rows.map(v => `<tr><td><span class="type-icon">${icon(kindIcon(v.kind))}</span><button class="row-button party-cell" data-detail="${esc(v.id)}">${esc(v.party)}<small>${esc(v.kind)} ${v.reference ? '· ' + esc(v.reference) : ''}</small></button></td>${!compact ? '<td>' + dateText(v.date) + '</td>' : ''}<td>${statusBadge(v.status)}</td><td class="numeric">${money(v.total)}</td><td><button class="text-btn" data-detail="${esc(v.id)}" aria-label="View ${esc(v.kind)} for ${esc(v.party)}">${icon('arrow')}</button></td></tr>`).join('')}</tbody></table></div>`;
 }
-function renderHome(){
- const m=metrics();
- $('#page').innerHTML=heading('<span class="desktop-copy">Business, at a glance.</span><span class="phone-copy">Your office.<br>Within reach.</span>','Sales, stock and payments. A simpler day.',`<button class="btn" data-action="refresh">${icon('refresh')} Refresh</button>`).replace('page-heading','page-heading home-heading')+`<div class="stats">${[['To collect',m.receivable,'Customer debit balances','down'],['To pay',m.payable,'Supplier credit balances','up'],['Sales today',m.sales,'Recorded through this app','invoice'],['Cash & bank',m.cash,'Synced ledger balances','wallet']].map(([label,value,note,ico])=>`<div class="stat"><div class="stat-label">${label}${icon(ico)}</div><div class="stat-value">${money(value)}</div><div class="stat-foot">${note}</div></div>`).join('')}</div><div class="section-row essentials-heading"><h2>What would you like to do?</h2><button class="text-btn" data-new="Purchase">Manual purchase ${icon('arrow')}</button></div>${quickActions()}<div class="content-grid"><div><section class="card"><div class="card-head"><div><h2>The week in sales</h2><p>A simple view of what’s moving.</p></div><span class="badge">7 days</span></div>${chart()}</section><section class="card mt"><div class="card-head"><div><h2>Recent activity</h2><p>Every entry, in one place.</p></div><button class="text-btn" data-nav="entries">View all ${icon('arrow')}</button></div>${entryTable(drafts().filter(v=>v.status!=='cancelled').slice(0,5),true)}</section></div><div class="dashboard-side"><section class="card assistant-card"><div class="card-body"><div class="assistant-top">${icon('chat')}<span class="eyebrow">Ask your accounts</span></div><h2>Less searching.<br>More knowing.</h2><p>Ask about balances, stock or entries. Get answers straight from the available records.</p>${['How much do customers owe?','Show low stock','Sales today'].map(q=>`<button class="question-chip" data-ask="${esc(q)}">${esc(q)}${icon('arrow')}</button>`).join('')}<form id="home-chat" class="assistant-input"><input name="question" aria-label="Ask your accounts" placeholder="Ask a quick question…" required maxlength="300"><button aria-label="Send question">${icon('arrow')}</button></form><div class="assistant-note">Fixed queries. No generative AI. No guessing.</div></div></section><section class="card mt"><div class="card-body"><div class="connection-row"><span class="status-light"></span><div><strong>${state.mode==='demo'?'Your Tally connection':state.data.connector.fresh?'Office laptop connected':'Office laptop offline'}</strong><p>${state.mode==='demo'?'Demo mode · Tally is untouched':esc(when(snap().synced_at))}</p></div></div><button class="text-btn mt" data-nav="settings">Office settings ${icon('arrow')}</button></div></section></div></div>`;
+function renderHome() {
+  const m = metrics();
+  $('#page').innerHTML = heading('<span class="desktop-copy">Business, at a glance.</span><span class="phone-copy">Your office.<br>Within reach.</span>', 'Sales, stock and payments. A simpler day.', `<button class="btn" data-action="refresh">${icon('refresh')} Refresh</button>`).replace('page-heading', 'page-heading home-heading') + `<div class="stats">${[['To collect', m.receivable, 'Customer debit balances', 'down'], ['To pay', m.payable, 'Supplier credit balances', 'up'], ['Sales today', m.sales, 'Recorded through this app', 'invoice'], ['Cash & bank', m.cash, 'Synced ledger balances', 'wallet']].map(([label, value, note, ico]) => `<div class="stat"><div class="stat-label">${label}${icon(ico)}</div><div class="stat-value">${money(value)}</div><div class="stat-foot">${note}</div></div>`).join('')}</div><div class="section-row essentials-heading"><h2>What would you like to do?</h2><button class="text-btn" data-new="Purchase">Manual purchase ${icon('arrow')}</button></div>${quickActions()}<div class="content-grid"><div><section class="card"><div class="card-head"><div><h2>The week in sales</h2><p>A simple view of what’s moving.</p></div><span class="badge">7 days</span></div>${chart()}</section><section class="card mt"><div class="card-head"><div><h2>Recent activity</h2><p>Every entry, in one place.</p></div><button class="text-btn" data-nav="entries">View all ${icon('arrow')}</button></div>${entryTable(drafts().filter(v => v.status !== 'cancelled').slice(0, 5), true)}</section></div><div class="dashboard-side"><section class="card assistant-card"><div class="card-body"><div class="assistant-top">${icon('chat')}<span class="eyebrow">Ask your accounts</span></div><h2>Less searching.<br>More knowing.</h2><p>Ask about balances, stock or entries. Get answers straight from the available records.</p>${['How much do customers owe?', 'Show low stock', 'Sales today'].map(q => `<button class="question-chip" data-ask="${esc(q)}">${esc(q)}${icon('arrow')}</button>`).join('')}<form id="home-chat" class="assistant-input"><input name="question" aria-label="Ask your accounts" placeholder="Ask a quick question…" required maxlength="300"><button aria-label="Send question">${icon('arrow')}</button></form><div class="assistant-note">Fixed queries. No generative AI. No guessing.</div></div></section><section class="card mt"><div class="card-body"><div class="connection-row"><span class="status-light"></span><div><strong>${state.mode === 'demo' ? 'Your Tally connection' : state.data.connector.fresh ? 'Office laptop connected' : 'Office laptop offline'}</strong><p>${state.mode === 'demo' ? 'Demo mode · Tally is untouched' : esc(when(snap().synced_at))}</p></div></div><button class="text-btn mt" data-nav="settings">Office settings ${icon('arrow')}</button></div></section></div></div>`;
 }
-function filteredEntries(){return drafts().filter(v=>(state.kind==='all'||v.kind===state.kind||v.status===state.kind)&&(!state.from||v.date>=state.from)&&(!state.to||v.date<=state.to)&&`${v.party} ${v.reference} ${v.kind}`.toLowerCase().includes(state.search.toLowerCase()));}
-function renderEntries(){
- $('#page').innerHTML=heading('Your transactions.','Draft, review, and keep track of every entry.',`<button class="btn primary" data-action="new-menu">${icon('plus')} New entry</button>`)+`<div class="toolbar"><div class="search-field">${icon('search')}<input id="entry-search" type="search" placeholder="Search party, invoice or entry…" aria-label="Search transactions" value="${esc(state.search)}"></div><select id="entry-filter" class="filter" aria-label="Filter entries">${[['all','All entries'],['Sales','Sales'],['Purchase','Purchases'],['Receipt','Receipts'],['Payment','Payments'],['draft','Drafts'],['needs_review','Needs review']].map(([v,l])=>`<option value="${v}" ${state.kind===v?'selected':''}>${l}</option>`).join('')}</select><button class="btn" data-action="export-entries">${icon('down')} Export CSV</button></div><div class="card" id="entry-results">${entryTable(filteredEntries())}</div>`;
+function filteredEntries() { return drafts().filter(v => (state.kind === 'all' || v.kind === state.kind || v.status === state.kind) && (!state.from || v.date >= state.from) && (!state.to || v.date <= state.to) && `${v.party} ${v.reference} ${v.kind}`.toLowerCase().includes(state.search.toLowerCase())); }
+function renderEntries() {
+  $('#page').innerHTML = heading('Your transactions.', 'Draft, review, and keep track of every entry.', `<button class="btn primary" data-action="new-menu">${icon('plus')} New entry</button>`) + `<div class="toolbar"><div class="search-field">${icon('search')}<input id="entry-search" type="search" placeholder="Search party, invoice or entry…" aria-label="Search transactions" value="${esc(state.search)}"></div><select id="entry-filter" class="filter" aria-label="Filter entries">${[['all', 'All entries'], ['Sales', 'Sales'], ['Purchase', 'Purchases'], ['Receipt', 'Receipts'], ['Payment', 'Payments'], ['draft', 'Drafts'], ['needs_review', 'Needs review']].map(([v, l]) => `<option value="${v}" ${state.kind === v ? 'selected' : ''}>${l}</option>`).join('')}</select><button class="btn" data-action="export-entries">${icon('down')} Export CSV</button></div><div class="card" id="entry-results">${entryTable(filteredEntries())}</div>`;
 }
-function renderLedgers(){
- $('#page').innerHTML=heading('People behind the numbers.','Customer, supplier, cash and bank ledgers from your selected workspace.')+`<div class="toolbar"><div class="search-field">${icon('search')}<input id="ledger-search" type="search" placeholder="Find a customer, supplier or ledger…" aria-label="Search ledgers" value="${esc(state.search)}"></div><select id="ledger-filter" class="filter" aria-label="Ledger group">${[['all','All ledgers'],['Sundry Debtors','Customers'],['Sundry Creditors','Suppliers'],['Cash-in-Hand','Cash'],['Bank Accounts','Banks']].map(([v,l])=>`<option value="${v}" ${state.kind===v?'selected':''}>${l}</option>`).join('')}</select><button class="btn" data-action="export-ledgers">${icon('down')} Export</button></div><div class="card" id="ledger-results">${ledgerTable()}</div><div class="field-help mt">Balances use a debit-positive convention: positive = debit, negative = credit. A ledger balance is not an invoice ageing report.</div>`;
+function renderLedgers() {
+  $('#page').innerHTML = heading('People behind the numbers.', 'Customer, supplier, cash and bank ledgers from your selected workspace.') + `<div class="toolbar"><div class="search-field">${icon('search')}<input id="ledger-search" type="search" placeholder="Find a customer, supplier or ledger…" aria-label="Search ledgers" value="${esc(state.search)}"></div><select id="ledger-filter" class="filter" aria-label="Ledger group">${[['all', 'All ledgers'], ['Sundry Debtors', 'Customers'], ['Sundry Creditors', 'Suppliers'], ['Cash-in-Hand', 'Cash'], ['Bank Accounts', 'Banks']].map(([v, l]) => `<option value="${v}" ${state.kind === v ? 'selected' : ''}>${l}</option>`).join('')}</select><button class="btn" data-action="export-ledgers">${icon('down')} Export</button></div><div class="card" id="ledger-results">${ledgerTable()}</div><div class="field-help mt">Balances use a debit-positive convention: positive = debit, negative = credit. A ledger balance is not an invoice ageing report.</div>`;
 }
-function ledgerRows(){return snap().ledgers.filter(l=>(state.kind==='all'||l.group===state.kind)&&`${l.name} ${l.group}`.toLowerCase().includes(state.search.toLowerCase()));}
-function ledgerTable(){const rows=ledgerRows();return rows.length?`<div class="phone-list">${rows.map(l=>`<button class="ledger-card" data-ledger="${esc(l.name)}"><span class="entry-card-icon">${icon(l.group==='Bank Accounts'||l.group==='Cash-in-Hand'?'wallet':'people')}</span><span class="entry-card-copy"><strong>${esc(l.name)}</strong><span>${esc(l.group)}</span></span><span class="entry-card-value"><strong>${money(l.balance===''?'':Math.abs(Number(l.balance)))}</strong><small>${l.balance===''?'Unavailable':Number(l.balance)===0?'Zero balance':Number(l.balance)>0?'Debit balance':'Credit balance'}</small></span></button>`).join('')}</div><div class="table-wrap desktop-table"><table><thead><tr><th>Ledger</th><th>Group</th><th class="numeric">Balance</th><th></th></tr></thead><tbody>${rows.map(l=>`<tr><td><button class="row-button party-cell" data-ledger="${esc(l.name)}">${esc(l.name)}</button></td><td>${esc(l.group)}</td><td class="numeric">${money(l.balance)} ${l.balance!==''&&Number(l.balance)!==0?Number(l.balance)>0?'Dr':'Cr':''}</td><td><button class="text-btn" data-ledger="${esc(l.name)}" aria-label="Open ${esc(l.name)}">${icon('arrow')}</button></td></tr>`).join('')}</tbody></table></div>`:empty('No matching ledgers','Try another search, or sync your Tally masters.','people');}
-function renderStock(){
- $('#page').innerHTML=heading('Know what’s on the shelf.','Quantities and units from your latest stock snapshot.')+`<div class="toolbar"><div class="search-field">${icon('search')}<input id="stock-search" type="search" placeholder="Find a stock item…" aria-label="Search stock" value="${esc(state.search)}"></div><select id="stock-filter" class="filter" aria-label="Stock filter"><option value="all">All stock</option><option value="low" ${state.kind==='low'?'selected':''}>10 units or fewer</option></select><button class="btn" data-action="export-stock">${icon('down')} Export</button></div><div class="card" id="stock-results">${stockTable()}</div><div class="field-help mt">Low stock uses a simple 10-unit threshold. Quantities with different units should not be added together.</div>`;
+function ledgerRows() { return snap().ledgers.filter(l => (state.kind === 'all' || l.group === state.kind) && `${l.name} ${l.group}`.toLowerCase().includes(state.search.toLowerCase())); }
+function ledgerTable() { const rows = ledgerRows(); return rows.length ? `<div class="phone-list">${rows.map(l => `<button class="ledger-card" data-ledger="${esc(l.name)}"><span class="entry-card-icon">${icon(l.group === 'Bank Accounts' || l.group === 'Cash-in-Hand' ? 'wallet' : 'people')}</span><span class="entry-card-copy"><strong>${esc(l.name)}</strong><span>${esc(l.group)}</span></span><span class="entry-card-value"><strong>${money(l.balance === '' ? '' : Math.abs(Number(l.balance)))}</strong><small>${l.balance === '' ? 'Unavailable' : Number(l.balance) === 0 ? 'Zero balance' : Number(l.balance) > 0 ? 'Debit balance' : 'Credit balance'}</small></span></button>`).join('')}</div><div class="table-wrap desktop-table"><table><thead><tr><th>Ledger</th><th>Group</th><th class="numeric">Balance</th><th></th></tr></thead><tbody>${rows.map(l => `<tr><td><button class="row-button party-cell" data-ledger="${esc(l.name)}">${esc(l.name)}</button></td><td>${esc(l.group)}</td><td class="numeric">${money(l.balance)} ${l.balance !== '' && Number(l.balance) !== 0 ? Number(l.balance) > 0 ? 'Dr' : 'Cr' : ''}</td><td><button class="text-btn" data-ledger="${esc(l.name)}" aria-label="Open ${esc(l.name)}">${icon('arrow')}</button></td></tr>`).join('')}</tbody></table></div>` : empty('No matching ledgers', 'Try another search, or sync your Tally masters.', 'people'); }
+function renderStock() {
+  $('#page').innerHTML = heading('Know what’s on the shelf.', 'Quantities and units from your latest stock snapshot.') + `<div class="toolbar"><div class="search-field">${icon('search')}<input id="stock-search" type="search" placeholder="Find a stock item…" aria-label="Search stock" value="${esc(state.search)}"></div><select id="stock-filter" class="filter" aria-label="Stock filter"><option value="all">All stock</option><option value="low" ${state.kind === 'low' ? 'selected' : ''}>10 units or fewer</option></select><button class="btn" data-action="export-stock">${icon('down')} Export</button></div><div class="card" id="stock-results">${stockTable()}</div><div class="field-help mt">Low stock uses a simple 10-unit threshold. Quantities with different units should not be added together.</div>`;
 }
-function stockRows(){return snap().stock.filter(s=>s.name.toLowerCase().includes(state.search.toLowerCase())&&(state.kind!=='low'||s.quantity!==''&&Number(s.quantity)<=10));}
-function stockTable(){const rows=stockRows();return rows.length?`<div class="phone-list">${rows.map(item=>`<article class="stock-card"><div class="entry-card-icon">${icon('stock')}</div><div class="entry-card-copy"><strong>${esc(item.name)}</strong><span>${item.quantity===''?'Quantity unavailable':Number(item.quantity)<=10?'Running low':'In stock'}</span><small>Stock value ${money(item.value)}</small></div><div class="stock-quantity"><strong>${item.quantity===''?'—':esc(item.quantity)}</strong><span>${esc(item.unit)}</span></div></article>`).join('')}</div><div class="table-wrap desktop-table"><table><thead><tr><th>Stock item</th><th>Unit</th><th class="numeric">Available</th><th class="numeric">Value</th><th>Status</th></tr></thead><tbody>${rows.map(s=>`<tr><td class="party-cell">${esc(s.name)}</td><td>${esc(s.unit)}</td><td class="numeric">${s.quantity===''?'—':esc(s.quantity)}</td><td class="numeric">${money(s.value)}</td><td>${s.quantity===''?'<span class="badge draft">Unavailable</span>':Number(s.quantity)<=10?'<span class="badge draft">Running low</span>':'<span class="badge">In stock</span>'}</td></tr>`).join('')}</tbody></table></div>`:empty('No matching stock items','Try another search, or connect the office laptop to sync inventory.','stock');}
-function renderReports(){
- $('#page').innerHTML=heading('A clearer picture.','Synced balances and Tally sales and purchase registers.',`<button class="btn primary" data-action="open-tally-reports">${icon('report')} Tally reports</button>`)+`<div class="notice green">${icon('shield')} Sales and Purchase registers include synced Tally vouchers from every entry source. Coverage and freshness are shown inside each register. Use Tally reports to request day book, P&L, balance sheet and outstanding reports through the office connector. Report layouts require office validation.</div><div class="report-grid mt">${[['receivables','Money to collect','Customer debit balances.','down'],['payables','Money to pay','Supplier credit balances.','up'],['sales','Sales register',state.mode==='live'?'All synced Tally sales.':'Sales recorded in demo.','invoice'],['purchases','Purchase register',state.mode==='live'?'All synced Tally purchases.':'Purchases recorded in demo.','stock'],['cash','Cash & bank','Balances of synced cash and bank ledgers.','wallet'],['stock','Stock summary','Available quantities, units and value.','report']].map(([id,title,description,ico])=>`<button class="report-tile" data-report="${id}">${icon(ico)}<h3>${title}</h3><p>${description}</p><span class="text-btn">Open report ${icon('arrow')}</span></button>`).join('')}</div>`;
+function stockRows() { return snap().stock.filter(s => s.name.toLowerCase().includes(state.search.toLowerCase()) && (state.kind !== 'low' || s.quantity !== '' && Number(s.quantity) <= 10)); }
+function stockTable() { const rows = stockRows(); return rows.length ? `<div class="phone-list">${rows.map(item => `<article class="stock-card"><div class="entry-card-icon">${icon('stock')}</div><div class="entry-card-copy"><strong>${esc(item.name)}</strong><span>${item.quantity === '' ? 'Quantity unavailable' : Number(item.quantity) <= 10 ? 'Running low' : 'In stock'}</span><small>Stock value ${money(item.value)}</small></div><div class="stock-quantity"><strong>${item.quantity === '' ? '—' : esc(item.quantity)}</strong><span>${esc(item.unit)}</span></div></article>`).join('')}</div><div class="table-wrap desktop-table"><table><thead><tr><th>Stock item</th><th>Unit</th><th class="numeric">Available</th><th class="numeric">Value</th><th>Status</th></tr></thead><tbody>${rows.map(s => `<tr><td class="party-cell">${esc(s.name)}</td><td>${esc(s.unit)}</td><td class="numeric">${s.quantity === '' ? '—' : esc(s.quantity)}</td><td class="numeric">${money(s.value)}</td><td>${s.quantity === '' ? '<span class="badge draft">Unavailable</span>' : Number(s.quantity) <= 10 ? '<span class="badge draft">Running low</span>' : '<span class="badge">In stock</span>'}</td></tr>`).join('')}</tbody></table></div>` : empty('No matching stock items', 'Try another search, or connect the office laptop to sync inventory.', 'stock'); }
+function renderReports() {
+  $('#page').innerHTML = heading('A clearer picture.', 'Synced balances and Tally sales and purchase registers.', `<button class="btn primary" data-action="open-tally-reports">${icon('report')} Tally reports</button>`) + `<div class="notice green">${icon('shield')} Sales and Purchase registers include synced Tally vouchers from every entry source. Coverage and freshness are shown inside each register. Use Tally reports to request day book, P&L, balance sheet and outstanding reports through the office connector. Report layouts require office validation.</div><div class="report-grid mt">${[['receivables', 'Money to collect', 'Customer debit balances.', 'down'], ['payables', 'Money to pay', 'Supplier credit balances.', 'up'], ['sales', 'Sales register', state.mode === 'live' ? 'All synced Tally sales.' : 'Sales recorded in demo.', 'invoice'], ['purchases', 'Purchase register', state.mode === 'live' ? 'All synced Tally purchases.' : 'Purchases recorded in demo.', 'stock'], ['cash', 'Cash & bank', 'Balances of synced cash and bank ledgers.', 'wallet'], ['stock', 'Stock summary', 'Available quantities, units and value.', 'report']].map(([id, title, description, ico]) => `<button class="report-tile" data-report="${id}">${icon(ico)}<h3>${title}</h3><p>${description}</p><span class="text-btn">Open report ${icon('arrow')}</span></button>`).join('')}</div>`;
 }
-function renderChat(){
- $('#page').innerHTML=heading('Ask. Find. Get on with your day.','Straight answers from approved queries. No generative AI.')+`<div class="chat-suggestions">${['Customers owe','Supplier payables','Low stock','Sales today','Cash balance'].map(q=>`<button data-ask="${q}">${q}</button>`).join('')}</div><div class="conversation" id="conversation">${state.chat.length?state.chat.map(message=>message.question?`<div class="bubble question">${esc(message.question)}</div>`:answerHTML(message)).join(''):`<div class="card"><div class="card-body"><h2>What would you like to know?</h2><p class="muted small mt">Try a suggested question, or include the full name of a ledger or stock item. If a question is unsupported or ambiguous, the assistant will say so.</p></div></div>`}</div><form id="chat-form" class="chat-composer"><input name="question" aria-label="Question" placeholder="Ask about a balance, item or today’s sales…" required maxlength="300"><button class="btn primary">Ask ${icon('arrow')}</button></form>`;
+function renderChat() {
+  $('#page').innerHTML = heading('Ask. Find. Get on with your day.', 'Straight answers from approved queries. No generative AI.') + `<div class="chat-suggestions">${['Customers owe', 'Supplier payables', 'Low stock', 'Sales today', 'Cash balance'].map(q => `<button data-ask="${q}">${q}</button>`).join('')}</div><div class="conversation" id="conversation">${state.chat.length ? state.chat.map(message => message.question ? `<div class="bubble question">${esc(message.question)}</div>` : answerHTML(message)).join('') : `<div class="card"><div class="card-body"><h2>What would you like to know?</h2><p class="muted small mt">Try a suggested question, or include the full name of a ledger or stock item. If a question is unsupported or ambiguous, the assistant will say so.</p></div></div>`}</div><form id="chat-form" class="chat-composer"><input name="question" aria-label="Question" placeholder="Ask about a balance, item or today’s sales…" required maxlength="300"><button class="btn primary">Ask ${icon('arrow')}</button></form>`;
 }
-function answerHTML(a){return `<div class="bubble answer"><h3>${esc(a.message)}</h3>${a.rows?.length?simpleTable(a.rows,a.columns):''}${a.action==='tally-reports'?'<button class="btn mt" data-action="open-tally-reports">Open Tally reports '+icon('arrow')+'</button>':''}<div class="source">${esc(a.source||'Approved query')} · ${a.synced_at?esc(when(a.synced_at)):'No snapshot yet'}<br>${esc(a.scope||'')}</div></div>`;}
-function simpleTable(rows,columns){
- return `<div class="table-wrap detail-table"><table><thead><tr>${columns.map(c=>'<th>'+esc(c.replaceAll('_',' '))+'</th>').join('')}</tr></thead><tbody>${rows.map(row=>'<tr>'+columns.map(column=>'<td data-label="'+esc(column.replaceAll('_',' '))+'">'+esc((['total','balance','amount'].includes(column)||(column==='value'&&!columns.includes('field')))?money(row[column]):row[column]??'—')+'</td>').join('')+'</tr>').join('')}</tbody></table></div>`;
+function answerHTML(a) { return `<div class="bubble answer"><h3>${esc(a.message)}</h3>${a.rows?.length ? simpleTable(a.rows, a.columns) : ''}${a.action === 'tally-reports' ? '<button class="btn mt" data-action="open-tally-reports">Open Tally reports ' + icon('arrow') + '</button>' : ''}<div class="source">${esc(a.source || 'Approved query')} · ${a.synced_at ? esc(when(a.synced_at)) : 'No snapshot yet'}<br>${esc(a.scope || '')}</div></div>`; }
+function simpleTable(rows, columns) {
+  return `<div class="table-wrap detail-table"><table><thead><tr>${columns.map(c => '<th>' + esc(c.replaceAll('_', ' ')) + '</th>').join('')}</tr></thead><tbody>${rows.map(row => '<tr>' + columns.map(column => '<td data-label="' + esc(column.replaceAll('_', ' ')) + '">' + esc((['total', 'balance', 'amount'].includes(column) || (column === 'value' && !columns.includes('field'))) ? money(row[column]) : row[column] ?? '—') + '</td>').join('') + '</tr>').join('')}</tbody></table></div>`;
 }
 
-async function ask(question){if(!question.trim())return;state.chat.push({question});state.page='chat';render();const response=await api('chat',{mode:state.mode,question});state.chat.push(response);if(state.page!=='chat')return;renderChat();$('#chat-form input')?.focus();$('#chat-form')?.scrollIntoView({block:'nearest'});}
-function renderSettings(){
- const c=state.data.connector;
- $('#page').innerHTML=heading('Your office, connected.','MacBook for development. Windows for Tally. One simple workspace.')+`<div class="report-grid mobile-shortcuts"><button class="report-tile" data-nav="ledgers">${icon('people')}<h3>Ledgers</h3></button><button class="report-tile" data-nav="stock">${icon('stock')}<h3>Stock & inventory</h3></button><button class="report-tile" data-nav="reports">${icon('report')}<h3>Reports</h3></button><button class="report-tile" data-nav="scan">${icon('scan')}<h3>Scan a bill</h3></button></div><div class="split"><section class="card"><div class="card-head"><h2>Tally connection</h2>${statusBadge(c.fresh&&state.mode==='live'?'posted':'draft')}</div><div class="card-body"><div class="setting-row"><div><strong>Company</strong><p>The exact name used by the connector.</p></div><span class="setting-value">Upkar Agency</span></div><div class="setting-row"><div><strong>TallyPrime</strong><p>Windows office laptop</p></div><span class="setting-value">Silver · 7.1</span></div><div class="setting-row"><div><strong>Local Tally address</strong><p>Only used on the Windows laptop.</p></div><span class="setting-value">127.0.0.1:9000</span></div><div class="setting-row"><div><strong>Last master sync</strong></div><span class="setting-value">${state.mode==='live'?esc(when(snap().synced_at)):'Demo workspace'}</span></div><div class="setting-row"><div><strong>Voucher posting</strong><p>Requires approval and an activated office connector.</p></div><span class="setting-value">${c.posting_enabled?'Enabled on app host':'Awaiting activation'}</span></div><div class="notice mt">The connector calls the app from the office laptop. Never publish Tally’s port or share connector credentials in chat.</div><button class="btn mt" data-action="refresh">${icon('refresh')} Check status</button></div></section><section class="card"><div class="card-head"><h2>Workspace & tools</h2></div><div class="card-body"><div class="setting-row"><div><strong>Signed in as</strong><p>${esc(state.user.email)}</p></div><span class="badge">${esc(state.user.role||'owner')}</span></div><div class="setting-row"><div><strong>Local bill scanner</strong><p>Images stay on the app host. No external AI.</p></div><span class="setting-value">${state.data.ocr_available?'Tesseract available':'Manual entry available'}</span></div><div class="setting-row"><div><strong>WhatsApp</strong><p>Manual sharing is available on entry reviews. Automated delivery is optional and not connected.</p></div><span class="setting-value">Manual share</span></div><div class="setting-row"><div><strong>Data workspace</strong><p>Demo entries never enter the Tally queue.</p></div><button class="btn small" data-action="mode">${state.mode==='demo'?'Demo':'Tally data'}</button></div><button class="btn danger mt" data-action="logout">${icon('logout')} Sign out</button></div></section></div><section class="card mt"><div class="card-head"><div><h2>Activity trail</h2><p>Recent sign-ins, drafts and connection actions.</p></div></div><div class="table-wrap"><table><thead><tr><th>Action</th><th>Who</th><th>When</th></tr></thead><tbody>${state.data.audit.slice(0,20).map(a=>`<tr><td>${esc(a.action.replaceAll('_',' '))}</td><td>${esc(a.actor)}</td><td>${esc(when(a.at))}</td></tr>`).join('')}</tbody></table></div></section>`;
+async function ask(question) { if (!question.trim()) return; state.chat.push({ question }); state.page = 'chat'; render(); const response = await api('chat', { mode: state.mode, question }); state.chat.push(response); if (state.page !== 'chat') return; renderChat(); $('#chat-form input')?.focus(); $('#chat-form')?.scrollIntoView({ block: 'nearest' }); }
+function renderSettings() {
+  const c = state.data.connector;
+  $('#page').innerHTML = heading('Your office, connected.', 'MacBook for development. Windows for Tally. One simple workspace.') + `<div class="report-grid mobile-shortcuts"><button class="report-tile" data-nav="ledgers">${icon('people')}<h3>Ledgers</h3></button><button class="report-tile" data-nav="stock">${icon('stock')}<h3>Stock & inventory</h3></button><button class="report-tile" data-nav="reports">${icon('report')}<h3>Reports</h3></button><button class="report-tile" data-nav="scan">${icon('scan')}<h3>Scan a bill</h3></button></div><div class="split"><section class="card"><div class="card-head"><h2>Tally connection</h2>${statusBadge(c.fresh && state.mode === 'live' ? 'posted' : 'draft')}</div><div class="card-body"><div class="setting-row"><div><strong>Company</strong><p>The exact name used by the connector.</p></div><span class="setting-value">Upkar Agency</span></div><div class="setting-row"><div><strong>TallyPrime</strong><p>Windows office laptop</p></div><span class="setting-value">Silver · 7.1</span></div><div class="setting-row"><div><strong>Local Tally address</strong><p>Only used on the Windows laptop.</p></div><span class="setting-value">127.0.0.1:9000</span></div><div class="setting-row"><div><strong>Last master sync</strong></div><span class="setting-value">${state.mode === 'live' ? esc(when(snap().synced_at)) : 'Demo workspace'}</span></div><div class="setting-row"><div><strong>Voucher posting</strong><p>Requires approval and an activated office connector.</p></div><span class="setting-value">${c.posting_enabled ? 'Enabled on app host' : 'Awaiting activation'}</span></div><div class="notice mt">The connector calls the app from the office laptop. Never publish Tally’s port or share connector credentials in chat.</div><button class="btn mt" data-action="refresh">${icon('refresh')} Check status</button></div></section><section class="card"><div class="card-head"><h2>Workspace & tools</h2></div><div class="card-body"><div class="setting-row"><div><strong>Signed in as</strong><p>${esc(state.user.email)}</p></div><span class="badge">${esc(state.user.role || 'owner')}</span></div><div class="setting-row"><div><strong>Local bill scanner</strong><p>Images stay on the app host. No external AI.</p></div><span class="setting-value">${state.data.ocr_available ? 'Tesseract available' : 'Manual entry available'}</span></div><div class="setting-row"><div><strong>WhatsApp</strong><p>Manual sharing is available on entry reviews. Automated delivery is optional and not connected.</p></div><span class="setting-value">Manual share</span></div><div class="setting-row"><div><strong>Data workspace</strong><p>Demo entries never enter the Tally queue.</p></div><button class="btn small" data-action="mode">${state.mode === 'demo' ? 'Demo' : 'Tally data'}</button></div><button class="btn danger mt" data-action="logout">${icon('logout')} Sign out</button></div></section></div><section class="card mt"><div class="card-head"><div><h2>Activity trail</h2><p>Recent sign-ins, drafts and connection actions.</p></div></div><div class="table-wrap"><table><thead><tr><th>Action</th><th>Who</th><th>When</th></tr></thead><tbody>${state.data.audit.slice(0, 20).map(a => `<tr><td>${esc(a.action.replaceAll('_', ' '))}</td><td>${esc(a.actor)}</td><td>${esc(when(a.at))}</td></tr>`).join('')}</tbody></table></div></section>`;
 }
-function suggestTaxLedgers(kind, mode, percent){
- const isSale = kind === 'Sales';
- const all = ledgers(['Duties & Taxes']);
- const pool = all.filter(l => {
-  if (isSale) return !/(\bIN\b|IN\s*@|INPUT|INWARD)/i.test(l.name);
-  return !/(\bOUT\b|OUT\s*@|OUTPUT|OUTWARD)/i.test(l.name);
- });
- const findLedger = (type, rate) => {
-  const rStr = String(rate).replace(/\.0$/, '');
-  let match = pool.find(l => {
-   const n = l.name.toUpperCase();
-   return n.includes(type) && (n.includes(rStr + '%') || n.includes(rStr + ' %') || n.includes('@ ' + rStr) || n.includes('@' + rStr));
+function suggestTaxLedgers(kind, mode, percent) {
+  const isSale = kind === 'Sales';
+  const all = ledgers(['Duties & Taxes']);
+  const pool = all.filter(l => {
+    if (isSale) return !/(\bIN\b|IN\s*@|INPUT|INWARD)/i.test(l.name);
+    return !/(\bOUT\b|OUT\s*@|OUTPUT|OUTWARD)/i.test(l.name);
   });
-  if (match) return match.name;
-  match = pool.find(l => l.name.toUpperCase().includes(type));
-  if (match) return match.name;
-  return isSale ? `${type} OUT @ ${rate} %` : `${type} IN @ ${rate} %`;
- };
- const pNum = Number(percent) || 18;
- if (mode === 'interstate') {
-  return { IGST: findLedger('IGST', pNum), CGST: 'CGST', SGST: 'SGST' };
- } else if (mode === 'local') {
-  const half = (pNum / 2);
-  return { CGST: findLedger('CGST', half), SGST: findLedger('SGST', half), IGST: 'IGST' };
- }
- return { CGST: 'CGST', SGST: 'SGST', IGST: 'IGST' };
+  const findLedger = (type, rate) => {
+    const rStr = String(rate).replace(/\.0$/, '');
+    let match = pool.find(l => {
+      const n = l.name.toUpperCase();
+      return n.includes(type) && (n.includes(rStr + '%') || n.includes(rStr + ' %') || n.includes('@ ' + rStr) || n.includes('@' + rStr));
+    });
+    if (match) return match.name;
+    match = pool.find(l => l.name.toUpperCase().includes(type));
+    if (match) return match.name;
+    return isSale ? `${type} OUT @ ${rate} %` : `${type} IN @ ${rate} %`;
+  };
+  const pNum = Number(percent) || 18;
+  if (mode === 'interstate') {
+    return { IGST: findLedger('IGST', pNum), CGST: 'CGST', SGST: 'SGST' };
+  } else if (mode === 'local') {
+    const half = (pNum / 2);
+    return { CGST: findLedger('CGST', half), SGST: findLedger('SGST', half), IGST: 'IGST' };
+  }
+  return { CGST: 'CGST', SGST: 'SGST', IGST: 'IGST' };
 }
-function newDraft(kind,values={}){
- const def=(snap().godowns?.[0]?.name)||'Main Location';
- const tMode = values.taxMode || (['Sales','Purchase'].includes(kind)?'local':'none');
- const tPct = values.taxPercent || '18';
- const defaultLedgers = suggestTaxLedgers(kind, tMode, tPct);
- state.editor={kind,date:today(),party:'',cash_bank:'',account_ledger:state.mode==='demo'?(kind==='Sales'?'Sales':'Purchase'):(kind==='Sales'?'Sales Accounts':'Purchase Accounts'),reference:'',voucher_number:'',round_off:'0',round_off_ledger:'',narration:'',items:[{name:'',unit:'',qty:'1',rate:'',discount:'0',godown:def}],taxMode:tMode,taxPercent:tPct,taxLedgers:{...defaultLedgers,...(values.taxLedgers||{})},amount:'',allocations:[],...values};
- state.page='editor';render();window.scrollTo(0,0);
+function newDraft(kind, values = {}) {
+  const def = (snap().godowns?.[0]?.name) || 'Main Location';
+  const tMode = values.taxMode || (['Sales', 'Purchase'].includes(kind) ? 'local' : 'none');
+  const tPct = values.taxPercent || '18';
+  const defaultLedgers = suggestTaxLedgers(kind, tMode, tPct);
+  state.editor = { kind, date: today(), party: '', cash_bank: '', account_ledger: state.mode === 'demo' ? (kind === 'Sales' ? 'Sales' : 'Purchase') : (kind === 'Sales' ? 'Sales Accounts' : 'Purchase Accounts'), reference: '', voucher_number: '', round_off: '0', round_off_ledger: '', narration: '', items: [{ name: '', unit: '', qty: '1', rate: '', discount: '0', godown: def }], taxMode: tMode, taxPercent: tPct, taxLedgers: { ...defaultLedgers, ...(values.taxLedgers || {}) }, amount: '', allocations: [], ...values };
+  state.page = 'editor'; render(); window.scrollTo(0, 0);
 }
-function renderEditor(){
- const e=state.editor;if(!e)return nav('home');
- const inventory=['Sales','Purchase'].includes(e.kind);
- const partyLabel=['Sales','Receipt'].includes(e.kind)?'Customer':'Supplier';
- const partyLedgers=ledgers(e.kind==='Sales'?['Sundry Debtors','Cash-in-Hand','Bank Accounts']:e.kind==='Purchase'?['Sundry Creditors','Cash-in-Hand','Bank Accounts']:e.kind==='Receipt'?['Sundry Debtors']:['Sundry Creditors']);
- const headingTitle={Sales:'A new sale.',Purchase:'Record a purchase.',Receipt:'Money received.',Payment:'Pay a supplier.'}[e.kind];
- $('#page').innerHTML=heading(headingTitle,`Create a ${e.kind.toLowerCase()} draft. Review it before saving ${state.mode==='demo'?'in the demo':'to Tally'}.`,`<button class="btn" data-nav="entries">${icon('close')} Close</button>`)+`<form id="entry-form"><div class="editor-layout"><div class="card"><section class="editor-section"><h2>01 &nbsp; The essentials</h2><div class="form-grid"><div><label for="party">${partyLabel} ledger</label><input id="party" name="party" list="party-list" required placeholder="Search ${partyLabel.toLowerCase()}…" value="${esc(e.party)}"><datalist id="party-list">${partyLedgers.map(l=>`<option value="${esc(l.name)}"></option>`).join('')}</datalist><div class="field-help">Use the exact existing Tally ledger name.</div></div><div><label for="entry-date">Entry date</label><input id="entry-date" name="date" type="date" required max="${today()}" value="${esc(e.date)}"></div>${inventory?`<div><label for="voucher-number">Tally voucher number</label><input id="voucher-number" name="voucher_number" maxlength="100" value="${esc(e.voucher_number||'')}" placeholder="Required for manual numbering"><small>Separate from the supplier invoice reference.</small></div>`:''}<div><label for="reference">${e.kind==='Purchase'?'Supplier invoice number':'Reference / invoice number'} ${e.kind==='Purchase'?'':'<small>(optional)</small>'}</label><input id="reference" name="reference" ${e.kind==='Purchase'?'required':''} value="${esc(e.reference)}" placeholder="e.g. INV-001" maxlength="100"></div><div>${inventory?`<label for="account-ledger">${e.kind} ledger</label><input id="account-ledger" name="account_ledger" list="account-list" required value="${esc(e.account_ledger)}"><datalist id="account-list">${ledgers([e.kind==='Sales'?'Sales Accounts':'Purchase Accounts']).map(l=>`<option value="${esc(l.name)}"></option>`).join('')}</datalist>`:`<label for="cash-bank">Receive / pay through</label><select id="cash-bank" name="cash_bank" required>${options(ledgers(['Cash-in-Hand','Bank Accounts']),e.cash_bank,'Choose cash or bank')}</select>`}</div>${!inventory?`<div class="full"><label for="amount">Amount (₹)</label><input id="amount" name="amount" type="number" min="0.01" step="0.01" required value="${esc(e.amount||e.total||'')}" placeholder="0.00"></div>`:''}</div></section>${inventory?`<section class="editor-section"><div class="section-row"><h2>02 &nbsp; Items</h2><button type="button" class="text-btn" data-action="add-item">${icon('plus')} Add item</button></div><datalist id="stock-list">${snap().stock.map(s=>`<option value="${esc(s.name)}"></option>`).join('')}</datalist><div id="item-rows">${itemRows()}</div><div class="field-help mt">Select the stock item, godown location and units exactly as they appear in Tally.</div></section><section class="editor-section"><h2>03 &nbsp; Tax & notes</h2><div class="form-grid"><div><label for="tax-mode">GST treatment</label><select id="tax-mode" name="taxMode"><option value="none" ${e.taxMode==='none'?'selected':''}>No tax / exempt</option><option value="local" ${e.taxMode==='local'?'selected':''}>CGST + SGST</option><option value="interstate" ${e.taxMode==='interstate'?'selected':''}>IGST</option></select></div><div><label for="tax-percent">Combined GST rate (%)</label><select name="taxPercent" id="tax-percent">${[0,5,12,18,28].map(v=>`<option value="${v}" ${Number(e.taxPercent)===v?'selected':''}>${v}%</option>`).join('')}</select></div><div class="full field-help">This version uses one GST rate for all items. Mixed rates and statutory GST details must be validated with your Tally setup before live use.</div><div><label for="round-off">Round off (₹, −1 to +1)</label><input id="round-off" name="round_off" type="number" step="0.01" min="-1" max="1" value="${esc(e.round_off||'0')}"></div><div><label for="round-ledger">Round off ledger</label><input id="round-ledger" name="round_off_ledger" list="round-ledgers" value="${esc(e.round_off_ledger||'')}"><datalist id="round-ledgers">${ledgers(['Indirect Expenses','Indirect Incomes']).map(l=>`<option value="${esc(l.name)}"></option>`).join('')}</datalist></div><div id="tax-ledger-fields" class="full">${taxFields()}</div>${e.document_id?`<div class="full"><label for="printed-total">Total printed on bill (₹)</label><input id="printed-total" name="printed_total" type="number" step="0.01" min="0.01" value="${esc(e.printed_total||e.expected_total||'')}" placeholder="Verify against the original"><div class="field-help">Correct the OCR suggestion if needed. The entry total must match this amount.</div></div><div class="full notice green">Original purchase bill attached. <a href="/api/documents/${esc(e.document_id)}" target="_blank" rel="noopener">Open bill</a>${e.expected_total?'<br>OCR suggested total: '+money(e.expected_total)+'. Verify against the original.':''}</div>`:''}<div class="full"><label for="narration">Notes <small>(optional)</small></label><textarea id="narration" name="narration" maxlength="2000" placeholder="Anything you want to remember…">${esc(e.narration)}</textarea></div></div></section>`:`<section class="editor-section"><div class="section-row"><h2>02 &nbsp; Bill allocation <span class="muted small">(optional)</span></h2><button type="button" class="text-btn" data-action="add-allocation">${icon('plus')} Add bill</button></div><p class="field-help">For bill-wise parties, use exact outstanding bill references. Allocations must equal the payment amount.</p><div id="allocation-rows">${allocationRows()}</div><label for="narration" class="mt">Notes <small>(optional)</small></label><textarea id="narration" name="narration" maxlength="2000">${esc(e.narration)}</textarea></section>`}</div><aside class="card summary"><span class="eyebrow">Your entry</span><h2 class="mt">A quick check.</h2><div id="entry-summary">${summaryHTML()}</div><button type="submit" class="btn primary">Save draft & review ${icon('arrow')}</button><p>This saves a draft only. You’ll review the entry before confirming.</p><div class="notice mt">${state.mode==='demo'?'Demo workspace. You can try every step without changing Tally.':'Upkar Agency · No entry is posted until you approve it and the office connector confirms it.'}</div></aside></div><div class="phone-entry-footer"><div><small>Entry total</small><strong id="phone-entry-total">${money(previewTotals().total)}</strong></div><button type="submit" class="btn primary">Review draft ${icon('arrow')}</button></div></form>`;
+function renderEditor() {
+  const e = state.editor; if (!e) return nav('home');
+  const inventory = ['Sales', 'Purchase'].includes(e.kind);
+  const partyLabel = ['Sales', 'Receipt'].includes(e.kind) ? 'Customer' : 'Supplier';
+  const partyLedgers = ledgers(e.kind === 'Sales' ? ['Sundry Debtors', 'Cash-in-Hand', 'Bank Accounts'] : e.kind === 'Purchase' ? ['Sundry Creditors', 'Cash-in-Hand', 'Bank Accounts'] : e.kind === 'Receipt' ? ['Sundry Debtors'] : ['Sundry Creditors']);
+  const headingTitle = { Sales: 'A new sale.', Purchase: 'Record a purchase.', Receipt: 'Money received.', Payment: 'Pay a supplier.' }[e.kind];
+  $('#page').innerHTML = heading(headingTitle, `Create a ${e.kind.toLowerCase()} draft. Review it before saving ${state.mode === 'demo' ? 'in the demo' : 'to Tally'}.`, `<button class="btn" data-nav="entries">${icon('close')} Close</button>`) + `<form id="entry-form"><div class="editor-layout"><div class="card"><section class="editor-section"><h2>01 &nbsp; The essentials</h2><div class="form-grid"><div><label for="party">${partyLabel} ledger</label><input id="party" name="party" list="party-list" required placeholder="Search ${partyLabel.toLowerCase()}…" value="${esc(e.party)}"><datalist id="party-list">${partyLedgers.map(l => `<option value="${esc(l.name)}"></option>`).join('')}</datalist><div class="field-help">Use the exact existing Tally ledger name.</div></div><div><label for="entry-date">Entry date</label><input id="entry-date" name="date" type="date" required max="${today()}" value="${esc(e.date)}"></div>${inventory ? `<div><label for="voucher-number">Tally voucher number</label><input id="voucher-number" name="voucher_number" maxlength="100" value="${esc(e.voucher_number || '')}" placeholder="Required for manual numbering"><small>Separate from the supplier invoice reference.</small></div>` : ''}<div><label for="reference">${e.kind === 'Purchase' ? 'Supplier invoice number' : 'Reference / invoice number'} ${e.kind === 'Purchase' ? '' : '<small>(optional)</small>'}</label><input id="reference" name="reference" ${e.kind === 'Purchase' ? 'required' : ''} value="${esc(e.reference)}" placeholder="e.g. INV-001" maxlength="100"></div><div>${inventory ? `<label for="account-ledger">${e.kind} ledger</label><input id="account-ledger" name="account_ledger" list="account-list" required value="${esc(e.account_ledger)}"><datalist id="account-list">${ledgers([e.kind === 'Sales' ? 'Sales Accounts' : 'Purchase Accounts']).map(l => `<option value="${esc(l.name)}"></option>`).join('')}</datalist>` : `<label for="cash-bank">Receive / pay through</label><select id="cash-bank" name="cash_bank" required>${options(ledgers(['Cash-in-Hand', 'Bank Accounts']), e.cash_bank, 'Choose cash or bank')}</select>`}</div>${!inventory ? `<div class="full"><label for="amount">Amount (₹)</label><input id="amount" name="amount" type="number" min="0.01" step="0.01" required value="${esc(e.amount || e.total || '')}" placeholder="0.00"></div>` : ''}</div></section>${inventory ? `<section class="editor-section"><div class="section-row"><h2>02 &nbsp; Items</h2><button type="button" class="text-btn" data-action="add-item">${icon('plus')} Add item</button></div><datalist id="stock-list">${snap().stock.map(s => `<option value="${esc(s.name)}"></option>`).join('')}</datalist><div id="item-rows">${itemRows()}</div><div class="field-help mt">Select the stock item, godown location and units exactly as they appear in Tally.</div></section><section class="editor-section"><h2>03 &nbsp; Tax & notes</h2><div class="form-grid"><div><label for="tax-mode">GST treatment</label><select id="tax-mode" name="taxMode"><option value="none" ${e.taxMode === 'none' ? 'selected' : ''}>No tax / exempt</option><option value="local" ${e.taxMode === 'local' ? 'selected' : ''}>CGST + SGST</option><option value="interstate" ${e.taxMode === 'interstate' ? 'selected' : ''}>IGST</option></select></div><div><label for="tax-percent">Combined GST rate (%)</label><select name="taxPercent" id="tax-percent">${[0, 5, 12, 18, 28].map(v => `<option value="${v}" ${Number(e.taxPercent) === v ? 'selected' : ''}>${v}%</option>`).join('')}</select></div><div class="full field-help">This version uses one GST rate for all items. Mixed rates and statutory GST details must be validated with your Tally setup before live use.</div><div><label for="round-off">Round off (₹, −1 to +1)</label><input id="round-off" name="round_off" type="number" step="0.01" min="-1" max="1" value="${esc(e.round_off || '0')}"></div><div><label for="round-ledger">Round off ledger</label><input id="round-ledger" name="round_off_ledger" list="round-ledgers" value="${esc(e.round_off_ledger || '')}"><datalist id="round-ledgers">${ledgers(['Indirect Expenses', 'Indirect Incomes']).map(l => `<option value="${esc(l.name)}"></option>`).join('')}</datalist></div><div id="tax-ledger-fields" class="full">${taxFields()}</div>${e.document_id ? `<div class="full"><label for="printed-total">Total printed on bill (₹)</label><input id="printed-total" name="printed_total" type="number" step="0.01" min="0.01" value="${esc(e.printed_total || e.expected_total || '')}" placeholder="Verify against the original"><div class="field-help">Correct the OCR suggestion if needed. The entry total must match this amount.</div></div><div class="full notice green">Original purchase bill attached. <a href="/api/documents/${esc(e.document_id)}" target="_blank" rel="noopener">Open bill</a>${e.expected_total ? '<br>OCR suggested total: ' + money(e.expected_total) + '. Verify against the original.' : ''}</div>` : ''}<div class="full"><label for="narration">Notes <small>(optional)</small></label><textarea id="narration" name="narration" maxlength="2000" placeholder="Anything you want to remember…">${esc(e.narration)}</textarea></div></div></section>` : `<section class="editor-section"><div class="section-row"><h2>02 &nbsp; Bill allocation <span class="muted small">(optional)</span></h2><button type="button" class="text-btn" data-action="add-allocation">${icon('plus')} Add bill</button></div><p class="field-help">For bill-wise parties, use exact outstanding bill references. Allocations must equal the payment amount.</p><div id="allocation-rows">${allocationRows()}</div><label for="narration" class="mt">Notes <small>(optional)</small></label><textarea id="narration" name="narration" maxlength="2000">${esc(e.narration)}</textarea></section>`}</div><aside class="card summary"><span class="eyebrow">Your entry</span><h2 class="mt">A quick check.</h2><div id="entry-summary">${summaryHTML()}</div><button type="submit" class="btn primary">Save draft & review ${icon('arrow')}</button><p>This saves a draft only. You’ll review the entry before confirming.</p><div class="notice mt">${state.mode === 'demo' ? 'Demo workspace. You can try every step without changing Tally.' : 'Upkar Agency · No entry is posted until you approve it and the office connector confirms it.'}</div></aside></div><div class="phone-entry-footer"><div><small>Entry total</small><strong id="phone-entry-total">${money(previewTotals().total)}</strong></div><button type="submit" class="btn primary">Review draft ${icon('arrow')}</button></div></form>`;
 }
-function itemRows(){
- const godowns=snap().godowns?.length?snap().godowns:[{name:'Main Location'}];
- const def=godowns[0]?.name||'Main Location';
- return state.editor.items.map((r,i)=>`<div class="item-row" data-item="${i}">
+function itemRows() {
+  const godowns = snap().godowns?.length ? snap().godowns : [{ name: 'Main Location' }];
+  const def = godowns[0]?.name || 'Main Location';
+  return state.editor.items.map((r, i) => `<div class="item-row" data-item="${i}">
   <div class="item-name"><label for="item-${i}">Stock item</label><input id="item-${i}" data-field="name" list="stock-list" value="${esc(r.name)}" required placeholder="Search an item…"></div>
-  <div class="godown-field"><label for="godown-${i}">Godown</label><select id="godown-${i}" data-field="godown">${godowns.map(g=>`<option value="${esc(g.name)}" ${(r.godown||def)===g.name?'selected':''}>${esc(g.name)}</option>`).join('')}</select></div>
+  <div class="godown-field"><label for="godown-${i}">Godown</label><select id="godown-${i}" data-field="godown">${godowns.map(g => `<option value="${esc(g.name)}" ${(r.godown || def) === g.name ? 'selected' : ''}>${esc(g.name)}</option>`).join('')}</select></div>
   <div class="unit-field"><label for="unit-${i}">Unit</label><input id="unit-${i}" data-field="unit" value="${esc(r.unit)}" required placeholder="pcs"></div>
   <div class="quantity-field"><label for="qty-${i}">Quantity</label><input id="qty-${i}" data-field="qty" type="number" min="0.001" step="any" required value="${esc(r.qty)}"></div>
   <div class="rate-field"><label for="rate-${i}">Rate (₹)</label><input id="rate-${i}" data-field="rate" type="number" min="0.01" step="any" required value="${esc(r.rate)}"></div>
   <div class="discount-field"><label for="discount-${i}">Disc %</label><input id="discount-${i}" data-field="discount" type="number" min="0" max="99.99" step="any" value="${esc(r.discount)}"></div>
   <div class="line-total" data-line="${i}">${money(lineAmount(r))}</div>
-  <button type="button" class="remove-row" data-remove-item="${i}" aria-label="Remove item ${i+1}">${icon('close')}</button>
+  <button type="button" class="remove-row" data-remove-item="${i}" aria-label="Remove item ${i + 1}">${icon('close')}</button>
  </div>`).join('');
 }
-function allocationRows(){return state.editor.allocations.map((r,i)=>`<div class="allocation" data-allocation="${i}"><input data-field="reference" value="${esc(r.reference)}" aria-label="Bill reference ${i+1}" placeholder="Bill reference" required><input type="number" min="0.01" step="0.01" data-field="amount" value="${esc(r.amount)}" aria-label="Bill amount ${i+1}" placeholder="Amount" required><button type="button" class="text-btn" data-remove-allocation="${i}" aria-label="Remove allocation">${icon('close')}</button></div>`).join('');}
-function taxFields(){
- const e=state.editor;
- if(e.taxMode==='none')return '';
- const isSale=e.kind==='Sales';
- const filteredLedgers=ledgers(['Duties & Taxes']).filter(l=>{
-  if(isSale) return !/(\bIN\b|IN\s*@|INPUT|INWARD)/i.test(l.name);
-  return !/(\bOUT\b|OUT\s*@|OUTPUT|OUTWARD)/i.test(l.name);
- });
- const types=e.taxMode==='local'?['CGST','SGST']:['IGST'];
- return `<div class="form-grid">${types.map(t=>`<div><label for="tax-${t}">${t} ledger (${isSale?'Output Tax':'Input Tax'})</label><input id="tax-${t}" data-tax-ledger="${t}" list="tax-list" value="${esc(e.taxLedgers[t]||'')}" required></div>`).join('')}</div><datalist id="tax-list">${filteredLedgers.map(l=>`<option value="${esc(l.name)}"></option>`).join('')}</datalist>`;
+function allocationRows() { return state.editor.allocations.map((r, i) => `<div class="allocation" data-allocation="${i}"><input data-field="reference" value="${esc(r.reference)}" aria-label="Bill reference ${i + 1}" placeholder="Bill reference" required><input type="number" min="0.01" step="0.01" data-field="amount" value="${esc(r.amount)}" aria-label="Bill amount ${i + 1}" placeholder="Amount" required><button type="button" class="text-btn" data-remove-allocation="${i}" aria-label="Remove allocation">${icon('close')}</button></div>`).join(''); }
+function taxFields() {
+  const e = state.editor;
+  if (e.taxMode === 'none') return '';
+  const isSale = e.kind === 'Sales';
+  const filteredLedgers = ledgers(['Duties & Taxes']).filter(l => {
+    if (isSale) return !/(\bIN\b|IN\s*@|INPUT|INWARD)/i.test(l.name);
+    return !/(\bOUT\b|OUT\s*@|OUTPUT|OUTWARD)/i.test(l.name);
+  });
+  const types = e.taxMode === 'local' ? ['CGST', 'SGST'] : ['IGST'];
+  return `<div class="form-grid">${types.map(t => `<div><label for="tax-${t}">${t} ledger (${isSale ? 'Output Tax' : 'Input Tax'})</label><input id="tax-${t}" data-tax-ledger="${t}" list="tax-list" value="${esc(e.taxLedgers[t] || '')}" required></div>`).join('')}</div><datalist id="tax-list">${filteredLedgers.map(l => `<option value="${esc(l.name)}"></option>`).join('')}</datalist>`;
 }
-function lineAmount(row){if(row.amount_override!==undefined&&row.amount_override!=='')return Number(row.amount_override);return Math.round(Number(row.qty||0)*Number(row.rate||0)*(1-Number(row.discount||0)/100)*100)/100;}
-function previewTotals(){
- const e=state.editor;
- const inventory=['Sales','Purchase'].includes(e.kind);
- const subtotal=inventory?e.items.reduce((sum,row)=>sum+lineAmount(row),0):Number(e.amount||0);
- const tax=inventory&&e.taxMode!=='none'?(e.taxMode==='local'?2*Math.round(subtotal*Number(e.taxPercent)/2)/100:Math.round(subtotal*Number(e.taxPercent))/100):0;
- return {subtotal,tax,total:subtotal+tax+(inventory?Number(e.round_off||0):0)};
+function lineAmount(row) { if (row.amount_override !== undefined && row.amount_override !== '') return Number(row.amount_override); return Math.round(Number(row.qty || 0) * Number(row.rate || 0) * (1 - Number(row.discount || 0) / 100) * 100) / 100; }
+function previewTotals() {
+  const e = state.editor;
+  const inventory = ['Sales', 'Purchase'].includes(e.kind);
+  const subtotal = inventory ? e.items.reduce((sum, row) => sum + lineAmount(row), 0) : Number(e.amount || 0);
+  const tax = inventory && e.taxMode !== 'none' ? (e.taxMode === 'local' ? 2 * Math.round(subtotal * Number(e.taxPercent) / 2) / 100 : Math.round(subtotal * Number(e.taxPercent)) / 100) : 0;
+  return { subtotal, tax, total: subtotal + tax + (inventory ? Number(e.round_off || 0) : 0) };
 }
-function summaryHTML(){
- const e=state.editor,{subtotal,tax,total}=previewTotals();
- return `<div class="summary-line"><span>${['Sales','Purchase'].includes(e.kind)?'Items subtotal':'Amount'}</span><strong>${money(subtotal)}</strong></div>${Number(e.round_off)?'<div class="summary-line"><span>Round off</span><span>'+money(e.round_off)+'</span></div>':''}${tax?'<div class="summary-line"><span>GST ('+esc(e.taxPercent)+'%)</span><span>'+money(tax)+'</span></div>':''}<div class="summary-line summary-total"><span>Total</span><strong>${money(total)}</strong></div><div class="field-help">Final amounts are validated by the server using decimal arithmetic.</div>`;
+function summaryHTML() {
+  const e = state.editor, { subtotal, tax, total } = previewTotals();
+  return `<div class="summary-line"><span>${['Sales', 'Purchase'].includes(e.kind) ? 'Items subtotal' : 'Amount'}</span><strong>${money(subtotal)}</strong></div>${Number(e.round_off) ? '<div class="summary-line"><span>Round off</span><span>' + money(e.round_off) + '</span></div>' : ''}${tax ? '<div class="summary-line"><span>GST (' + esc(e.taxPercent) + '%)</span><span>' + money(tax) + '</span></div>' : ''}<div class="summary-line summary-total"><span>Total</span><strong>${money(total)}</strong></div><div class="field-help">Final amounts are validated by the server using decimal arithmetic.</div>`;
 }
-function updateSummary(){
- $('#entry-summary').innerHTML=summaryHTML();
- const total=$('#phone-entry-total');if(total)total.textContent=money(previewTotals().total);
+function updateSummary() {
+  $('#entry-summary').innerHTML = summaryHTML();
+  const total = $('#phone-entry-total'); if (total) total.textContent = money(previewTotals().total);
 }
 
-function collectEditor(){const form=$('#entry-form');if(!form)return;const e=state.editor;new FormData(form).forEach((v,k)=>e[k]=String(v));return e;}
-function draftPayload(){
- const e=collectEditor();
- const p={...e,items:e.items.map(r=>({...r})),taxes:[]};
- if(['Sales','Purchase'].includes(e.kind)&&e.taxMode!=='none'){
-  if(Number(e.taxPercent)<=0)throw Error('Choose a GST rate greater than zero, or select No tax.');
-  p.taxes=(e.taxMode==='local'?['CGST','SGST']:['IGST']).map(t=>({type:t,ledger:e.taxLedgers[t]||t,percent:String(Number(e.taxPercent)/(e.taxMode==='local'?2:1))}));
-  if(e.kind==='Sales'){
-   const bad = p.taxes.find(t=>/(\bIN\b|IN\s*@|INPUT|INWARD)/i.test(t.ledger));
-   if(bad) throw Error(`"${bad.ledger}" is an Input Tax ledger (for purchases). In Tally, Sales vouchers strictly require an Output tax ledger (e.g. IGST OUT or Output IGST).`);
+function collectEditor() { const form = $('#entry-form'); if (!form) return; const e = state.editor; new FormData(form).forEach((v, k) => e[k] = String(v)); return e; }
+function draftPayload() {
+  const e = collectEditor();
+  const p = { ...e, items: e.items.map(r => ({ ...r })), taxes: [] };
+  if (['Sales', 'Purchase'].includes(e.kind) && e.taxMode !== 'none') {
+    if (Number(e.taxPercent) <= 0) throw Error('Choose a GST rate greater than zero, or select No tax.');
+    p.taxes = (e.taxMode === 'local' ? ['CGST', 'SGST'] : ['IGST']).map(t => ({ type: t, ledger: e.taxLedgers[t] || t, percent: String(Number(e.taxPercent) / (e.taxMode === 'local' ? 2 : 1)) }));
+    if (e.kind === 'Sales') {
+      const bad = p.taxes.find(t => /(\bIN\b|IN\s*@|INPUT|INWARD)/i.test(t.ledger));
+      if (bad) throw Error(`"${bad.ledger}" is an Input Tax ledger (for purchases). In Tally, Sales vouchers strictly require an Output tax ledger (e.g. IGST OUT or Output IGST).`);
+    }
+    if (e.kind === 'Purchase') {
+      const bad = p.taxes.find(t => /(\bOUT\b|OUT\s*@|OUTPUT|OUTWARD)/i.test(t.ledger));
+      if (bad) throw Error(`"${bad.ledger}" is an Output Tax ledger (for sales). In Tally, Purchase vouchers require an Input tax ledger (e.g. IGST IN or Input IGST).`);
+    }
   }
-  if(e.kind==='Purchase'){
-   const bad = p.taxes.find(t=>/(\bOUT\b|OUT\s*@|OUTPUT|OUTWARD)/i.test(t.ledger));
-   if(bad) throw Error(`"${bad.ledger}" is an Output Tax ledger (for sales). In Tally, Purchase vouchers require an Input tax ledger (e.g. IGST IN or Input IGST).`);
+  return p;
+}
+async function saveDraft() { const e = state.editor; const result = await api('drafts', { mode: state.mode, id: e.id, version: e.version, draft: draftPayload() }); await load(); state.editor = null; state.page = 'entries'; render(); detail(result.id); toast('Draft saved. Review before confirming.'); }
+function dialog(title, body, footer = '') {
+  lastFocus = document.activeElement; modal.innerHTML = `<div class="modal-head"><h2 id="modal-title">${title}</h2><button class="btn icon small" data-action="close-modal" aria-label="Close dialog">${icon('close')}</button></div><div id="modal-feedback" class="modal-feedback" role="status" aria-live="polite"></div><div class="modal-body">${body}</div>${footer ? '<div class="modal-foot">' + footer + '</div>' : ''}`;
+  if (!modal.open) modal.showModal();
+}
+function closeModal() { modal.close(); lastFocus?.focus(); }
+function detail(id) {
+  const v = drafts().find(r => r.id === id); if (!v) return; state.detail = id;
+  const isDraft = v.status === 'draft';
+  const badTax = v.kind === 'Sales' && (v.taxes || []).find(t => /(\bIN\b|IN\s*@|INPUT|INWARD)/i.test(t.ledger));
+  const rejectNotice = badTax
+    ? `<div class="notice error"><strong>Tally Statutory Rejection (Exceptions: 1):</strong><br>This voucher used an Input tax ledger (<strong>${esc(badTax.ledger)}</strong>) on a Sales voucher. In TallyPrime, Sales strictly requires an <strong>Output Tax</strong> ledger (e.g. <code>${esc(badTax.ledger.replace(/(\bIN\b|IN\s*@|INPUT|INWARD)/gi, 'OUT'))}</code>).<br>Tap <strong>Edit &amp; Retry Entry</strong> below to automatically switch to the Output tax ledger and resend to Tally.</div>`
+    : (v.status === 'rejected' ? `<div class="notice error"><strong>Tally rejected this voucher:</strong><br>${esc(v.result || 'Inspect tally.imp in the Tally folder, or press Alt+O > Exceptions in Tally')}</div>` : v.result ? `<div class="notice mt">${esc(v.result)}</div>` : '');
+  dialog(`${esc(v.kind)} ${v.reference ? '· ' + esc(v.reference) : 'review'}`, `<div class="detail-grid"><div><small>Company</small><strong>${esc(state.data?.connector?.company || 'Upkar Agency')}</strong></div><div><small>Status</small>${statusBadge(v.status)}</div><div><small>Party ledger</small><strong>${esc(v.party)}</strong></div><div><small>Date</small>${esc(v.date)}</div>${v.voucher_number ? '<div><small>Tally voucher number</small>' + esc(v.voucher_number) + '</div>' : ''}${v.cash_bank ? '<div><small>Cash / bank</small>' + esc(v.cash_bank) + '</div>' : ''}${v.account_ledger ? '<div><small>Account ledger</small>' + esc(v.account_ledger) + '</div>' : ''}</div>${v.items?.length ? simpleTable(v.items, ['name', 'qty', 'unit', 'rate', 'godown', 'amount', 'override_reason']) : ''}${v.taxes?.length ? simpleTable(v.taxes, ['type', 'ledger', 'percent', 'amount']) : ''}${v.allocations?.length ? simpleTable(v.allocations, ['reference', 'amount']) : ''}${Number(v.round_off) ? '<div class="notice mt">Round off: ' + money(v.round_off) + ' · ' + esc(v.round_off_ledger) + '</div>' : ''}<div class="summary-line summary-total"><span>Total</span><strong>${money(v.total)}</strong></div>${rejectNotice}${v.narration ? '<p class="small mt">' + esc(v.narration) + '</p>' : ''}${v.document_id ? `<a class="btn small mt" href="/api/documents/${esc(v.document_id)}" target="_blank" rel="noopener">${icon('file')} Original bill</a>` : ''}${isDraft ? `<div class="notice ${state.mode === 'demo' ? 'green' : ''}">${state.mode === 'demo' ? 'Confirming saves a fictional demo entry. It will never reach Tally.' : 'Confirming queues this entry for ' + esc(state.data?.connector?.company || 'Upkar Agency') + '. Check party, amounts, items, godowns, tax ledgers and bill references first.'}</div>` : v.status === 'needs_review' ? '<div class="notice error">The import result is uncertain. Inspect Tally before creating or retrying any replacement entry. Automatic retries are blocked.</div>' : ''}`, `${isDraft ? `<button class="btn danger" data-cancel="${id}">Cancel draft</button><button class="btn" data-edit="${id}">Edit</button><button class="btn primary" data-confirm="${id}">${icon('check')} ${state.mode === 'demo' ? 'Confirm demo entry' : 'Confirm & send to Tally'}</button>` : `${v.status === 'rejected' ? `<button class="btn primary" data-retry-draft="${id}">${icon('edit')} Edit & Retry Entry</button>` : ''}${v.kind === 'Sales' ? `<button class="btn primary" data-invoice="${id}">${icon('invoice')} Official Tax Invoice</button>` : ''}<button class="btn" data-print="${id}">${icon('print')} Print / PDF</button><button class="btn" data-share="${id}">${icon('whatsapp')} Share</button>`}`);
+}
+async function confirmDraft(id) { const v = drafts().find(d => d.id === id); await api('approve', { mode: state.mode, id, version: v.version, confirmation: state.data?.connector?.company || 'Upkar Agency' }); closeModal(); await load(); render(); if (v.kind === 'Sales') { toast('Sale confirmed! Opening your Tax Invoice…'); setTimeout(() => viewInvoice(id), 350); } else { toast(state.mode === 'demo' ? 'Demo entry saved. Tally is unchanged.' : 'Approved. Waiting for the office connector.'); } }
+function fmtMoney(num) {
+  const val = Number(num) || 0;
+  return val.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function tallyDate(dStr) {
+  if (!dStr) return '';
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const parts = String(dStr).split('-');
+  if (parts.length === 3 && parts[0].length === 4) {
+    const y = parts[0].slice(-2);
+    const m = months[parseInt(parts[1], 10) - 1] || parts[1];
+    const d = parseInt(parts[2], 10);
+    return `${d}-${m}-${y}`;
   }
- }
- return p;
+  return dStr;
 }
-async function saveDraft(){const e=state.editor;const result=await api('drafts',{mode:state.mode,id:e.id,version:e.version,draft:draftPayload()});await load();state.editor=null;state.page='entries';render();detail(result.id);toast('Draft saved. Review before confirming.');}
-function dialog(title,body,footer=''){
- lastFocus=document.activeElement;modal.innerHTML=`<div class="modal-head"><h2 id="modal-title">${title}</h2><button class="btn icon small" data-action="close-modal" aria-label="Close dialog">${icon('close')}</button></div><div id="modal-feedback" class="modal-feedback" role="status" aria-live="polite"></div><div class="modal-body">${body}</div>${footer?'<div class="modal-foot">'+footer+'</div>':''}`;
- if(!modal.open)modal.showModal();
+function inWords(num) {
+  const a = ['', 'One ', 'Two ', 'Three ', 'Four ', 'Five ', 'Six ', 'Seven ', 'Eight ', 'Nine ', 'Ten ', 'Eleven ', 'Twelve ', 'Thirteen ', 'Fourteen ', 'Fifteen ', 'Sixteen ', 'Seventeen ', 'Eighteen ', 'Nineteen '];
+  const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+  let n = Math.round(Number(num) || 0); if (!n) return 'Zero Rupees Only';
+  function tw(x) { if (x < 20) return a[x]; if (x < 100) return b[Math.floor(x / 10)] + (x % 10 ? ' ' + a[x % 10] : ' '); if (x < 1000) return a[Math.floor(x / 100)] + 'Hundred ' + (x % 100 ? 'and ' + tw(x % 100) : ''); return ''; }
+  let s = '';
+  const cr = Math.floor(n / 10000000); n %= 10000000;
+  const lk = Math.floor(n / 100000); n %= 100000;
+  const th = Math.floor(n / 1000); n %= 1000;
+  if (cr) s += tw(cr) + 'Crore '; if (lk) s += tw(lk) + 'Lakh '; if (th) s += tw(th) + 'Thousand '; if (n) s += tw(n);
+  return 'Indian Rupees ' + s.trim() + ' Only';
 }
-function closeModal(){modal.close();lastFocus?.focus();}
-function detail(id){const v=drafts().find(r=>r.id===id);if(!v)return;state.detail=id;
- const isDraft=v.status==='draft';
- const badTax=v.kind==='Sales'&&(v.taxes||[]).find(t=>/(\bIN\b|IN\s*@|INPUT|INWARD)/i.test(t.ledger));
- const rejectNotice=badTax
-  ? `<div class="notice error"><strong>Tally Statutory Rejection (Exceptions: 1):</strong><br>This voucher used an Input tax ledger (<strong>${esc(badTax.ledger)}</strong>) on a Sales voucher. In TallyPrime, Sales strictly requires an <strong>Output Tax</strong> ledger (e.g. <code>${esc(badTax.ledger.replace(/(\bIN\b|IN\s*@|INPUT|INWARD)/gi,'OUT'))}</code>).<br>Tap <strong>Edit &amp; Retry Entry</strong> below to automatically switch to the Output tax ledger and resend to Tally.</div>`
-  : (v.status==='rejected'?`<div class="notice error"><strong>Tally rejected this voucher:</strong><br>${esc(v.result||'Inspect tally.imp in the Tally folder, or press Alt+O > Exceptions in Tally')}</div>`:v.result?`<div class="notice mt">${esc(v.result)}</div>`:'');
- dialog(`${esc(v.kind)} ${v.reference?'· '+esc(v.reference):'review'}`,`<div class="detail-grid"><div><small>Company</small><strong>${esc(state.data?.connector?.company||'Upkar Agency')}</strong></div><div><small>Status</small>${statusBadge(v.status)}</div><div><small>Party ledger</small><strong>${esc(v.party)}</strong></div><div><small>Date</small>${esc(v.date)}</div>${v.voucher_number?'<div><small>Tally voucher number</small>'+esc(v.voucher_number)+'</div>':''}${v.cash_bank?'<div><small>Cash / bank</small>'+esc(v.cash_bank)+'</div>':''}${v.account_ledger?'<div><small>Account ledger</small>'+esc(v.account_ledger)+'</div>':''}</div>${v.items?.length?simpleTable(v.items,['name','qty','unit','rate','godown','amount','override_reason']):''}${v.taxes?.length?simpleTable(v.taxes,['type','ledger','percent','amount']):''}${v.allocations?.length?simpleTable(v.allocations,['reference','amount']):''}${Number(v.round_off)?'<div class="notice mt">Round off: '+money(v.round_off)+' · '+esc(v.round_off_ledger)+'</div>':''}<div class="summary-line summary-total"><span>Total</span><strong>${money(v.total)}</strong></div>${rejectNotice}${v.narration?'<p class="small mt">'+esc(v.narration)+'</p>':''}${v.document_id?`<a class="btn small mt" href="/api/documents/${esc(v.document_id)}" target="_blank" rel="noopener">${icon('file')} Original bill</a>`:''}${isDraft?`<div class="notice ${state.mode==='demo'?'green':''}">${state.mode==='demo'?'Confirming saves a fictional demo entry. It will never reach Tally.':'Confirming queues this entry for '+esc(state.data?.connector?.company||'Upkar Agency')+'. Check party, amounts, items, godowns, tax ledgers and bill references first.'}</div>`:v.status==='needs_review'?'<div class="notice error">The import result is uncertain. Inspect Tally before creating or retrying any replacement entry. Automatic retries are blocked.</div>':''}`,`${isDraft?`<button class="btn danger" data-cancel="${id}">Cancel draft</button><button class="btn" data-edit="${id}">Edit</button><button class="btn primary" data-confirm="${id}">${icon('check')} ${state.mode==='demo'?'Confirm demo entry':'Confirm & send to Tally'}</button>`:`${v.status==='rejected'?`<button class="btn primary" data-retry-draft="${id}">${icon('edit')} Edit & Retry Entry</button>`:''}${v.kind==='Sales'?`<button class="btn primary" data-invoice="${id}">${icon('invoice')} Official Tax Invoice</button>`:''}<button class="btn" data-print="${id}">${icon('print')} Print / PDF</button><button class="btn" data-share="${id}">${icon('whatsapp')} Share</button>`}`);
+function tallyWords(num) {
+  const a = ['', 'One ', 'Two ', 'Three ', 'Four ', 'Five ', 'Six ', 'Seven ', 'Eight ', 'Nine ', 'Ten ', 'Eleven ', 'Twelve ', 'Thirteen ', 'Fourteen ', 'Fifteen ', 'Sixteen ', 'Seventeen ', 'Eighteen ', 'Nineteen '];
+  const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+  let n = Math.round(Number(num) || 0); if (!n) return 'INR Zero Only';
+  function tw(x) { if (x < 20) return a[x]; if (x < 100) return b[Math.floor(x / 10)] + (x % 10 ? ' ' + a[x % 10] : ' '); if (x < 1000) return a[Math.floor(x / 100)] + 'Hundred ' + (x % 100 ? 'and ' + tw(x % 100) : ''); return ''; }
+  let s = '';
+  const cr = Math.floor(n / 10000000); n %= 10000000;
+  const lk = Math.floor(n / 100000); n %= 100000;
+  const th = Math.floor(n / 1000); n %= 1000;
+  if (cr) s += tw(cr) + 'Crore '; if (lk) s += tw(lk) + 'Lakh '; if (th) s += tw(th) + 'Thousand '; if (n) s += tw(n);
+  return 'INR ' + s.trim() + ' Only';
 }
-async function confirmDraft(id){const v=drafts().find(d=>d.id===id);await api('approve',{mode:state.mode,id,version:v.version,confirmation:state.data?.connector?.company||'Upkar Agency'});closeModal();await load();render();if(v.kind==='Sales'){toast('Sale confirmed! Opening your Tax Invoice…');setTimeout(()=>viewInvoice(id),350);}else{toast(state.mode==='demo'?'Demo entry saved. Tally is unchanged.':'Approved. Waiting for the office connector.');}}
-function fmtMoney(num){
- const val=Number(num)||0;
- return val.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+function partyDetailsHTML(partyName, isInterstate) {
+  if (!partyName) return '';
+  if (partyName.includes('SKV ENTERPRISES')) {
+    return 'MALACCA HEADQUARTERS,<br>CARNICOBAR - 744301<br>ANDAMAN ISLAND<br>PHONE NO: 9434273502<br><strong>GSTIN/UIN :</strong> 35BVVPK1187K1ZW<br><strong>State Name :</strong> Andaman & Nicobar Islands, Code : 35';
+  }
+  if (partyName.includes('ABSOLUTE BRANDS')) {
+    return 'Bangalore / Chennai Hub<br><strong>State Name :</strong> Tamil Nadu, Code : 33';
+  }
+  return isInterstate
+    ? '<strong>State Name :</strong> Interstate, Code : —'
+    : '<strong>State Name :</strong> Tamil Nadu, Code : 33';
 }
-function tallyDate(dStr){
- if(!dStr)return '';
- const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
- const parts=String(dStr).split('-');
- if(parts.length===3&&parts[0].length===4){
-  const y=parts[0].slice(-2);
-  const m=months[parseInt(parts[1],10)-1]||parts[1];
-  const d=parseInt(parts[2],10);
-  return `${d}-${m}-${y}`;
- }
- return dStr;
-}
-function inWords(num){
- const a=['','One ','Two ','Three ','Four ','Five ','Six ','Seven ','Eight ','Nine ','Ten ','Eleven ','Twelve ','Thirteen ','Fourteen ','Fifteen ','Sixteen ','Seventeen ','Eighteen ','Nineteen '];
- const b=['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
- let n=Math.round(Number(num)||0);if(!n)return 'Zero Rupees Only';
- function tw(x){if(x<20)return a[x];if(x<100)return b[Math.floor(x/10)]+(x%10?' '+a[x%10]:' ');if(x<1000)return a[Math.floor(x/100)]+'Hundred '+(x%100?'and '+tw(x%100):'');return '';}
- let s='';
- const cr=Math.floor(n/10000000);n%=10000000;
- const lk=Math.floor(n/100000);n%=100000;
- const th=Math.floor(n/1000);n%=1000;
- if(cr)s+=tw(cr)+'Crore ';if(lk)s+=tw(lk)+'Lakh ';if(th)s+=tw(th)+'Thousand ';if(n)s+=tw(n);
- return 'Indian Rupees '+s.trim()+' Only';
-}
-function tallyWords(num){
- const a=['','One ','Two ','Three ','Four ','Five ','Six ','Seven ','Eight ','Nine ','Ten ','Eleven ','Twelve ','Thirteen ','Fourteen ','Fifteen ','Sixteen ','Seventeen ','Eighteen ','Nineteen '];
- const b=['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
- let n=Math.round(Number(num)||0);if(!n)return 'INR Zero Only';
- function tw(x){if(x<20)return a[x];if(x<100)return b[Math.floor(x/10)]+(x%10?' '+a[x%10]:' ');if(x<1000)return a[Math.floor(x/100)]+'Hundred '+(x%100?'and '+tw(x%100):'');return '';}
- let s='';
- const cr=Math.floor(n/10000000);n%=10000000;
- const lk=Math.floor(n/100000);n%=100000;
- const th=Math.floor(n/1000);n%=1000;
- if(cr)s+=tw(cr)+'Crore ';if(lk)s+=tw(lk)+'Lakh ';if(th)s+=tw(th)+'Thousand ';if(n)s+=tw(n);
- return 'INR '+s.trim()+' Only';
-}
-function partyDetailsHTML(partyName, isInterstate){
- if(!partyName)return '';
- if(partyName.includes('SKV ENTERPRISES')){
-  return 'MALACCA HEADQUARTERS,<br>CARNICOBAR - 744301<br>ANDAMAN ISLAND<br>PHONE NO: 9434273502<br><strong>GSTIN/UIN :</strong> 35BVVPK1187K1ZW<br><strong>State Name :</strong> Andaman & Nicobar Islands, Code : 35';
- }
- if(partyName.includes('ABSOLUTE BRANDS')){
-  return 'Bangalore / Chennai Hub<br><strong>State Name :</strong> Tamil Nadu, Code : 33';
- }
- return isInterstate
-  ? '<strong>State Name :</strong> Interstate, Code : —'
-  : '<strong>State Name :</strong> Tamil Nadu, Code : 33';
-}
-function officialTallyInvoiceHTML(v){
- const isSale=v.kind==='Sales';
- const invNo=v.reference||(isSale?'INV-'+v.id.slice(0,8).toUpperCase():v.kind.toUpperCase()+'-'+v.id.slice(0,6).toUpperCase());
- const items=v.items||[];
- const taxes=v.taxes||[];
- const isInterstate=taxes.some(t=>t.type==='IGST'||(t.ledger&&t.ledger.includes('IGST')));
- const taxableTotal=items.length?items.reduce((sum,it)=>sum+(Number(it.amount)||0),0):Number(v.total);
- const totalTax=taxes.reduce((sum,t)=>sum+(Number(t.amount)||0),0);
- const grandTotal=Number(v.total)||(taxableTotal+totalTax);
- const totalQty=items.reduce((sum,it)=>sum+(Number(it.qty)||0),0);
- const mainUnit=items[0]?.unit||'PCS';
- const hsnCode=items[0]?.hsn||'4601';
- const consigneeInfo=partyDetailsHTML(v.party,isInterstate);
+function officialTallyInvoiceHTML(v) {
+  const isSale = v.kind === 'Sales';
+  const invNo = v.reference || (isSale ? 'INV-' + (v.id ? v.id.slice(0, 8).toUpperCase() : 'INV') : (v.kind || 'VOUCHER').toUpperCase() + '-' + (v.id ? v.id.slice(0, 6).toUpperCase() : 'VCH'));
+  const items = v.items || [];
+  const taxes = v.taxes || [];
+  const roundOff = Number(v.round_off) || 0;
+  const isInterstate = taxes.some(t => t.type === 'IGST' || (t.ledger && t.ledger.includes('IGST')));
+  const taxableTotal = items.length ? items.reduce((sum, it) => sum + (Number(it.amount) || 0), 0) : Number(v.total || 0);
+  const totalTax = taxes.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+  let grandTotal = Math.round((taxableTotal + totalTax + roundOff) * 100) / 100;
+  if (!items.length && Number(v.total)) {
+    grandTotal = Number(v.total);
+  }
+  const totalQty = items.reduce((sum, it) => sum + (Number(it.qty) || 0), 0);
+  const mainUnit = items[0]?.unit || 'PCS';
+  const hsnCode = items[0]?.hsn || '4601';
+  const consigneeInfo = partyDetailsHTML(v.party, isInterstate);
 
- const itemsRowsHTML=items.map((it,idx)=>`<tr>
-  <td class="t-center">${idx+1}</td>
+  const itemsRowsHTML = items.map((it, idx) => `<tr>
+  <td class="t-center">${idx + 1}</td>
   <td>
    <strong class="t-bold">${esc(it.name)}</strong>
-   ${it.godown?`<div class="t-sub-info">Godown: ${esc(it.godown)}</div>`:''}
+   ${it.godown ? `<div class="t-sub-info">Godown: ${esc(it.godown)}</div>` : ''}
   </td>
-  <td class="t-center">${esc(it.hsn||hsnCode)}</td>
-  <td class="t-right t-bold">${esc(it.qty)} ${esc(it.unit||'PCS')}</td>
+  <td class="t-center">${esc(it.hsn || hsnCode)}</td>
+  <td class="t-right t-bold">${esc(it.qty)} ${esc(it.unit || 'PCS')}</td>
   <td class="t-right">${fmtMoney(it.rate)}</td>
-  <td class="t-center">${esc(it.unit||'PCS')}</td>
-  <td class="t-right">${Number(it.discount)?it.discount+' %':''}</td>
+  <td class="t-center">${esc(it.unit || 'PCS')}</td>
+  <td class="t-right">${Number(it.discount) ? it.discount + ' %' : ''}</td>
   <td class="t-right t-bold">${fmtMoney(it.amount)}</td>
  </tr>`).join('');
 
- const taxRowsHTML=taxes.map(t=>`<tr class="t-tax-tr">
+  const taxRowsHTML = taxes.map(t => `<tr class="t-tax-tr">
   <td></td>
-  <td class="t-right"><em>${esc(t.ledger||(t.type+' @ '+t.percent+'%'))}</em></td>
+  <td class="t-right"><em>${esc(t.ledger || (t.type + ' @ ' + t.percent + '%'))}</em></td>
   <td></td>
   <td></td>
   <td class="t-right">${esc(t.percent)} %</td>
@@ -329,10 +334,21 @@ function officialTallyInvoiceHTML(v){
   <td class="t-right t-bold">${fmtMoney(t.amount)}</td>
  </tr>`).join('');
 
- let hsnTableHTML='';
- if(isInterstate){
-  const igst=taxes.find(t=>t.type==='IGST')||{percent:'5',amount:totalTax};
-  hsnTableHTML=`<table class="t-hsn">
+  const roundOffRowHTML = roundOff !== 0 ? `<tr class="t-tax-tr">
+  <td></td>
+  <td class="t-right"><em>${esc(v.round_off_ledger || 'Round Off')}</em></td>
+  <td></td>
+  <td></td>
+  <td></td>
+  <td></td>
+  <td></td>
+  <td class="t-right t-bold">${fmtMoney(roundOff)}</td>
+ </tr>` : '';
+
+  let hsnTableHTML = '';
+  if (isInterstate) {
+    const igst = taxes.find(t => t.type === 'IGST') || { percent: String(taxes[0]?.percent || 18), amount: totalTax };
+    hsnTableHTML = `<table class="t-hsn">
    <colgroup>
     <col style="width:20%;">
     <col style="width:24%;">
@@ -366,10 +382,10 @@ function officialTallyInvoiceHTML(v){
     </tr>
    </tbody>
   </table>`;
- }else{
-  const cgst=taxes.find(t=>t.type==='CGST')||{percent:'2.5',amount:totalTax/2};
-  const sgst=taxes.find(t=>t.type==='SGST')||{percent:'2.5',amount:totalTax/2};
-  hsnTableHTML=`<table class="t-hsn">
+  } else {
+    const cgst = taxes.find(t => t.type === 'CGST') || { percent: String(taxes[0]?.percent || 9), amount: totalTax / 2 };
+    const sgst = taxes.find(t => t.type === 'SGST') || { percent: String(taxes[1]?.percent || taxes[0]?.percent || 9), amount: totalTax / 2 };
+    hsnTableHTML = `<table class="t-hsn">
    <colgroup>
     <col style="width:16%;">
     <col style="width:18%;">
@@ -415,11 +431,11 @@ function officialTallyInvoiceHTML(v){
     </tr>
    </tbody>
   </table>`;
- }
+  }
 
- return `<div class="tally-sheet-wrap">
+  return `<div class="tally-sheet-wrap">
  <div class="tally-sheet">
-  <div class="tally-main-title">${isSale?'Tax Invoice':'Accounting Voucher'}</div>
+  <div class="tally-main-title">${isSale ? 'Tax Invoice' : 'Accounting Voucher'}</div>
 
   <table class="t-grid" style="border-bottom: 1.5px solid #000;">
    <tr>
@@ -479,7 +495,7 @@ function officialTallyInvoiceHTML(v){
       </tr>
       <tr>
        <td class="t-w50 t-b-r t-b-b t-pad"><span class="t-lbl">Delivery Note</span><br>&nbsp;</td>
-       <td class="t-w50 t-b-b t-pad"><span class="t-lbl">Mode/Terms of Payment</span><br><strong>${esc(v.cash_bank||'Credit')}</strong></td>
+       <td class="t-w50 t-b-b t-pad"><span class="t-lbl">Mode/Terms of Payment</span><br><strong>${esc(v.cash_bank || 'Credit')}</strong></td>
       </tr>
       <tr>
        <td class="t-w50 t-b-r t-b-b t-pad"><span class="t-lbl">Reference No. & Date.</span><br>&nbsp;</td>
@@ -531,6 +547,7 @@ function officialTallyInvoiceHTML(v){
    <tbody>
     ${itemsRowsHTML}
     ${taxRowsHTML}
+    ${roundOffRowHTML}
     <tr class="t-filler-tr"><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
    </tbody>
    <tfoot>
@@ -538,7 +555,7 @@ function officialTallyInvoiceHTML(v){
      <td></td>
      <td class="t-bold">Total</td>
      <td></td>
-     <td class="t-right t-bold">${totalQty?totalQty+' '+mainUnit:''}</td>
+     <td class="t-right t-bold">${totalQty ? totalQty + ' ' + mainUnit : ''}</td>
      <td></td>
      <td></td>
      <td></td>
@@ -581,47 +598,107 @@ function officialTallyInvoiceHTML(v){
  <div class="t-computer-gen">This is a Computer Generated Invoice</div>
 </div>`;
 }
-function taxInvoiceHTML(v){return officialTallyInvoiceHTML(v);}
-function viewInvoice(id){
- const v=drafts().find(d=>d.id===id);if(!v)return;
- dialog(`Tax Invoice · ${esc(v.reference||v.party)}`,officialTallyInvoiceHTML(v),`<button class="btn" data-share="${id}">${icon('whatsapp')} Share WhatsApp</button><button class="btn primary" data-print="${id}">${icon('print')} Save as PDF / Print</button>`);
+function taxInvoiceHTML(v) { return officialTallyInvoiceHTML(v); }
+function viewInvoice(id) {
+  const v = drafts().find(d => d.id === id); if (!v) return;
+  dialog(`Tax Invoice · ${esc(v.reference || v.party)}`, officialTallyInvoiceHTML(v), `<button class="btn" data-share="${id}">${icon('whatsapp')} Share WhatsApp</button><button class="btn primary" data-print="${id}">${icon('print')} Save as PDF / Print</button>`);
 }
 function editDraft(id){const v=drafts().find(d=>d.id===id);if(!v||v.status!=='draft')return;closeModal();const tax=v.taxes||[];newDraft(v.kind,{...v,amount:v.amount||v.total,taxMode:tax.length?(tax[0].type==='IGST'?'interstate':'local'):'none',taxPercent:String(tax.reduce((a,t)=>a+Number(t.percent),0)),taxLedgers:{CGST:'CGST',SGST:'SGST',IGST:'IGST',...Object.fromEntries(tax.map(t=>[t.type,t.ledger]))}});}
 function historyToInvoicePayload(v){
  const lines = v.lines || [];
- const taxes = [];
+ const seenLines = new Set();
+ const uniqueLines = [];
  for(const line of lines){
-  const lName = line.ledger || '';
-  const lAmt = Math.abs(Number(line.amount)||0);
-  if(lName.includes('CGST')){
-   const m = lName.match(/(\d+(?:\.\d+)?)\s*%/);
-   taxes.push({type:'CGST', ledger:lName, percent:m?m[1]:'2.5', amount:lAmt});
-  } else if(lName.includes('SGST')){
-   const m = lName.match(/(\d+(?:\.\d+)?)\s*%/);
-   taxes.push({type:'SGST', ledger:lName, percent:m?m[1]:'2.5', amount:lAmt});
-  } else if(lName.includes('IGST')){
-   const m = lName.match(/(\d+(?:\.\d+)?)\s*%/);
-   taxes.push({type:'IGST', ledger:lName, percent:m?m[1]:'5', amount:lAmt});
+  const key = `${line.ledger}|${line.amount}`;
+  if(!seenLines.has(key)){
+   seenLines.add(key);
+   uniqueLines.push(line);
   }
  }
- const totalAmt = Number(v.total) || (Number(v.debit) || Number(v.credit) || 0);
+
+ const cleanRate = (rawRate, amt, qty) => {
+  let r = String(rawRate||'').split('/')[0].replace(/[^\d.]/g, '');
+  let numR = Number(r);
+  if (!numR || isNaN(numR)) {
+   const numAmt = Math.abs(Number(amt)||0);
+   const numQty = Number(String(qty||'1').replace(/[^\d.]/g,'')) || 1;
+   numR = numQty ? (numAmt / numQty) : numAmt;
+  }
+  return numR ? numR.toFixed(2) : '0.00';
+ };
+
+ let items = [];
+ if(v.items && v.items.length){
+  items = v.items.map(it=>{
+   const amt = Math.abs(Number(it.amount)||0);
+   const q = String(it.qty||'1').replace(/[^\d.]/g,'') || '1';
+   const u = String(it.qty||'').replace(/[\d. ]/g,'').trim() || 'PCS';
+   const r = cleanRate(it.rate, amt, q);
+   return {
+    name: it.name,
+    qty: q,
+    unit: u,
+    rate: r,
+    amount: amt.toFixed(2),
+    godown: it.godown || 'Main Location'
+   };
+  });
+ }
+ const itemsSum = items.reduce((s,it)=>s+Number(it.amount),0);
+
+ const taxes = [];
+ for(const line of uniqueLines){
+  const lName = line.ledger || '';
+  const lAmt = Math.abs(Number(line.amount)||0);
+  let m = lName.match(/(\d+(?:\.\d+)?)\s*%/);
+  let pct = m ? m[1] : '';
+  if(/CGST/i.test(lName)){
+   if(!pct && itemsSum > 0 && lAmt > 0) pct = String(Math.round((lAmt / itemsSum) * 100 * 10) / 10);
+   taxes.push({type:'CGST', ledger:lName, percent:pct || '9', amount:lAmt});
+  } else if(/SGST|UTGST/i.test(lName)){
+   if(!pct && itemsSum > 0 && lAmt > 0) pct = String(Math.round((lAmt / itemsSum) * 100 * 10) / 10);
+   taxes.push({type:'SGST', ledger:lName, percent:pct || '9', amount:lAmt});
+  } else if(/IGST/i.test(lName)){
+   if(!pct && itemsSum > 0 && lAmt > 0) pct = String(Math.round((lAmt / itemsSum) * 100 * 10) / 10);
+   taxes.push({type:'IGST', ledger:lName, percent:pct || '18', amount:lAmt});
+  }
+ }
+
+ let roundOff = Number(v.round_off) || 0;
+ let roundOffLedger = v.round_off_ledger || '';
+ if(!roundOff){
+  const roLine = uniqueLines.find(l=>/round\s*off|rounding/i.test(l.ledger||''));
+  if(roLine){
+   roundOff = Number(roLine.amount) || 0;
+   roundOffLedger = roLine.ledger;
+  }
+ }
+
  const totalTax = taxes.reduce((s,t)=>s+Number(t.amount),0);
- const taxableAmt = totalTax > 0 ? (totalAmt - totalTax) : totalAmt;
- const items = (v.items && v.items.length) ? v.items.map(it=>({
-  name: it.name,
-  qty: String(it.qty||'1').replace(/[^\d.]/g,'') || '1',
-  unit: String(it.qty||'').replace(/[\d. ]/g,'') || 'PCS',
-  rate: it.rate || '0',
-  amount: Math.abs(Number(it.amount)||0),
-  godown: it.godown || 'Main Location'
- })) : [{
-  name: v.kind === 'Sales' ? 'Merchandise & Goods (as per Tally record)' : 'Stock Item',
-  qty: '1',
-  unit: 'LOT',
-  rate: taxableAmt.toFixed(2),
-  amount: taxableAmt.toFixed(2),
-  godown: 'Main Location'
- }];
+ let totalAmt = Number(v.total) || (Number(v.debit) || Number(v.credit) || 0);
+
+ // If total was doubled by the Tally duplicate line bug, or if items + taxes define the total
+ if(itemsSum > 0 && totalTax > 0){
+  const expectedTotal = itemsSum + totalTax + roundOff;
+  if(Math.abs(totalAmt - expectedTotal * 2) < 2){
+   totalAmt = expectedTotal;
+  } else if(Math.abs(totalAmt - expectedTotal) < 2 || totalAmt <= 0){
+   totalAmt = expectedTotal;
+  }
+ }
+
+ if(!items.length){
+  const taxableAmt = totalTax > 0 ? Math.max(0, totalAmt - totalTax) : totalAmt;
+  items = [{
+   name: v.kind === 'Sales' ? 'Merchandise & Goods (as per Tally record)' : 'Stock Item',
+   qty: '1',
+   unit: 'LOT',
+   rate: taxableAmt.toFixed(2),
+   amount: taxableAmt.toFixed(2),
+   godown: 'Main Location'
+  }];
+ }
+
  return {
   id: v.id,
   kind: v.kind || 'Sales',
@@ -632,104 +709,109 @@ function historyToInvoicePayload(v){
   account_ledger: v.kind === 'Sales' ? 'Sales Accounts' : 'Purchase Accounts',
   items,
   taxes,
+  round_off: roundOff ? roundOff.toFixed(2) : '0',
+  round_off_ledger: roundOffLedger,
   total: totalAmt.toFixed(2),
   narration: v.narration || '',
   status: 'posted'
  };
 }
-async function openRenderedInvoice(id){
- let v = (typeof registerView !== 'undefined' && registerView?.rows?.find(r=>r.id===id)) ||
-         state.ledgerHistory?.find(r=>r.id===id) ||
-         state.report?.rows?.find(r=>r.id===id) ||
-         drafts().find(d=>d.id===id);
- if(!v){
-  try {
-   const res = await api('voucher?id=' + encodeURIComponent(id));
-   v = res.voucher;
-  } catch (err) {
-   toast('Voucher details not found.');
-   return;
+async function openRenderedInvoice(id) {
+  let v = (typeof registerView !== 'undefined' && registerView?.rows?.find(r => r.id === id)) ||
+    state.ledgerHistory?.find(r => r.id === id) ||
+    state.report?.rows?.find(r => r.id === id) ||
+    drafts().find(d => d.id === id);
+  if (!v) {
+    try {
+      const res = await api('voucher?id=' + encodeURIComponent(id));
+      v = res.voucher;
+    } catch (err) {
+      toast('Voucher details not found.');
+      return;
+    }
   }
- }
- if(!v) return;
- const payload = (v.items && v.items[0]?.godown !== undefined) ? v : historyToInvoicePayload(v);
+  if (!v) return;
+ const payload = (v.taxes && Array.isArray(v.taxes) && v.taxes.length > 0 && typeof v.taxes[0].type === 'string') ? v : historyToInvoicePayload(v);
  dialog(`Tax Invoice · ${esc(payload.reference||payload.party)}`, officialTallyInvoiceHTML(payload),
   `<button class="btn" data-share-rendered="${payload.id}">${icon('whatsapp')} Share WhatsApp</button><button class="btn primary" data-print-rendered="${payload.id}">${icon('print')} Save as PDF / Print</button>`
  );
 }
-function historyTable(rows){
- const cards = `<div class="phone-list">${rows.map(v=>`<article class="stock-card" style="cursor:pointer;" data-voucher-invoice="${esc(v.id)}"><span class="entry-card-icon">${icon('invoice')}</span><div class="entry-card-copy"><strong style="font-size:14px;">${esc(v.kind)} · ${esc(v.number||'Unnumbered')}</strong><span>${esc(dateText(v.date))}</span>${v.narration?'<small>'+esc(v.narration)+'</small>':''}<div style="display:flex;gap:8px;margin-top:8px;"><button class="btn small primary" data-voucher-invoice="${esc(v.id)}">${icon('invoice')} Official Tax Invoice</button><button class="btn small" data-share-rendered="${esc(v.id)}">${icon('whatsapp')} Share</button></div></div><div class="entry-card-value"><strong>${money(Number(v.debit)>0?v.debit:v.credit)}</strong><small>${Number(v.debit)>0?'Debit':'Credit'}</small></div></article>`).join('')}</div>`;
- const desktopTable = `<div class="desktop-table"><div class="table-wrap"><table><thead><tr><th>Date</th><th>Type</th><th>Voucher #</th><th>Debit</th><th>Credit</th><th>Narration</th><th>Action</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${esc(r.date)}</td><td><span class="badge ${esc((r.kind||'').toLowerCase())}">${esc(r.kind)}</span></td><td><strong>${esc(r.number||'—')}</strong></td><td class="numeric">${Number(r.debit)>0?money(r.debit):'—'}</td><td class="numeric">${Number(r.credit)>0?money(r.credit):'—'}</td><td class="small muted">${esc(r.narration||'')}</td><td><button class="btn small" data-voucher-invoice="${esc(r.id)}">${icon('invoice')} Tax Invoice</button></td></tr>`).join('')}</tbody></table></div></div>`;
- return cards + desktopTable;
+function historyTable(rows) {
+  const cards = `<div class="phone-list">${rows.map(v => `<article class="stock-card" style="cursor:pointer;" data-voucher-invoice="${esc(v.id)}"><span class="entry-card-icon">${icon('invoice')}</span><div class="entry-card-copy"><strong style="font-size:14px;">${esc(v.kind)} · ${esc(v.number || 'Unnumbered')}</strong><span>${esc(dateText(v.date))}</span>${v.narration ? '<small>' + esc(v.narration) + '</small>' : ''}<div style="display:flex;gap:8px;margin-top:8px;"><button class="btn small primary" data-voucher-invoice="${esc(v.id)}">${icon('invoice')} Official Tax Invoice</button><button class="btn small" data-share-rendered="${esc(v.id)}">${icon('whatsapp')} Share</button></div></div><div class="entry-card-value"><strong>${money(Number(v.debit) > 0 ? v.debit : v.credit)}</strong><small>${Number(v.debit) > 0 ? 'Debit' : 'Credit'}</small></div></article>`).join('')}</div>`;
+  const desktopTable = `<div class="desktop-table"><div class="table-wrap"><table><thead><tr><th>Date</th><th>Type</th><th>Voucher #</th><th>Debit</th><th>Credit</th><th>Narration</th><th>Action</th></tr></thead><tbody>${rows.map(r => `<tr><td>${esc(r.date)}</td><td><span class="badge ${esc((r.kind || '').toLowerCase())}">${esc(r.kind)}</span></td><td><strong>${esc(r.number || '—')}</strong></td><td class="numeric">${Number(r.debit) > 0 ? money(r.debit) : '—'}</td><td class="numeric">${Number(r.credit) > 0 ? money(r.credit) : '—'}</td><td class="small muted">${esc(r.narration || '')}</td><td><button class="btn small" data-voucher-invoice="${esc(r.id)}">${icon('invoice')} Tax Invoice</button></td></tr>`).join('')}</tbody></table></div></div>`;
+  return cards + desktopTable;
 }
-async function ledgerDetail(name){const ledger=snap().ledgers.find(l=>l.name===name);const rows=saved().filter(v=>v.party===name||v.cash_bank===name);if(!ledger)return;state.report={title:name,rows,columns:['date','kind','reference','total']};dialog(esc(name),`<div class="detail-grid"><div><small>Group</small>${esc(ledger.group)}</div><div><small>Synced balance · debit positive</small><strong>${money(ledger.balance)}</strong></div></div><h3>Entries recorded through this app</h3>${rows.length?simpleTable(rows,['date','kind','reference','total']):empty('No app entries yet','This does not mean the Tally ledger has no transactions.')}<div id="tally-history" class="mt">${state.mode==='live'?'Loading synced Tally history…':'Tally history is available in the Tally workspace.'}</div>`,`<button class="btn" data-action="print-report">${icon('print')} Print statement</button><button class="btn" data-action="export-report">${icon('down')} Export CSV</button>`);
- if(state.mode==='live'){
-  $('#tally-history').dataset.ledger=name;
-  try{
-   const h=await api('ledger-history?ledger='+encodeURIComponent(name));
-   const target=$('#tally-history');if(!target||target.dataset.ledger!==name)return;
-   state.ledgerHistory = h.rows || [];
-   const complete=(h.coverage||[]).filter(p=>p.synced_at), failed=(h.coverage||[]).filter(p=>p.error);
-   target.innerHTML=`<h3>Tally voucher history</h3><p>${complete.length} date ranges cached${failed.length?'; '+failed.length+' need another sync':''}. Tap any voucher to view its Official Tax Invoice.</p>${h.rows.length?historyTable(h.rows):empty('No cached transactions yet','Keep the updated Windows connector running to import history.')}<div class="notice mt">${esc(h.note)}${h.truncated?' Showing the latest 1,000 matching vouchers.':''}</div><details class="mt"><summary>Synced periods and freshness</summary>${(h.coverage||[]).map(p=>`<p>${esc(p.from)} – ${esc(p.to)} · ${p.synced_at?esc(when(p.synced_at)):'Pending'} ${p.error?'· Refresh failed; old cache retained':''}</p>`).join('')}</details>`;
-   state.report={title:name+' — cached Tally vouchers (opening balance excluded)',rows:h.rows,columns:['date','kind','number','debit','credit','narration']};
-  }catch(error){const target=$('#tally-history');if(target)target.textContent='History could not be loaded. Your last synced ledger balance remains available.';}
- }
+async function ledgerDetail(name) {
+  const ledger = snap().ledgers.find(l => l.name === name); const rows = saved().filter(v => v.party === name || v.cash_bank === name); if (!ledger) return; state.report = { title: name, rows, columns: ['date', 'kind', 'reference', 'total'] }; dialog(esc(name), `<div class="detail-grid"><div><small>Group</small>${esc(ledger.group)}</div><div><small>Synced balance · debit positive</small><strong>${money(ledger.balance)}</strong></div></div><h3>Entries recorded through this app</h3>${rows.length ? simpleTable(rows, ['date', 'kind', 'reference', 'total']) : empty('No app entries yet', 'This does not mean the Tally ledger has no transactions.')}<div id="tally-history" class="mt">${state.mode === 'live' ? 'Loading synced Tally history…' : 'Tally history is available in the Tally workspace.'}</div>`, `<button class="btn" data-action="print-report">${icon('print')} Print statement</button><button class="btn" data-action="export-report">${icon('down')} Export CSV</button>`);
+  if (state.mode === 'live') {
+    $('#tally-history').dataset.ledger = name;
+    try {
+      const h = await api('ledger-history?ledger=' + encodeURIComponent(name));
+      const target = $('#tally-history'); if (!target || target.dataset.ledger !== name) return;
+      state.ledgerHistory = h.rows || [];
+      const complete = (h.coverage || []).filter(p => p.synced_at), failed = (h.coverage || []).filter(p => p.error);
+      target.innerHTML = `<h3>Tally voucher history</h3><p>${complete.length} date ranges cached${failed.length ? '; ' + failed.length + ' need another sync' : ''}. Tap any voucher to view its Official Tax Invoice.</p>${h.rows.length ? historyTable(h.rows) : empty('No cached transactions yet', 'Keep the updated Windows connector running to import history.')}<div class="notice mt">${esc(h.note)}${h.truncated ? ' Showing the latest 1,000 matching vouchers.' : ''}</div><details class="mt"><summary>Synced periods and freshness</summary>${(h.coverage || []).map(p => `<p>${esc(p.from)} – ${esc(p.to)} · ${p.synced_at ? esc(when(p.synced_at)) : 'Pending'} ${p.error ? '· Refresh failed; old cache retained' : ''}</p>`).join('')}</details>`;
+      state.report = { title: name + ' — cached Tally vouchers (opening balance excluded)', rows: h.rows, columns: ['date', 'kind', 'number', 'debit', 'credit', 'narration'] };
+    } catch (error) { const target = $('#tally-history'); if (target) target.textContent = 'History could not be loaded. Your last synced ledger balance remains available.'; }
+  }
 }
-function report(id){if(state.mode==='live'&&['sales','purchases'].includes(id))return openRegister(id==='sales'?'Sales':'Purchase');let rows,columns,title;
- if(['receivables','payables','cash'].includes(id)){title={receivables:'Customer balances',payables:'Supplier balances',cash:'Cash & bank'}[id];rows=ledgers(id==='cash'?['Cash-in-Hand','Bank Accounts']:[id==='receivables'?'Sundry Debtors':'Sundry Creditors']);columns=['name','group','balance'];}
- else if(id==='stock'){title='Stock summary';rows=snap().stock;columns=['name','quantity','unit','value'];}
- else {title=id==='sales'?'App sales register':'App purchase register';rows=saved().filter(v=>v.kind===(id==='sales'?'Sales':'Purchase'));columns=['date','party','reference','total'];}
- state.report={title,rows,columns};dialog(title,`<p class="muted small bill-preview-meta">${state.mode==='demo'?'Fictional demo data':'Latest synced data'} · ${esc(when(snap().synced_at))}</p>${rows.length?simpleTable(rows,columns):empty('No records available','Entries and balances will appear here when available.')}<div class="notice mt">This report covers synced master balances or entries created through this app. It is not a full Tally financial statement.</div>`,`<button class="btn" data-action="export-report">${icon('down')} Export CSV</button><button class="btn primary" data-action="print-report">${icon('print')} Print summary</button>`);
+function report(id) {
+  if (state.mode === 'live' && ['sales', 'purchases'].includes(id)) return openRegister(id === 'sales' ? 'Sales' : 'Purchase'); let rows, columns, title;
+  if (['receivables', 'payables', 'cash'].includes(id)) { title = { receivables: 'Customer balances', payables: 'Supplier balances', cash: 'Cash & bank' }[id]; rows = ledgers(id === 'cash' ? ['Cash-in-Hand', 'Bank Accounts'] : [id === 'receivables' ? 'Sundry Debtors' : 'Sundry Creditors']); columns = ['name', 'group', 'balance']; }
+  else if (id === 'stock') { title = 'Stock summary'; rows = snap().stock; columns = ['name', 'quantity', 'unit', 'value']; }
+  else { title = id === 'sales' ? 'App sales register' : 'App purchase register'; rows = saved().filter(v => v.kind === (id === 'sales' ? 'Sales' : 'Purchase')); columns = ['date', 'party', 'reference', 'total']; }
+  state.report = { title, rows, columns }; dialog(title, `<p class="muted small bill-preview-meta">${state.mode === 'demo' ? 'Fictional demo data' : 'Latest synced data'} · ${esc(when(snap().synced_at))}</p>${rows.length ? simpleTable(rows, columns) : empty('No records available', 'Entries and balances will appear here when available.')}<div class="notice mt">This report covers synced master balances or entries created through this app. It is not a full Tally financial statement.</div>`, `<button class="btn" data-action="export-report">${icon('down')} Export CSV</button><button class="btn primary" data-action="print-report">${icon('print')} Print summary</button>`);
 }
-function renderScan(){const s=state.scan;
- $('#page').innerHTML=heading('From paper to purchase.','Upload a bill. Check the details. Prepare a purchase draft.',`<button class="btn" data-new="Purchase">${icon('plus')} Enter manually</button>`)+`<div class="split"><section class="card"><div class="card-body">${s?`<div class="section-row"><h2>${esc(s.name)}</h2><button class="text-btn" data-action="rescan">Choose another</button></div>${s.mime.startsWith('image/')?`<img src="/api/documents/${esc(s.id)}" class="scan-preview" alt="Original uploaded purchase bill">`:`<a class="btn" href="/api/documents/${esc(s.id)}" target="_blank" rel="noopener">Open PDF bill</a>`}`:`<div class="phone-camera"><label class="btn primary" for="bill-camera">${icon('scan')} Take a bill photo</label><input id="bill-camera" type="file" accept="image/jpeg,image/png" capture="environment" hidden><p>Or choose an existing photo or PDF below.</p></div><div class="upload-zone">${icon('scan')}<h2>A clearer start<br>for every bill.</h2><p>Choose a clear photo or upload a bill from your device.</p><span class="btn primary">${icon('upload')} Choose a bill</span><div class="field-help mt">JPG, PNG or PDF · up to 8 MB</div><input id="bill-upload" type="file" accept="image/jpeg,image/png,application/pdf" aria-label="Upload purchase bill"></div>${state.mode==='demo'?'<button class="text-btn mt" data-action="sample-bill">Try a sample bill '+icon('arrow')+'</button>':''}`}<div class="field-help mt">Processed locally on the app host. No external AI provider receives your bill.</div></div></section><section class="card"><div class="card-body">${s?`<span class="eyebrow">Local OCR results</span><h2 class="mt">Read. Review. Correct.</h2><div class="notice ${s.ocr.available?'green':''} mt">${esc(s.ocr.message)}</div><div class="detail-grid mt"><div><small>Suggested invoice number</small><strong>${esc(s.ocr.reference||'Not found')}</strong></div><div><small>Suggested total</small><strong>${s.ocr.suggested_total?money(s.ocr.suggested_total):'Not found'}</strong></div></div>${s.ocr.text?'<pre class="ocr-text">'+esc(s.ocr.text)+'</pre>':''}<button class="btn primary mt" data-action="scan-draft">Prepare purchase draft ${icon('arrow')}</button><p class="field-help mt">Simple item rows may be suggested. Supplier, stock, quantities and GST must all be verified. OCR suggestions never post automatically.</p>`:`<span class="eyebrow">A little less paperwork</span><h2 class="mt">You stay in control.</h2><div class="steps">${[['Upload a clear bill','Keep the original document beside your entry.'],['Read locally','OCR suggests text and an invoice reference.'],['Match and check','Choose supplier, stock items, quantities and taxes.'],['Review before saving','Approve only after checking the original bill.']].map(([t,d],i)=>`<div class="step"><span class="step-num">${i+1}</span><div><h3>${t}</h3><p>${d}</p></div></div>`).join('')}</div><div class="notice">Originals are stored as attachments. OCR uses local Tesseract; PDF OCR reads up to the first three pages when Poppler is installed.</div>`}</div></section></div>`;
+function renderScan() {
+  const s = state.scan;
+  $('#page').innerHTML = heading('From paper to purchase.', 'Upload a bill. Check the details. Prepare a purchase draft.', `<button class="btn" data-new="Purchase">${icon('plus')} Enter manually</button>`) + `<div class="split"><section class="card"><div class="card-body">${s ? `<div class="section-row"><h2>${esc(s.name)}</h2><button class="text-btn" data-action="rescan">Choose another</button></div>${s.mime.startsWith('image/') ? `<img src="/api/documents/${esc(s.id)}" class="scan-preview" alt="Original uploaded purchase bill">` : `<a class="btn" href="/api/documents/${esc(s.id)}" target="_blank" rel="noopener">Open PDF bill</a>`}` : `<div class="phone-camera"><label class="btn primary" for="bill-camera">${icon('scan')} Take a bill photo</label><input id="bill-camera" type="file" accept="image/jpeg,image/png" capture="environment" hidden><p>Or choose an existing photo or PDF below.</p></div><div class="upload-zone">${icon('scan')}<h2>A clearer start<br>for every bill.</h2><p>Choose a clear photo or upload a bill from your device.</p><span class="btn primary">${icon('upload')} Choose a bill</span><div class="field-help mt">JPG, PNG or PDF · up to 8 MB</div><input id="bill-upload" type="file" accept="image/jpeg,image/png,application/pdf" aria-label="Upload purchase bill"></div>${state.mode === 'demo' ? '<button class="text-btn mt" data-action="sample-bill">Try a sample bill ' + icon('arrow') + '</button>' : ''}`}<div class="field-help mt">Processed locally on the app host. No external AI provider receives your bill.</div></div></section><section class="card"><div class="card-body">${s ? `<span class="eyebrow">Local OCR results</span><h2 class="mt">Read. Review. Correct.</h2><div class="notice ${s.ocr.available ? 'green' : ''} mt">${esc(s.ocr.message)}</div><div class="detail-grid mt"><div><small>Suggested invoice number</small><strong>${esc(s.ocr.reference || 'Not found')}</strong></div><div><small>Suggested total</small><strong>${s.ocr.suggested_total ? money(s.ocr.suggested_total) : 'Not found'}</strong></div></div>${s.ocr.text ? '<pre class="ocr-text">' + esc(s.ocr.text) + '</pre>' : ''}<button class="btn primary mt" data-action="scan-draft">Prepare purchase draft ${icon('arrow')}</button><p class="field-help mt">Simple item rows may be suggested. Supplier, stock, quantities and GST must all be verified. OCR suggestions never post automatically.</p>` : `<span class="eyebrow">A little less paperwork</span><h2 class="mt">You stay in control.</h2><div class="steps">${[['Upload a clear bill', 'Keep the original document beside your entry.'], ['Read locally', 'OCR suggests text and an invoice reference.'], ['Match and check', 'Choose supplier, stock items, quantities and taxes.'], ['Review before saving', 'Approve only after checking the original bill.']].map(([t, d], i) => `<div class="step"><span class="step-num">${i + 1}</span><div><h3>${t}</h3><p>${d}</p></div></div>`).join('')}</div><div class="notice">Originals are stored as attachments. OCR uses local Tesseract; PDF OCR reads up to the first three pages when Poppler is installed.</div>`}</div></section></div>`;
 }
-async function uploadBill(file){if(file.size>8*1024*1024)throw Error('Choose a file smaller than 8 MB.');toast('Reading your bill locally…');const data=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result).split(',')[1]);reader.onerror=()=>reject(Error('Could not read this file.'));reader.readAsDataURL(file);});state.scan=await api('upload',{mode:state.mode,name:file.name,content:data});if(state.page==='scan')renderScan();toast('Bill attached. Check the extracted details.');}
-async function sampleBill(){const canvas=document.createElement('canvas');canvas.width=1000;canvas.height=1100;const c=canvas.getContext('2d');c.fillStyle='#ffffff';c.fillRect(0,0,1000,1100);c.fillStyle='#111111';c.font='bold 38px sans-serif';c.fillText('PREMIER SUPPLY - DEMO BILL',65,90);c.font='27px sans-serif';['Fictional sample for development only','Invoice No: DEMO-2026-001','Date: '+today(),'Bill to: Upkar Agency','','Classic Backpack Demo','Quantity: 10 pcs    Rate: 450.00','Subtotal: 4500.00','CGST 9%: 405.00','SGST 9%: 405.00','','Grand Total: 5310.00'].forEach((line,i)=>c.fillText(line,65,170+i*57));const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));await uploadBill(new File([blob],'sample-purchase-bill.png',{type:'image/png'}));}
-function printDocument(title,body){$('#print-area').innerHTML=`<div class="print-head"><div><h1>Upkar Agency</h1><p>Office · ${state.mode==='demo'?'DEMO DOCUMENT — FICTIONAL DATA':'Tally companion'}</p></div><div><h2>${esc(title)}</h2><p>${new Date().toLocaleDateString('en-IN')}</p></div></div>${body}<div class="print-note">${state.mode==='demo'?'Fictional demo document. Not valid for accounting or tax use.':'Prepared from app records. This is not a statutory GST invoice; use the verified Tally invoice for tax purposes.'}</div>`;window.print();}
-function printEntry(id){
- const v=drafts().find(d=>d.id===id);if(!v)return;
- if(v.kind==='Sales'||v.items?.length){
-  $('#print-area').innerHTML=taxInvoiceHTML(v);
-  window.print();
-  return;
- }
- printDocument(v.kind+' voucher',`<div class="detail-grid"><div><small>Party</small><strong>${esc(v.party)}</strong></div><div><small>Reference / date</small>${esc(v.reference||'—')} · ${esc(v.date)}</div>${v.cash_bank?'<div><small>Account</small>'+esc(v.cash_bank)+'</div>':''}</div><h2>Amount: ${money(v.total)}</h2><p><strong>In Words:</strong> ${inWords(v.total)}</p><p>Status: ${esc(statuses[v.status])}</p><p>${esc(v.narration)}</p>`);
+async function uploadBill(file) { if (file.size > 8 * 1024 * 1024) throw Error('Choose a file smaller than 8 MB.'); toast('Reading your bill locally…'); const data = await new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result).split(',')[1]); reader.onerror = () => reject(Error('Could not read this file.')); reader.readAsDataURL(file); }); state.scan = await api('upload', { mode: state.mode, name: file.name, content: data }); if (state.page === 'scan') renderScan(); toast('Bill attached. Check the extracted details.'); }
+async function sampleBill() { const canvas = document.createElement('canvas'); canvas.width = 1000; canvas.height = 1100; const c = canvas.getContext('2d'); c.fillStyle = '#ffffff'; c.fillRect(0, 0, 1000, 1100); c.fillStyle = '#111111'; c.font = 'bold 38px sans-serif'; c.fillText('PREMIER SUPPLY - DEMO BILL', 65, 90); c.font = '27px sans-serif';['Fictional sample for development only', 'Invoice No: DEMO-2026-001', 'Date: ' + today(), 'Bill to: Upkar Agency', '', 'Classic Backpack Demo', 'Quantity: 10 pcs    Rate: 450.00', 'Subtotal: 4500.00', 'CGST 9%: 405.00', 'SGST 9%: 405.00', '', 'Grand Total: 5310.00'].forEach((line, i) => c.fillText(line, 65, 170 + i * 57)); const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png')); await uploadBill(new File([blob], 'sample-purchase-bill.png', { type: 'image/png' })); }
+function printDocument(title, body) { $('#print-area').innerHTML = `<div class="print-head"><div><h1>Upkar Agency</h1><p>Office · ${state.mode === 'demo' ? 'DEMO DOCUMENT — FICTIONAL DATA' : 'Tally companion'}</p></div><div><h2>${esc(title)}</h2><p>${new Date().toLocaleDateString('en-IN')}</p></div></div>${body}<div class="print-note">${state.mode === 'demo' ? 'Fictional demo document. Not valid for accounting or tax use.' : 'Prepared from app records. This is not a statutory GST invoice; use the verified Tally invoice for tax purposes.'}</div>`; window.print(); }
+function printEntry(id) {
+  const v = drafts().find(d => d.id === id); if (!v) return;
+  if (v.kind === 'Sales' || v.items?.length) {
+    $('#print-area').innerHTML = taxInvoiceHTML(v);
+    window.print();
+    return;
+  }
+  printDocument(v.kind + ' voucher', `<div class="detail-grid"><div><small>Party</small><strong>${esc(v.party)}</strong></div><div><small>Reference / date</small>${esc(v.reference || '—')} · ${esc(v.date)}</div>${v.cash_bank ? '<div><small>Account</small>' + esc(v.cash_bank) + '</div>' : ''}</div><h2>Amount: ${money(v.total)}</h2><p><strong>In Words:</strong> ${inWords(v.total)}</p><p>Status: ${esc(statuses[v.status])}</p><p>${esc(v.narration)}</p>`);
 }
-function csv(title,rows,columns){const safe=v=>{let t=String(v??'');if(/^[=+@\-\t\r]/.test(t))t="'"+t;return '"'+t.replaceAll('"','""')+'"';};const blob=new Blob(['\ufeff'+[columns,...rows.map(r=>columns.map(c=>r[c]))].map(r=>r.map(safe).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8;'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=title.toLowerCase().replace(/[^a-z0-9]+/g,'-')+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
-function share(id){
- const v=drafts().find(d=>d.id===id);if(!v)return;
- const isSale=v.kind==='Sales';
- const invNo=v.reference||(isSale?'INV-'+v.id.slice(0,8).toUpperCase():v.kind.toUpperCase()+'-'+v.id.slice(0,6).toUpperCase());
- const text=`*${isSale?'TAX INVOICE':'VOUCHER SUMMARY'} — UPKAR AGENCY*\n`+
-  `Invoice / Ref: ${invNo}\n`+
-  `Date: ${tallyDate(v.date)}\n`+
-  `Customer: ${v.party}\n`+
-  (v.items?.length?`Items: ${v.items.map(it=>`${it.name} (${it.qty} ${it.unit||''})`).join(', ')}\n`:'')+
-  `Total Amount: ₹ ${fmtMoney(v.total)}\n`+
-  `Amount in Words: ${tallyWords(v.total)}\n`+
-  `Status: ${statuses[v.status]||v.status}\n\n`+
-  `Thank you for doing business with Upkar Agency!`;
- dialog('Share on WhatsApp',`<p class="small muted">Review the message before opening WhatsApp. Choose your customer and send it in 1 tap.</p><pre class="ocr-text mt">${esc(text)}</pre><div class="notice green">${icon('shield')} Ready to send. Tally sync will record this entry automatically.</div>`,`<a class="btn primary" href="https://wa.me/?text=${encodeURIComponent(text)}" target="_blank" rel="noopener noreferrer">${icon('whatsapp')} Send via WhatsApp</a>`);
+function csv(title, rows, columns) { const safe = v => { let t = String(v ?? ''); if (/^[=+@\-\t\r]/.test(t)) t = "'" + t; return '"' + t.replaceAll('"', '""') + '"'; }; const blob = new Blob(['\ufeff' + [columns, ...rows.map(r => columns.map(c => r[c]))].map(r => r.map(safe).join(',')).join('\r\n')], { type: 'text/csv;charset=utf-8;' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = title.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '.csv'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); }
+function share(id) {
+  const v = drafts().find(d => d.id === id); if (!v) return;
+  const isSale = v.kind === 'Sales';
+  const invNo = v.reference || (isSale ? 'INV-' + v.id.slice(0, 8).toUpperCase() : v.kind.toUpperCase() + '-' + v.id.slice(0, 6).toUpperCase());
+  const text = `*${isSale ? 'TAX INVOICE' : 'VOUCHER SUMMARY'} — UPKAR AGENCY*\n` +
+    `Invoice / Ref: ${invNo}\n` +
+    `Date: ${tallyDate(v.date)}\n` +
+    `Customer: ${v.party}\n` +
+    (v.items?.length ? `Items: ${v.items.map(it => `${it.name} (${it.qty} ${it.unit || ''})`).join(', ')}\n` : '') +
+    `Total Amount: ₹ ${fmtMoney(v.total)}\n` +
+    `Amount in Words: ${tallyWords(v.total)}\n` +
+    `Status: ${statuses[v.status] || v.status}\n\n` +
+    `Thank you for doing business with Upkar Agency!`;
+  dialog('Share on WhatsApp', `<p class="small muted">Review the message before opening WhatsApp. Choose your customer and send it in 1 tap.</p><pre class="ocr-text mt">${esc(text)}</pre><div class="notice green">${icon('shield')} Ready to send. Tally sync will record this entry automatically.</div>`, `<a class="btn primary" href="https://wa.me/?text=${encodeURIComponent(text)}" target="_blank" rel="noopener noreferrer">${icon('whatsapp')} Send via WhatsApp</a>`);
 }
 
-const actions={
- 'refresh':refresh,
- 'logout':async()=>{await api('logout',{});state.user=null;state.data=null;state.chat=[];closeModal();renderLogin();},
- 'preview':async()=>{state.user=await api('preview',{});await load();render();},
- 'close-modal':async()=>closeModal(),
- 'mode':async()=>{if(state.preview){toast('This is a demo-only preview. Live connection is configured separately.');return;}state.mode=state.mode==='demo'?'live':'demo';state.scan=null;state.editor=null;state.chat=[];state.page='home';if(state.mode==='demo')await api('demo',{});await load();render();},
- 'new-menu':async()=>dialog('What would you like to record?',`<div class="report-grid">${['Sales','Purchase','Receipt','Payment'].map(k=>`<button class="report-tile" data-new="${k}">${icon(kindIcon(k))}<h3>${k}</h3></button>`).join('')}</div>`),
- 'add-item':async()=>{collectEditor();const def=(snap().godowns?.[0]?.name)||'Main Location';state.editor.items.push({name:'',unit:'',qty:'1',rate:'',discount:'0',godown:def});$('#item-rows').innerHTML=itemRows();},
- 'add-allocation':async()=>{collectEditor();state.editor.allocations.push({reference:'',amount:''});$('#allocation-rows').innerHTML=allocationRows();},
- 'sample-bill':sampleBill,
- 'rescan':async()=>{state.scan=null;renderScan();},
- 'scan-draft':async()=>prepareScannedDraft(),
- 'export-entries':async()=>csv('Entries',filteredEntries(),['date','kind','party','reference','total','status']),
- 'export-ledgers':async()=>csv('Ledgers',ledgerRows(),['name','group','balance']),
- 'export-stock':async()=>csv('Stock',stockRows(),['name','quantity','unit','value']),
- 'export-report':async()=>csv(state.report.title,state.report.rows,state.report.columns),
- 'print-report':async()=>printDocument(state.report.title,simpleTable(state.report.rows,state.report.columns)+'<p>Source: synced balances / app-recorded entries only.</p>')
+const actions = {
+  'refresh': refresh,
+  'logout': async () => { await api('logout', {}); state.user = null; state.data = null; state.chat = []; closeModal(); renderLogin(); },
+  'preview': async () => { state.user = await api('preview', {}); await load(); render(); },
+  'close-modal': async () => closeModal(),
+  'mode': async () => { if (state.preview) { toast('This is a demo-only preview. Live connection is configured separately.'); return; } state.mode = state.mode === 'demo' ? 'live' : 'demo'; state.scan = null; state.editor = null; state.chat = []; state.page = 'home'; if (state.mode === 'demo') await api('demo', {}); await load(); render(); },
+  'new-menu': async () => dialog('What would you like to record?', `<div class="report-grid">${['Sales', 'Purchase', 'Receipt', 'Payment'].map(k => `<button class="report-tile" data-new="${k}">${icon(kindIcon(k))}<h3>${k}</h3></button>`).join('')}</div>`),
+  'add-item': async () => { collectEditor(); const def = (snap().godowns?.[0]?.name) || 'Main Location'; state.editor.items.push({ name: '', unit: '', qty: '1', rate: '', discount: '0', godown: def }); $('#item-rows').innerHTML = itemRows(); },
+  'add-allocation': async () => { collectEditor(); state.editor.allocations.push({ reference: '', amount: '' }); $('#allocation-rows').innerHTML = allocationRows(); },
+  'sample-bill': sampleBill,
+  'rescan': async () => { state.scan = null; renderScan(); },
+  'scan-draft': async () => prepareScannedDraft(),
+  'export-entries': async () => csv('Entries', filteredEntries(), ['date', 'kind', 'party', 'reference', 'total', 'status']),
+  'export-ledgers': async () => csv('Ledgers', ledgerRows(), ['name', 'group', 'balance']),
+  'export-stock': async () => csv('Stock', stockRows(), ['name', 'quantity', 'unit', 'value']),
+  'export-report': async () => csv(state.report.title, state.report.rows, state.report.columns),
+  'print-report': async () => printDocument(state.report.title, simpleTable(state.report.rows, state.report.columns) + '<p>Source: synced balances / app-recorded entries only.</p>')
 };
 
 document.addEventListener('click',event=>{
@@ -744,7 +826,7 @@ document.addEventListener('click',event=>{
             state.report?.rows?.find(r=>r.id===button.dataset.printRendered) ||
             drafts().find(d=>d.id===button.dataset.printRendered);
   if(v){
-   const payload = (v.items && v.items[0]?.godown !== undefined) ? v : historyToInvoicePayload(v);
+   const payload = (v.taxes && Array.isArray(v.taxes) && v.taxes.length > 0 && typeof v.taxes[0].type === 'string') ? v : historyToInvoicePayload(v);
    $('#print-area').innerHTML = officialTallyInvoiceHTML(payload);
    window.print();
   }
@@ -755,7 +837,7 @@ document.addEventListener('click',event=>{
             state.report?.rows?.find(r=>r.id===button.dataset.shareRendered) ||
             drafts().find(d=>d.id===button.dataset.shareRendered);
   if(v){
-   const payload = (v.items && v.items[0]?.godown !== undefined) ? v : historyToInvoicePayload(v);
+   const payload = (v.taxes && Array.isArray(v.taxes) && v.taxes.length > 0 && typeof v.taxes[0].type === 'string') ? v : historyToInvoicePayload(v);
    const text = `*TAX INVOICE — UPKAR AGENCY*\n` +
     `Invoice / Ref: ${payload.reference}\n` +
     `Date: ${tallyDate(payload.date)}\n` +
@@ -767,118 +849,121 @@ document.addEventListener('click',event=>{
   }
   return;
  }
- if(button.dataset.retryDraft){
-  const v=drafts().find(d=>d.id===button.dataset.retryDraft);
-  if(v){
-   closeModal();
-   const tax=v.taxes||[];
-   const taxMode=tax.length?(tax[0].type==='IGST'?'interstate':'local'):'none';
-   const taxPercent=String(tax.reduce((a,t)=>a+Number(t.percent),0)||'18');
-   const suggested=suggestTaxLedgers(v.kind, taxMode, taxPercent);
-   const taxLedgers={...suggested, ...Object.fromEntries(tax.map(t=>[t.type,t.ledger]))};
-   if(v.kind==='Sales'){
-    for(const k of ['CGST','SGST','IGST']){
-     if(/(\bIN\b|IN\s*@|INPUT|INWARD)/i.test(taxLedgers[k]||'')){
-      taxLedgers[k]=suggested[k]||taxLedgers[k].replace(/(\bIN\b|IN\s*@|INPUT|INWARD)/gi,'OUT');
-     }
+  if (button.dataset.retryDraft) {
+    const v = drafts().find(d => d.id === button.dataset.retryDraft);
+    if (v) {
+      closeModal();
+      const tax = v.taxes || [];
+      const taxMode = tax.length ? (tax[0].type === 'IGST' ? 'interstate' : 'local') : 'none';
+      const taxPercent = String(tax.reduce((a, t) => a + Number(t.percent), 0) || '18');
+      const suggested = suggestTaxLedgers(v.kind, taxMode, taxPercent);
+      const taxLedgers = { ...suggested, ...Object.fromEntries(tax.map(t => [t.type, t.ledger])) };
+      if (v.kind === 'Sales') {
+        for (const k of ['CGST', 'SGST', 'IGST']) {
+          if (/(\bIN\b|IN\s*@|INPUT|INWARD)/i.test(taxLedgers[k] || '')) {
+            taxLedgers[k] = suggested[k] || taxLedgers[k].replace(/(\bIN\b|IN\s*@|INPUT|INWARD)/gi, 'OUT');
+          }
+        }
+      } else if (v.kind === 'Purchase') {
+        for (const k of ['CGST', 'SGST', 'IGST']) {
+          if (/(\bOUT\b|OUT\s*@|OUTPUT|OUTWARD)/i.test(taxLedgers[k] || '')) {
+            taxLedgers[k] = suggested[k] || taxLedgers[k].replace(/(\bOUT\b|OUT\s*@|OUTPUT|OUTWARD)/gi, 'IN');
+          }
+        }
+      }
+      newDraft(v.kind, {
+        ...v,
+        id: undefined,
+        voucher_number: '',
+        taxMode,
+        taxPercent,
+        taxLedgers
+      });
+      toast('Draft prefilled with corrected tax ledgers. Check and confirm.');
     }
-   }else if(v.kind==='Purchase'){
-    for(const k of ['CGST','SGST','IGST']){
-     if(/(\bOUT\b|OUT\s*@|OUTPUT|OUTWARD)/i.test(taxLedgers[k]||'')){
-      taxLedgers[k]=suggested[k]||taxLedgers[k].replace(/(\bOUT\b|OUT\s*@|OUTPUT|OUTWARD)/gi,'IN');
-     }
+    return;
+  }
+  if (button.dataset.edit) { editDraft(button.dataset.edit); return; }
+  if (button.dataset.ledger) { ledgerDetail(button.dataset.ledger); return; }
+  if (button.dataset.report) { run(() => report(button.dataset.report)); return; }
+  if (button.dataset.print) { printEntry(button.dataset.print); return; }
+  if (button.dataset.share) { share(button.dataset.share); return; }
+  if (button.dataset.ask) { run(() => ask(button.dataset.ask)); return; }
+  if (button.dataset.confirm) { run(() => confirmDraft(button.dataset.confirm)); return; }
+  if (button.dataset.cancel) { run(async () => { const v = drafts().find(d => d.id === button.dataset.cancel); await api('delete', { mode: state.mode, id: v.id, version: v.version }); closeModal(); await load(); render(); toast('Draft cancelled'); }); return; }
+  if (button.dataset.removeItem !== undefined) { collectEditor(); if (state.editor.items.length === 1) { toast('Keep at least one item.'); return; } state.editor.items.splice(Number(button.dataset.removeItem), 1); $('#item-rows').innerHTML = itemRows(); updateSummary(); return; }
+  if (button.dataset.removeAllocation !== undefined) { state.editor.allocations.splice(Number(button.dataset.removeAllocation), 1); $('#allocation-rows').innerHTML = allocationRows(); return; }
+  if (button.dataset.action && actions[button.dataset.action]) { event.preventDefault(); run(actions[button.dataset.action]); }
+});
+document.addEventListener('submit', event => {
+  const form = event.target; if (!['login-form', 'home-chat', 'chat-form', 'entry-form'].includes(form.id)) return; event.preventDefault(); run(async () => {
+    if (form.id === 'login-form') { state.user = await api('login', Object.fromEntries(new FormData(form))); if (!state.cloud) await api('demo', {}); await load(); render(); }
+    else if (form.id === 'home-chat' || form.id === 'chat-form') { await ask(new FormData(form).get('question')); }
+    else if (form.id === 'entry-form') { await saveDraft(); }
+  });
+});
+document.addEventListener('input', event => {
+  const el = event.target;
+  if (el.id === 'entry-search') { state.search = el.value; $('#entry-results').innerHTML = entryTable(filteredEntries()); }
+  if (el.id === 'ledger-search') { state.search = el.value; $('#ledger-results').innerHTML = ledgerTable(); }
+  if (el.id === 'stock-search') { state.search = el.value; $('#stock-results').innerHTML = stockTable(); }
+  if (state.page === 'editor' && el.closest('#entry-form')) {
+    const item = el.closest('[data-item]'); const allocation = el.closest('[data-allocation]');
+    if (item) { const i = Number(item.dataset.item); state.editor.items[i][el.dataset.field] = el.value; if (el.dataset.field === 'name') { const master = snap().stock.find(s => s.name === el.value); if (master) { state.editor.items[i].unit = master.unit; state.editor.items[i].rate = master.rate || ''; const u = $('[data-field="unit"]', item), r = $('[data-field="rate"]', item); u.value = master.unit; r.value = master.rate || ''; } } $('[data-line]', item).textContent = money(lineAmount(state.editor.items[i])); }
+    else if (allocation) { state.editor.allocations[Number(allocation.dataset.allocation)][el.dataset.field] = el.value; }
+    else if (el.dataset.taxLedger) { state.editor.taxLedgers[el.dataset.taxLedger] = el.value; }
+    else if (el.name) { state.editor[el.name] = el.value; }
+    updateSummary();
+  }
+});
+document.addEventListener('change', event => {
+  const el = event.target;
+  if (['bill-upload', 'bill-camera'].includes(el.id) && el.files[0]) run(() => uploadBill(el.files[0]));
+  if (el.id === 'entry-filter') { state.kind = el.value; $('#entry-results').innerHTML = entryTable(filteredEntries()); }
+  if (el.id === 'ledger-filter') { state.kind = el.value; $('#ledger-results').innerHTML = ledgerTable(); }
+  if (el.id === 'stock-filter') { state.kind = el.value; $('#stock-results').innerHTML = stockTable(); }
+  if (el.id === 'tax-mode' || el.id === 'tax-percent') {
+    if (state.editor) {
+      state.editor.taxMode = $('#tax-mode').value;
+      state.editor.taxPercent = $('#tax-percent').value;
+      const suggested = suggestTaxLedgers(state.editor.kind, state.editor.taxMode, state.editor.taxPercent);
+      state.editor.taxLedgers = { ...state.editor.taxLedgers, ...suggested };
+      $('#tax-ledger-fields').innerHTML = taxFields();
+      updateSummary();
     }
-   }
-   newDraft(v.kind,{
-    ...v,
-    id:undefined,
-    voucher_number:'',
-    taxMode,
-    taxPercent,
-    taxLedgers
-   });
-   toast('Draft prefilled with corrected tax ledgers. Check and confirm.');
   }
-  return;
- }
- if(button.dataset.edit){editDraft(button.dataset.edit);return;}
- if(button.dataset.ledger){ledgerDetail(button.dataset.ledger);return;}
- if(button.dataset.report){run(()=>report(button.dataset.report));return;}
- if(button.dataset.print){printEntry(button.dataset.print);return;}
- if(button.dataset.share){share(button.dataset.share);return;}
- if(button.dataset.ask){run(()=>ask(button.dataset.ask));return;}
- if(button.dataset.confirm){run(()=>confirmDraft(button.dataset.confirm));return;}
- if(button.dataset.cancel){run(async()=>{const v=drafts().find(d=>d.id===button.dataset.cancel);await api('delete',{mode:state.mode,id:v.id,version:v.version});closeModal();await load();render();toast('Draft cancelled');});return;}
- if(button.dataset.removeItem!==undefined){collectEditor();if(state.editor.items.length===1){toast('Keep at least one item.');return;}state.editor.items.splice(Number(button.dataset.removeItem),1);$('#item-rows').innerHTML=itemRows();updateSummary();return;}
- if(button.dataset.removeAllocation!==undefined){state.editor.allocations.splice(Number(button.dataset.removeAllocation),1);$('#allocation-rows').innerHTML=allocationRows();return;}
- if(button.dataset.action&&actions[button.dataset.action]){event.preventDefault();run(actions[button.dataset.action]);}
 });
-document.addEventListener('submit',event=>{const form=event.target;if(!['login-form','home-chat','chat-form','entry-form'].includes(form.id))return;event.preventDefault();run(async()=>{
- if(form.id==='login-form'){state.user=await api('login',Object.fromEntries(new FormData(form)));if(!state.cloud)await api('demo',{});await load();render();}
- else if(form.id==='home-chat'||form.id==='chat-form'){await ask(new FormData(form).get('question'));}
- else if(form.id==='entry-form'){await saveDraft();}
-});});
-document.addEventListener('input',event=>{
- const el=event.target;
- if(el.id==='entry-search'){state.search=el.value;$('#entry-results').innerHTML=entryTable(filteredEntries());}
- if(el.id==='ledger-search'){state.search=el.value;$('#ledger-results').innerHTML=ledgerTable();}
- if(el.id==='stock-search'){state.search=el.value;$('#stock-results').innerHTML=stockTable();}
- if(state.page==='editor'&&el.closest('#entry-form')){
- const item=el.closest('[data-item]');const allocation=el.closest('[data-allocation]');
- if(item){const i=Number(item.dataset.item);state.editor.items[i][el.dataset.field]=el.value;if(el.dataset.field==='name'){const master=snap().stock.find(s=>s.name===el.value);if(master){state.editor.items[i].unit=master.unit;state.editor.items[i].rate=master.rate||'';const u=$('[data-field="unit"]',item),r=$('[data-field="rate"]',item);u.value=master.unit;r.value=master.rate||'';}}$('[data-line]',item).textContent=money(lineAmount(state.editor.items[i]));}
- else if(allocation){state.editor.allocations[Number(allocation.dataset.allocation)][el.dataset.field]=el.value;}
- else if(el.dataset.taxLedger){state.editor.taxLedgers[el.dataset.taxLedger]=el.value;}
- else if(el.name){state.editor[el.name]=el.value;}
- updateSummary();
- }
-});
-document.addEventListener('change',event=>{const el=event.target;
- if(['bill-upload','bill-camera'].includes(el.id)&&el.files[0])run(()=>uploadBill(el.files[0]));
- if(el.id==='entry-filter'){state.kind=el.value;$('#entry-results').innerHTML=entryTable(filteredEntries());}
- if(el.id==='ledger-filter'){state.kind=el.value;$('#ledger-results').innerHTML=ledgerTable();}
- if(el.id==='stock-filter'){state.kind=el.value;$('#stock-results').innerHTML=stockTable();}
- if(el.id==='tax-mode'||el.id==='tax-percent'){
-  if(state.editor){
-   state.editor.taxMode=$('#tax-mode').value;
-   state.editor.taxPercent=$('#tax-percent').value;
-   const suggested=suggestTaxLedgers(state.editor.kind, state.editor.taxMode, state.editor.taxPercent);
-   state.editor.taxLedgers={...state.editor.taxLedgers, ...suggested};
-   $('#tax-ledger-fields').innerHTML=taxFields();
-   updateSummary();
-  }
- }
-});
-modal.addEventListener('click',e=>{if(e.target===modal){const r=modal.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)closeModal();}});
-async function boot(){try{const config=await api('config');state.preview=config.preview;state.cloud=Boolean(config.cloud);if(state.cloud)state.mode='live';try{state.user=await api('session');await load();render();}catch{renderLogin();}}catch{root.innerHTML='<div class="boot">The app could not load. Check that the local server is running, then refresh.</div>';}}
+modal.addEventListener('click', e => { if (e.target === modal) { const r = modal.getBoundingClientRect(); if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) closeModal(); } });
+async function boot() { try { const config = await api('config'); state.preview = config.preview; state.cloud = Boolean(config.cloud); if (state.cloud) state.mode = 'live'; try { state.user = await api('session'); await load(); render(); } catch { renderLogin(); } } catch { root.innerHTML = '<div class="boot">The app could not load. Check that the local server is running, then refresh.</div>'; } }
 boot();
 
-function prepareScannedDraft(){
- const s=state.scan, hints=s.ocr.suggestions||{};
- const normalize=name=>String(name).toLowerCase().replace(/[^a-z0-9]/g,'');
- const match=(value,rows)=>rows.find(row=>normalize(row.name)===normalize(value));
- const supplier=match((hints.supplier_text||'').replace(/[-—]\s*(?:DEMO BILL|INVOICE).*$/i,'').trim(),ledgers(['Sundry Creditors']));
- const items=(hints.items||[]).map(row=>{const item=match(row.description,snap().stock);return {name:item?.name||row.description,qty:row.qty,rate:row.rate,unit:item?.unit||row.unit,discount:'0'};});
- const taxes=hints.tax_rates||{};let taxMode='none',taxPercent='18';
- if(taxes.CGST&&taxes.SGST&&taxes.CGST===taxes.SGST&&!taxes.IGST){taxMode='local';taxPercent=String(taxes.CGST+taxes.SGST);}
- else if(taxes.IGST&&!taxes.CGST&&!taxes.SGST){taxMode='interstate';taxPercent=String(taxes.IGST);}
- newDraft('Purchase',{reference:s.ocr.reference||'',document_id:s.id,printed_total:s.ocr.suggested_total||'',expected_total:s.ocr.suggested_total||'',party:supplier?.name||'',date:hints.date||today(),taxMode,taxPercent,...(items.length?{items}:{})});
- toast('OCR suggestions filled where available. Verify every field against the bill.');
+function prepareScannedDraft() {
+  const s = state.scan, hints = s.ocr.suggestions || {};
+  const normalize = name => String(name).toLowerCase().replace(/[^a-z0-9]/g, '');
+  const match = (value, rows) => rows.find(row => normalize(row.name) === normalize(value));
+  const supplier = match((hints.supplier_text || '').replace(/[-—]\s*(?:DEMO BILL|INVOICE).*$/i, '').trim(), ledgers(['Sundry Creditors']));
+  const items = (hints.items || []).map(row => { const item = match(row.description, snap().stock); return { name: item?.name || row.description, qty: row.qty, rate: row.rate, unit: item?.unit || row.unit, discount: '0' }; });
+  const taxes = hints.tax_rates || {}; let taxMode = 'none', taxPercent = '18';
+  if (taxes.CGST && taxes.SGST && taxes.CGST === taxes.SGST && !taxes.IGST) { taxMode = 'local'; taxPercent = String(taxes.CGST + taxes.SGST); }
+  else if (taxes.IGST && !taxes.CGST && !taxes.SGST) { taxMode = 'interstate'; taxPercent = String(taxes.IGST); }
+  newDraft('Purchase', { reference: s.ocr.reference || '', document_id: s.id, printed_total: s.ocr.suggested_total || '', expected_total: s.ocr.suggested_total || '', party: supplier?.name || '', date: hints.date || today(), taxMode, taxPercent, ...(items.length ? { items } : {}) });
+  toast('OCR suggestions filled where available. Verify every field against the bill.');
 }
 
 // Refresh confirmed posting results without interrupting an entry form or a search.
-let statusRefreshRunning=false;
-setInterval(async()=>{
- if(statusRefreshRunning||busy||!state.user||document.hidden||state.mode!=='live'||!state.data)return;
- if(!['home','entries','settings'].includes(state.page)||modal.open)return;
- const pending=state.data.drafts.some(v=>['queued','posting'].includes(v.status));
- if(!pending&&state.page!=='settings')return;
- statusRefreshRunning=true;
- try{
-   const page=state.page;await load();
-   if(state.page!==page||modal.open)return;
-   if(page==='entries'){const results=$('#entry-results');if(results)results.innerHTML=entryTable(filteredEntries());}
-   else if(page==='home')renderHome();
-   else if(page==='settings'&&!document.activeElement?.matches('input,textarea,select'))renderSettings();
- }catch{ /* Keep the last confirmed status; no posting retries are performed here. */ }
- finally{statusRefreshRunning=false;}
-},5000);
+let statusRefreshRunning = false;
+setInterval(async () => {
+  if (statusRefreshRunning || busy || !state.user || document.hidden || state.mode !== 'live' || !state.data) return;
+  if (!['home', 'entries', 'settings'].includes(state.page) || modal.open) return;
+  const pending = state.data.drafts.some(v => ['queued', 'posting'].includes(v.status));
+  if (!pending && state.page !== 'settings') return;
+  statusRefreshRunning = true;
+  try {
+    const page = state.page; await load();
+    if (state.page !== page || modal.open) return;
+    if (page === 'entries') { const results = $('#entry-results'); if (results) results.innerHTML = entryTable(filteredEntries()); }
+    else if (page === 'home') renderHome();
+    else if (page === 'settings' && !document.activeElement?.matches('input,textarea,select')) renderSettings();
+  } catch { /* Keep the last confirmed status; no posting retries are performed here. */ }
+  finally { statusRefreshRunning = false; }
+}, 5000);
