@@ -1,6 +1,7 @@
 """Dependency-free local pilot server. Bind only to loopback; cloud rollout is separate."""
 import argparse
 import base64
+from decimal import Decimal
 import hashlib
 import hmac
 import json
@@ -10,6 +11,7 @@ from pathlib import Path
 import secrets
 import sqlite3
 import time
+import uuid
 from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse
@@ -30,6 +32,14 @@ DEVICE_TOKEN = os.environ.get('OFFICE_CONNECTOR_TOKEN', '')
 LIVE_WRITES = os.environ.get('OFFICE_ENABLE_POSTING') == 'YES'
 ATTEMPTS = {}
 PREVIEW = False
+ALLOWED_TEAM_MEMBERS = {
+    'kunal': 'Kunal',
+    'mouriyan': 'Mouriyan',
+    'anush': 'Anush',
+    'yash': 'Yash',
+    'madam': 'Madam',
+    'accountant': 'Accountant',
+}
 
 class ForbiddenError(PermissionError):
     pass
@@ -120,9 +130,12 @@ class Handler(BaseHTTPRequestHandler):
         if not session:
             raise PermissionError('Sign in to continue')
         if cloud.enabled():
-            if session['email'].casefold() not in cloud.settings()['admins'] or session['role'] != 'owner':
-                raise ForbiddenError('This account is not the approved admin')
-            cloud.verify_admin(session['user_id'])
+            if session['email'].casefold() in ALLOWED_TEAM_MEMBERS:
+                pass
+            else:
+                if session['email'].casefold() not in cloud.settings()['admins'] or session['role'] != 'owner':
+                    raise ForbiddenError('This account is not the approved admin')
+                cloud.verify_admin(session['user_id'])
         if mutate and not hmac.compare_digest(self.headers.get('X-CSRF-Token', ''), session['csrf']):
             raise ForbiddenError('Session check failed; reload the page')
         return session
@@ -224,22 +237,25 @@ class Handler(BaseHTTPRequestHandler):
                 snap = store.snapshot(db, mode)
                 drafts = [draft_row(row) for row in db.execute('SELECT d.*,j.result FROM drafts d LEFT JOIN jobs j ON j.draft_id=d.id WHERE mode=? ORDER BY d.created DESC', (mode,))]
                 if mode == 'live' and drafts:
-                    recent = {}
-                    for period in db.execute('SELECT payload FROM history_periods WHERE updated IS NOT NULL ORDER BY updated DESC LIMIT 3'):
-                        for v in json.loads(period['payload']):
-                            if v.get('remote_id'): recent[v['remote_id']] = v
-                            if v.get('kind') and v.get('number'): recent[(v['kind'], v['number'])] = v
-                            if v.get('kind') and v.get('reference') and v.get('date'): recent[(v['kind'], v['reference'], v['date'])] = v
-                    for d in drafts:
-                        if d.get('status') == 'posted':
-                            match = recent.get(d.get('id')) or recent.get((d.get('kind'), d.get('voucher_number'))) or recent.get((d.get('kind'), d.get('reference'), d.get('date')))
-                            if match:
-                                if match.get('party'): d['party'] = match['party']
-                                if match.get('number'): d['voucher_number'] = match['number']
-                                if match.get('narration'): d['narration'] = match['narration']
-                                c_lines = history.clean_lines(match.get('lines', []))
-                                p_amounts = [Decimal(line['amount']) for line in c_lines if line['ledger'] == match.get('party')]
-                                if p_amounts: d['total'] = str(abs(sum(p_amounts, Decimal(0))))
+                    try:
+                        recent = {}
+                        for period in db.execute('SELECT payload FROM history_periods WHERE updated IS NOT NULL ORDER BY updated DESC LIMIT 3'):
+                            for v in json.loads(period['payload']):
+                                if v.get('remote_id'): recent[v['remote_id']] = v
+                                if v.get('kind') and v.get('number'): recent[(v['kind'], v['number'])] = v
+                                if v.get('kind') and v.get('reference') and v.get('date'): recent[(v['kind'], v['reference'], v['date'])] = v
+                        for d in drafts:
+                            if d.get('status') == 'posted':
+                                match = recent.get(d.get('id')) or recent.get((d.get('kind'), d.get('voucher_number'))) or recent.get((d.get('kind'), d.get('reference'), d.get('date')))
+                                if match:
+                                    if match.get('party'): d['party'] = match['party']
+                                    if match.get('number'): d['voucher_number'] = match['number']
+                                    if match.get('narration'): d['narration'] = match['narration']
+                                    c_lines = history.clean_lines(match.get('lines', []))
+                                    p_amounts = [Decimal(line['amount']) for line in c_lines if line['ledger'] == match.get('party')]
+                                    if p_amounts: d['total'] = str(abs(sum(p_amounts, Decimal(0))))
+                    except Exception:
+                        pass
                 logs = [dict(row) for row in db.execute('SELECT actor,action,target,at FROM audit ORDER BY id DESC LIMIT 100')]
                 return self.respond(200, {'snapshot': snap, 'drafts': drafts, 'audit': logs,
                     'connector': {'configured': len(DEVICE_TOKEN) >= 32, 'posting_enabled': LIVE_WRITES,
@@ -311,11 +327,31 @@ class Handler(BaseHTTPRequestHandler):
             return self.respond(200, {'email': user['email'], 'role': user['role'], 'csrf': csrf}, {'Set-Cookie': f'office_session={token}; HttpOnly; SameSite=Strict; Path=/; Max-Age={SESSION_AGE}'})
         if path == '/api/login':
             now = time.time()
+            name_or_email = str(data.get('name') or data.get('email', '')).strip()
+            name_key = name_or_email.casefold()
+
+            if name_key in ALLOWED_TEAM_MEMBERS:
+                canonical_name = ALLOWED_TEAM_MEMBERS[name_key]
+                user_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, f'team.{name_key}.upkar.local'))
+                with store.transaction() as db:
+                    user = db.execute('SELECT * FROM users WHERE email=? OR id=?', (canonical_name, user_id)).fetchone()
+                    if not user:
+                        db.execute('INSERT INTO users(id,email,password,role) VALUES(?,?,?,?)', (user_id, canonical_name, 'team-member-nopass', 'owner'))
+                        user = db.execute('SELECT * FROM users WHERE id=?', (user_id,)).fetchone()
+                    token, csrf = secrets.token_urlsafe(32), secrets.token_urlsafe(32)
+                    db.execute('DELETE FROM sessions WHERE expires<?', (now,))
+                    db.execute('INSERT INTO sessions VALUES(?,?,?,?)', (session_id(token), user['id'], csrf, now + SESSION_AGE))
+                    store.audit(db, canonical_name, 'signed_in', 'team_session')
+                secure = '; Secure' if cloud.enabled() or os.environ.get('OFFICE_SECURE_COOKIE') == 'YES' else ''
+                return self.respond(200, {'email': canonical_name, 'role': user['role'], 'csrf': csrf}, {'Set-Cookie': f'office_session={token}; HttpOnly; SameSite=Strict; Path=/; Max-Age={SESSION_AGE}{secure}'})
+
             key = self.client_address[0]
             failures = [t for t in ATTEMPTS.get(key, []) if now - t < 300]
             if len(failures) >= 10:
                 return self.respond(429, {'error': 'Too many attempts. Wait five minutes.'})
-            email = str(data.get('email', '')).lower().strip()
+            email = name_or_email.lower()
+            if not email or not data.get('password'):
+                raise PermissionError('Select your team name or enter a valid email and password')
             identity = None
             if cloud.enabled():
                 try:
@@ -327,7 +363,7 @@ class Handler(BaseHTTPRequestHandler):
                 user = db.execute('SELECT * FROM users WHERE email=?', (email,)).fetchone()
                 if identity:
                     if user is None:
-                        db.execute('INSERT INTO users VALUES(?,?,?,?)',(identity['id'],identity['email'],'supabase-auth-only','owner'))
+                        db.execute('INSERT INTO users(id,email,password,role) VALUES(?,?,?,?)',(identity['id'],identity['email'],'supabase-auth-only','owner'))
                         user = db.execute('SELECT * FROM users WHERE id=?',(identity['id'],)).fetchone()
                     if user['id'] != identity['id'] or user['role'] != 'owner':
                         raise ForbiddenError('Admin identity changed; review and revoke old app sessions before re-pairing this account')

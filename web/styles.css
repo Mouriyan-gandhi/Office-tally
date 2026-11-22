@@ -20,3 +20,19 @@ dialog[open]{display:flex;flex-direction:column;max-height:calc(100dvh - 32px)}.
 .item-row .item-name,.item-row .godown-field{grid-row:1}.item-row .unit-field{grid-column:1;grid-row:2}.item-row .quantity-field{grid-column:2;grid-row:2}.item-row .rate-field{grid-column:3;grid-row:2}.item-row .discount-field{grid-column:4;grid-row:2}.item-row .line-total,.item-row .remove-row{grid-row:2}
 
 body.is-working{cursor:progress}body.is-working::after{content:'Working…';position:fixed;top:12px;right:18px;padding:8px 14px;border-radius:8px;background:var(--dark);color:#fff;font-size:13px;z-index:100;pointer-events:none}dialog[open] .btn:active{transform:translateY(1px)}
+
+/* Team Member Passwordless Login */
+.team-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:16px 0 20px}
+.team-card{display:flex;align-items:center;gap:12px;padding:12px 14px;background:#fff;border:1.5px solid var(--line);border-radius:9px;text-align:left;transition:all .15s ease;cursor:pointer}
+.team-card:hover{border-color:var(--dark);background:#f2f6ee;transform:translateY(-1px);box-shadow:0 3px 8px rgba(0,0,0,.04)}
+.team-avatar{width:32px;height:32px;border-radius:50%;background:#dde5d5;display:grid;place-items:center;font-size:11px;font-weight:700;color:var(--dark);flex-shrink:0}
+.team-info{flex:1;min-width:0}
+.team-info strong{display:block;font-size:13px;color:var(--ink);line-height:1.2}
+.team-info small{display:block;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
+.team-arrow{opacity:.4;display:flex;align-items:center}
+.team-arrow svg{width:16px;height:16px}
+.team-card:hover .team-arrow{opacity:1;color:var(--dark)}
+.login-footer-links{margin-top:16px;text-align:center}
+.login-footer-links .text-btn{font-size:11px;color:var(--muted)}
+@media(max-width:500px){.team-grid{grid-template-columns:1fr}}
+

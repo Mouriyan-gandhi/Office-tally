@@ -56,8 +56,17 @@ function options(rows, value = '', blank = 'Choose a ledger') { return `<option 
 function ledgers(group) { return snap().ledgers.filter(l => !group || group.includes(l.group)); }
 function brand() { return '<div class="brand"><img src="/icon.svg" alt=""><div><strong>upkar<span class="muted">.</span></strong><small>Agency Office</small></div></div>'; }
 
+const TEAM_MEMBERS = [
+  { name: 'Kunal', role: 'Team' },
+  { name: 'Mouriyan', role: 'Team' },
+  { name: 'Anush', role: 'Team' },
+  { name: 'Yash', role: 'Team' },
+  { name: 'Madam', role: 'Team' },
+  { name: 'Accountant', role: 'Accounts' },
+];
+
 function renderLogin() {
-  root.innerHTML = `<div class="login"><section class="login-story">${brand()}<div><div class="login-rule"></div><h1>Your business.<br>Your books.<br><em>Within reach.</em></h1><p>Sales, purchases, payments and stock. A simpler way to keep your office moving.</p></div><div class="tiny">MADE FOR UPKAR AGENCY &nbsp; · &nbsp; POWERED BY YOUR TALLY</div></section><section class="login-main"><div class="login-form"><span class="eyebrow">Welcome to your office</span><h2>Let’s get to business.</h2><p>Sign in to keep your accounts close.</p><form id="login-form"><div class="field"><label for="email">Email address</label><input id="email" type="email" name="email" required autocomplete="username" placeholder="Your email address"></div><div class="field"><label for="password">Password</label><input id="password" type="password" name="password" required autocomplete="current-password" placeholder="Your password"></div><button class="btn primary" type="submit">Open my office ${icon('arrow')}</button></form>${state.preview ? '<div class="divider">OR TAKE A LOOK AROUND</div><button class="btn soft" data-action="preview">Explore the demo ' + icon('arrow') + '</button><div class="notice">This preview uses fictional data. It cannot connect to Tally or create real entries.</div>' : '<div class="field-help mt">Use your approved admin account. Public signup is not available.</div>'}</div></section></div>`;
+  root.innerHTML = `<div class="login"><section class="login-story">${brand()}<div><div class="login-rule"></div><h1>Your business.<br>Your books.<br><em>Within reach.</em></h1><p>Sales, purchases, payments and stock. A simpler way to keep your office moving.</p></div><div class="tiny">MADE FOR UPKAR AGENCY &nbsp; · &nbsp; POWERED BY YOUR TALLY</div></section><section class="login-main"><div class="login-form"><span class="eyebrow">Welcome to your office</span><h2>Who is signing in?</h2><p>Select or enter your name to open the office immediately.</p><div class="team-grid" role="group" aria-label="Team members">${TEAM_MEMBERS.map(m => `<button type="button" class="team-card" data-quick-login="${esc(m.name)}"><span class="team-avatar">${esc(m.name.slice(0, 2).toUpperCase())}</span><span class="team-info"><strong>${esc(m.name)}</strong><small>${esc(m.role)}</small></span><span class="team-arrow">${icon('arrow')}</span></button>`).join('')}</div><div class="divider">OR ENTER NAME</div><form id="login-form"><div class="field" id="name-field"><label for="name">Your name</label><input id="name" type="text" name="name" list="team-names" placeholder="e.g. Kunal, Mouriyan, Yash..." autocomplete="name"><datalist id="team-names">${TEAM_MEMBERS.map(m => `<option value="${esc(m.name)}">`).join('')}</datalist></div><div id="admin-fields" style="display:none;"><div class="field"><label for="email">Email address</label><input id="email" type="email" name="email" autocomplete="username" placeholder="name@example.com"></div><div class="field"><label for="password">Password</label><input id="password" type="password" name="password" autocomplete="current-password" placeholder="Password"></div></div><button class="btn primary" type="submit">Open my office ${icon('arrow')}</button></form><div class="login-footer-links"><button type="button" class="text-btn" data-action="toggle-admin">Sign in with email & password instead</button></div>${state.preview ? '<div class="divider">OR TAKE A LOOK AROUND</div><button class="btn soft" data-action="preview">Explore the demo ' + icon('arrow') + '</button><div class="notice">This preview uses fictional data. It cannot connect to Tally or create real entries.</div>' : ''}</div></section></div>`;
 }
 function render() {
   if (!state.user) return renderLogin();
@@ -882,7 +891,22 @@ const actions = {
   'export-ledgers': async () => csv('Ledgers', ledgerRows(), ['name', 'group', 'balance']),
   'export-stock': async () => csv('Stock', stockRows(), ['name', 'quantity', 'unit', 'value']),
   'export-report': async () => csv(state.report.title, state.report.rows, state.report.columns),
-  'print-report': async () => printDocument(state.report.title, simpleTable(state.report.rows, state.report.columns) + '<p>Source: synced balances / app-recorded entries only.</p>')
+  'print-report': async () => printDocument(state.report.title, simpleTable(state.report.rows, state.report.columns) + '<p>Source: synced balances / app-recorded entries only.</p>'),
+  'toggle-admin': async () => {
+    const adminFields = $('#admin-fields');
+    const nameField = $('#name-field');
+    const btn = $('[data-action="toggle-admin"]');
+    if (adminFields) {
+      const showAdmin = adminFields.style.display === 'none';
+      adminFields.style.display = showAdmin ? 'block' : 'none';
+      if (nameField) nameField.style.display = showAdmin ? 'none' : 'block';
+      if (btn) btn.textContent = showAdmin ? 'Back to team member sign-in' : 'Sign in with email & password instead';
+      const emailInput = $('#email');
+      const nameInput = $('#name');
+      if (emailInput) emailInput.required = showAdmin;
+      if (nameInput) nameInput.required = !showAdmin;
+    }
+  }
 };
 
 document.addEventListener('click',event=>{
@@ -952,6 +976,16 @@ document.addEventListener('click',event=>{
       });
       toast('Draft prefilled with corrected tax ledgers. Check and confirm.');
     }
+    return;
+  }
+  if (button.dataset.quickLogin) {
+    const name = button.dataset.quickLogin;
+    run(async () => {
+      state.user = await api('login', { name });
+      if (!state.cloud) await api('demo', {});
+      await load();
+      render();
+    });
     return;
   }
   if (button.dataset.edit) { editDraft(button.dataset.edit); return; }

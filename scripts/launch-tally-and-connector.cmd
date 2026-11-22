@@ -1,6 +1,29 @@
 @echo off
 setlocal enabledelayedexpansion
-cd /d "%~dp0\.."
+
+REM Resolve project root folder (where connector\launcher.py exists)
+set "ROOT_DIR=%~dp0"
+if exist "%ROOT_DIR%connector\launcher.py" goto found_root
+for %%I in ("%~dp0..") do if exist "%%~fI\connector\launcher.py" set "ROOT_DIR=%%~fI"& goto found_root
+for %%I in ("%~dp0..\..") do if exist "%%~fI\connector\launcher.py" set "ROOT_DIR=%%~fI"& goto found_root
+
+:found_root
+cd /d "%ROOT_DIR%"
+set "PYTHONPATH=%ROOT_DIR%;%PYTHONPATH%"
+
+if not exist "%ROOT_DIR%connector\launcher.py" (
+    echo ========================================================================
+    echo  ERROR: "connector" folder not found!
+    echo.
+    echo  Please ensure you extracted the Office-tally zip file:
+    echo    1. Go to your Downloads folder.
+    echo    2. Right-click the Office-tally zip file and choose "Extract All...".
+    echo    3. Click "Extract".
+    echo    4. Open the extracted "Office-tally" folder and run Run-Connector.cmd
+    echo ========================================================================
+    pause
+    exit /b 1
+)
 
 echo ========================================================================
 echo   Upkar Agency - Auto-Launcher (TallyPrime + Office Connector)

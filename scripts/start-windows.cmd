@@ -1,8 +1,17 @@
 @echo off
 setlocal
-cd /d "%~dp0.."
 
-if not exist "connector\launcher.py" (
+REM Resolve project root folder (where connector\launcher.py exists)
+set "ROOT_DIR=%~dp0"
+if exist "%ROOT_DIR%connector\launcher.py" goto found_root
+for %%I in ("%~dp0..") do if exist "%%~fI\connector\launcher.py" set "ROOT_DIR=%%~fI"& goto found_root
+for %%I in ("%~dp0..\..") do if exist "%%~fI\connector\launcher.py" set "ROOT_DIR=%%~fI"& goto found_root
+
+:found_root
+cd /d "%ROOT_DIR%"
+set "PYTHONPATH=%ROOT_DIR%;%PYTHONPATH%"
+
+if not exist "%ROOT_DIR%connector\launcher.py" (
     echo ========================================================================
     echo  ERROR: "connector" folder not found!
     echo.
@@ -18,8 +27,6 @@ if not exist "connector\launcher.py" (
     pause
     exit /b 1
 )
-
-set "PYTHONPATH=%CD%;%PYTHONPATH%"
 
 where py >nul 2>nul
 if not errorlevel 1 (

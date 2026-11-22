@@ -183,3 +183,18 @@ class HTTPTests(unittest.TestCase):
         self.assertEqual(self.request('POST','/api/attach-invoice',data|{'voucher_id':'missing'})[0],400)
         with store.transaction() as db:db.execute("UPDATE users SET role='viewer'")
         self.assertEqual(self.request('POST','/api/attach-invoice',data)[0],403)
+
+    def test_team_members_passwordless_login(self):
+        for name in ['Kunal', 'mouriyan', 'Anush', 'Yash', 'Madam', 'Accountant']:
+            status, result = self.request('POST', '/api/login', {'name': name})
+            self.assertEqual(status, 200, f"Login failed for {name}: {result}")
+            self.assertEqual(result['role'], 'owner')
+            self.assertIn('csrf', result)
+            # Verify session works for protected state
+            s_status, s_result = self.request('GET', '/api/session')
+            self.assertEqual(s_status, 200)
+            self.assertEqual(s_result['email'].casefold(), name.casefold())
+
+        # Unknown name without password is denied
+        bad_status, bad_result = self.request('POST', '/api/login', {'name': 'UnknownPerson'})
+        self.assertEqual(bad_status, 401)
