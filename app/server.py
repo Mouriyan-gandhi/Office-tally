@@ -74,9 +74,11 @@ def init_user(email, password):
 
 
 def draft_row(row):
-    result = json.loads(row['payload']) | {key: row[key] for key in ['id', 'status', 'version', 'created', 'updated']}
-    if 'result' in row.keys():
-        result['result'] = row['result']
+    r_dict = dict(row)
+    keys = ['id', 'status', 'version', 'created', 'updated', 'author']
+    result = json.loads(r_dict['payload']) | {key: r_dict[key] for key in keys if key in r_dict}
+    if 'result' in r_dict and r_dict['result']:
+        result['result'] = r_dict['result']
     return result
 
 
@@ -174,7 +176,7 @@ class Handler(BaseHTTPRequestHandler):
         if route.path == '/api/session':
             with store.transaction() as db:
                 user = self.user(db)
-                return self.respond(200, {'email': user['email'], 'role': user['role'], 'csrf': user['csrf'], 'company': COMPANY})
+                return self.respond(200, {'email': user['email'], 'name': user['email'], 'role': user['role'], 'csrf': user['csrf'], 'company': COMPANY})
         if route.path == '/api/invoice-status':
             from urllib.parse import parse_qs
             with store.transaction() as db:
@@ -430,11 +432,18 @@ class Handler(BaseHTTPRequestHandler):
                 if old and (old['status'] != 'draft' or old['version'] != data.get('version')):
                     raise ValidationError('This draft changed or was submitted. Refresh before continuing.')
                 identifier = old['id'] if old else secrets.token_hex(16)
+                old_payload = json.loads(old['payload']) if old else {}
+                old_dict = dict(old) if old else {}
+                creator = old_payload.get('created_by') or old_dict.get('author') or actor
+                payload['created_by'] = creator
+                payload['author'] = creator
+                payload['updated_by'] = actor
                 if old:
                     db.execute('UPDATE drafts SET payload=?,updated=?,version=version+1 WHERE id=?', (json.dumps(payload), time.time(), identifier))
+                    store.audit(db, actor, 'draft_updated', identifier)
                 else:
                     db.execute('INSERT INTO drafts VALUES(?,?,?,?,?,?,?,?)', (identifier, mode, json.dumps(payload), 'draft', 1, time.time(), time.time(), actor))
-                store.audit(db, actor, 'draft_saved', identifier)
+                    store.audit(db, actor, 'draft_saved', identifier)
                 return self.respond(200, {'id': identifier, 'total': payload['total']})
             if path in ('/api/approve', '/api/delete'):
                 row = db.execute('SELECT * FROM drafts WHERE id=? AND mode=?', (data.get('id'), mode)).fetchone()
@@ -449,6 +458,12 @@ class Handler(BaseHTTPRequestHandler):
                 if data.get('confirmation') != COMPANY:
                     raise ValidationError('Confirm the exact company name before submitting')
                 payload = normalize_draft(json.loads(row['payload']))
+                payload['approved_by'] = actor
+                row_dict = dict(row) if row else {}
+                creator = payload.get('created_by') or row_dict.get('author') or actor
+                curr_narr = payload.get('narration', '').strip()
+                if creator and f"by {creator.lower()}" not in curr_narr.lower():
+                    payload['narration'] = f"{curr_narr} [By {creator}]".strip()
                 if mode == 'demo':
                     require_masters(payload, store.snapshot(db, 'demo'))
                     from app.demo_accounting import apply
@@ -473,7 +488,7 @@ class Handler(BaseHTTPRequestHandler):
                                 raise ValidationError('This supplier invoice reference was already submitted. Check for a duplicate.')
                     db.execute('INSERT INTO jobs(id,draft_id,payload,status,created) VALUES(?,?,?,?,?)', (secrets.token_hex(16), row['id'], json.dumps(payload), 'queued', time.time()))
                     status = 'queued'
-                db.execute('UPDATE drafts SET status=?,updated=?,version=version+1 WHERE id=?', (status, time.time(), row['id']))
+                db.execute('UPDATE drafts SET status=?,payload=?,updated=?,version=version+1 WHERE id=?', (status, json.dumps(payload), time.time(), row['id']))
                 store.audit(db, actor, 'demo_saved' if mode == 'demo' else 'posting_approved', row['id'])
                 return self.respond(200, {'status': status})
             return self.respond(404, {'error': 'Not found'})

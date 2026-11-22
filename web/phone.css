@@ -290,6 +290,14 @@
   .detail-table td::before { content: attr(data-label); font-size: 12px; color: var(--muted); flex: 0 0 72px; }
   .toast { bottom: calc(var(--phone-nav) + env(safe-area-inset-bottom, 0px) + 12px); font-size: 13px; }
   .footnote { font-size: 10px; padding-top: 18px; line-height: 1.7; }
+  .party-quick-row { margin-top: 6px; }
+  .party-chips-scroll { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 4px; -webkit-overflow-scrolling: touch; }
+  .chip-btn { white-space: nowrap; font-size: 12px; padding: 6px 12px; min-height: 36px; }
+  .stepper-btn { min-width: 44px; min-height: 48px; font-size: 20px; }
+  .item-row input[data-field="qty"] { text-align: center; font-size: 17px; font-weight: 700; }
+  .preset-pill { min-width: 32px; min-height: 30px; font-size: 12px; padding: 4px 8px; }
+  .add-item-btn { min-height: 48px; font-size: 14px; }
+  .detail-audit-bar { flex-direction: column; gap: 8px; }
 }
 
 @media screen and (max-width: 359px) {

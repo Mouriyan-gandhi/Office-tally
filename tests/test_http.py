@@ -198,3 +198,46 @@ class HTTPTests(unittest.TestCase):
         # Unknown name without password is denied
         bad_status, bad_result = self.request('POST', '/api/login', {'name': 'UnknownPerson'})
         self.assertEqual(bad_status, 401)
+
+    def test_user_attribution_and_narration_tracking(self):
+        self.request('POST', '/api/demo', {})
+        # 1. Kunal logs in and creates a draft
+        self.request('POST', '/api/login', {'name': 'Kunal'})
+        status, res = self.request('POST', '/api/drafts', {'mode': 'demo', 'draft': receipt() | {'party': 'Asha Retail · Demo', 'cash_bank': 'Cash'}})
+        self.assertEqual(status, 200)
+        draft_id = res['id']
+
+        with store.transaction() as db:
+            row = db.execute('SELECT * FROM drafts WHERE id=?', (draft_id,)).fetchone()
+            self.assertEqual(row['author'], 'Kunal')
+            payload = json.loads(row['payload'])
+            self.assertEqual(payload['created_by'], 'Kunal')
+            audit_entry = db.execute('SELECT * FROM audit WHERE target=? ORDER BY id DESC LIMIT 1', (draft_id,)).fetchone()
+            self.assertEqual(audit_entry['actor'], 'Kunal')
+            self.assertEqual(audit_entry['action'], 'draft_saved')
+
+        # 2. Yash logs in and updates the draft
+        self.request('POST', '/api/login', {'name': 'Yash'})
+        payload['narration'] = 'Updated by Yash'
+        u_status, u_res = self.request('POST', '/api/drafts', {'mode': 'demo', 'id': draft_id, 'version': 1, 'draft': payload})
+        self.assertEqual(u_status, 200)
+
+        with store.transaction() as db:
+            row = db.execute('SELECT * FROM drafts WHERE id=?', (draft_id,)).fetchone()
+            p = json.loads(row['payload'])
+            self.assertEqual(p['created_by'], 'Kunal')
+            self.assertEqual(p['updated_by'], 'Yash')
+            audit_entry = db.execute('SELECT * FROM audit WHERE target=? ORDER BY id DESC LIMIT 1', (draft_id,)).fetchone()
+            self.assertEqual(audit_entry['actor'], 'Yash')
+            self.assertEqual(audit_entry['action'], 'draft_updated')
+
+        # 3. Madam logs in and approves
+        self.request('POST', '/api/login', {'name': 'Madam'})
+        app_status, app_res = self.request('POST', '/api/approve', {'mode': 'demo', 'id': draft_id, 'version': 2, 'confirmation': 'Upkar Agency'})
+        self.assertEqual(app_status, 200)
+
+        with store.transaction() as db:
+            row = db.execute('SELECT * FROM drafts WHERE id=?', (draft_id,)).fetchone()
+            p = json.loads(row['payload'])
+            self.assertEqual(p['approved_by'], 'Madam')
+            self.assertIn('[By Kunal]', p['narration'])
