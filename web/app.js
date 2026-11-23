@@ -277,9 +277,6 @@ function itemRows() {
       <input id="qty-${i}" data-field="qty" type="number" inputmode="decimal" min="0.001" step="any" required value="${esc(r.qty)}">
       <button type="button" class="stepper-btn" data-qty-step="1" data-idx="${i}" aria-label="Increase quantity">+</button>
     </div>
-    <div class="quick-qty-bar">
-      ${[1, 5, 10, 50, 100].map(n => `<button type="button" class="preset-pill" data-set-qty="${n}" data-idx="${i}">${n}</button>`).join('')}
-    </div>
   </div>
   <div class="rate-field"><label for="rate-${i}">Rate (₹)</label><input id="rate-${i}" data-field="rate" type="number" inputmode="decimal" min="0.01" step="any" required value="${esc(r.rate)}" placeholder="0.00"></div>
   <div class="discount-field"><label for="discount-${i}">Disc %</label><input id="discount-${i}" data-field="discount" type="number" inputmode="decimal" min="0" max="99.99" step="any" value="${esc(r.discount)}"></div>
@@ -1175,23 +1172,6 @@ document.addEventListener('click',event=>{
       item.qty = String(cur);
       const input = $(`#qty-${idx}`);
       if (input) input.value = item.qty;
-      const rowEl = $(`[data-item="${idx}"]`);
-      if (rowEl) {
-        const lineEl = $('[data-line]', rowEl);
-        if (lineEl) lineEl.textContent = money(lineAmount(item));
-      }
-      updateSummary();
-    }
-    return;
-  }
-  if (button.dataset.setQty) {
-    const idx = Number(button.dataset.idx);
-    const val = button.dataset.setQty;
-    const item = state.editor?.items[idx];
-    if (item) {
-      item.qty = val;
-      const input = $(`#qty-${idx}`);
-      if (input) input.value = val;
       const rowEl = $(`[data-item="${idx}"]`);
       if (rowEl) {
         const lineEl = $('[data-line]', rowEl);
