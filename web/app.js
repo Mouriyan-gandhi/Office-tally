@@ -320,6 +320,17 @@ function collectEditor() { const form = $('#entry-form'); if (!form) return; con
 function draftPayload() {
   const e = collectEditor();
   const p = { ...e, items: e.items.map(r => ({ ...r })), taxes: [] };
+  const cleanStr = s => String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const pClean = cleanStr(p.party);
+  const allLedgers = (typeof snap === 'function' && snap()?.ledgers) || [];
+  const partyMaster = allLedgers.find(l => l.name === p.party || cleanStr(l.name) === pClean);
+  if (partyMaster) {
+    p.party_gstin = p.party_gstin || partyMaster.gstin || '';
+    p.party_address = (p.party_address && p.party_address.length) ? p.party_address : (partyMaster.address || []);
+    p.party_state = p.party_state || partyMaster.state || '';
+    p.party_pincode = p.party_pincode || partyMaster.pincode || '';
+    p.party_phone = p.party_phone || partyMaster.phone || '';
+  }
   if (['Sales', 'Purchase'].includes(e.kind) && e.taxMode !== 'none') {
     if (Number(e.taxPercent) <= 0) throw Error('Choose a GST rate greater than zero, or select No tax.');
     p.taxes = (e.taxMode === 'local' ? ['CGST', 'SGST'] : ['IGST']).map(t => ({ type: t, ledger: e.taxLedgers[t] || t, percent: String(Number(e.taxPercent) / (e.taxMode === 'local' ? 2 : 1)) }));
@@ -435,28 +446,62 @@ const GST_STATE_CODES = Object.fromEntries(
 
 function partyDetailsHTML(partyName, isInterstate, v = {}) {
   if (!partyName) return '';
-  const pUpper = partyName.toUpperCase();
+  const pUpper = partyName.toUpperCase().trim();
+  const cleanStr = s => String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const pClean = cleanStr(partyName);
 
-  // Known fallback details for SKV ENTERPRISES if master is incomplete
-  if (pUpper.includes('SKV ENTERPRISES')) {
-    return 'MALACCA HEADQUARTERS,<br>CARNICOBAR - 744301<br>ANDAMAN ISLAND<br>PHONE NO: 9434273502<br><strong>GSTIN/UIN :</strong> 35BVVPK1187K1ZW<br><strong>State Name :</strong> Andaman & Nicobar Islands, Code : 35';
-  }
-
-  // Look up party master from snapshot ledgers
-  const master = (typeof snap === 'function' && snap()?.ledgers?.find(l =>
-    l.name === partyName || l.name?.trim().toUpperCase() === partyName.trim().toUpperCase()
-  )) || {};
-
-  const gstin = (v?.party_gstin || v?.gstin || master.gstin || '').trim();
-  let address = v?.party_address || v?.address || master.address || [];
+  // 1. Direct on voucher object
+  let gstin = String(v?.party_gstin || v?.gstin || '').trim();
+  let address = v?.party_address || v?.address || [];
   if (typeof address === 'string') {
     address = address.split('\n').map(s => s.trim()).filter(Boolean);
+  } else if (Array.isArray(address)) {
+    address = address.map(s => String(s).trim()).filter(Boolean);
   }
-  const pincode = (v?.party_pincode || master.pincode || '').trim();
-  const phone = (v?.party_phone || v?.phone || master.phone || '').trim();
-  let stateName = (v?.party_state || v?.state || master.state || '').trim();
+  let pincode = String(v?.party_pincode || '').trim();
+  let phone = String(v?.party_phone || v?.phone || '').trim();
+  let stateName = String(v?.party_state || v?.state || '').trim();
 
-  // Deduce State & State Code
+  // 2. Look up party master from snapshot ledgers with intelligent matching
+  const allLedgers = (typeof snap === 'function' && snap()?.ledgers) || [];
+  let master = allLedgers.find(l => l.name === partyName || l.name?.trim().toUpperCase() === pUpper);
+  if (!master) {
+    master = allLedgers.find(l => cleanStr(l.name) === pClean);
+  }
+  if (!master) {
+    master = allLedgers.find(l => {
+      const c = cleanStr(l.name);
+      return c && pClean && (c.includes(pClean) || pClean.includes(c));
+    });
+  }
+
+  // 3. Fallback to master details if voucher was missing any field
+  if (master) {
+    if (!gstin && master.gstin) gstin = String(master.gstin).trim();
+    if ((!address || !address.length) && master.address) {
+      address = typeof master.address === 'string'
+        ? master.address.split('\n').map(s => s.trim()).filter(Boolean)
+        : (Array.isArray(master.address) ? master.address.map(s => String(s).trim()).filter(Boolean) : []);
+    }
+    if (!pincode && master.pincode) pincode = String(master.pincode).trim();
+    if (!phone && master.phone) phone = String(master.phone).trim();
+    if (!stateName && master.state) stateName = String(master.state).trim();
+  }
+
+  // 4. Known fallback details for specific companies if not in master
+  if (pUpper.includes('SKV ENTERPRISES')) {
+    if (!gstin) gstin = '35BVVPK1187K1ZW';
+    if (!stateName) stateName = 'Andaman & Nicobar Islands';
+    if (!address.length) {
+      address = ['MALACCA HEADQUARTERS', 'CARNICOBAR - 744301', 'ANDAMAN ISLAND'];
+    }
+    if (!phone) phone = '9434273502';
+  } else if (pUpper.includes('ABSOLUTE BRANDS')) {
+    if (!address.length) address = ['Bangalore / Chennai Hub'];
+    if (!stateName) stateName = 'Tamil Nadu';
+  }
+
+  // 5. Deduce State & State Code
   let stateCode = '';
   if (gstin && /^\d{2}/.test(gstin)) {
     stateCode = gstin.slice(0, 2);
@@ -472,19 +517,19 @@ function partyDetailsHTML(partyName, isInterstate, v = {}) {
     if (!stateCode && !isInterstate) stateCode = '33';
   }
 
+  // 6. Build clean address lines
   const lines = [];
-  if (Array.isArray(address) && address.length) {
+  if (Array.isArray(address)) {
     for (const line of address) {
-      if (line && typeof line === 'string' && line.trim()) lines.push(line.trim());
+      if (line && typeof line === 'string' && line.trim() && !lines.includes(line.trim())) {
+        lines.push(line.trim());
+      }
     }
-  } else if (pUpper.includes('ABSOLUTE BRANDS')) {
-    lines.push('Bangalore / Chennai Hub');
   }
-
   if (pincode && !lines.some(l => l.includes(pincode))) {
     lines.push(`PIN: ${pincode}`);
   }
-  if (phone) {
+  if (phone && !lines.some(l => l.includes(phone))) {
     lines.push(`Phone: ${phone}`);
   }
 
@@ -805,9 +850,8 @@ function officialTallyInvoiceHTML(v) {
 </div>`;
 }
 function taxInvoiceHTML(v) { return officialTallyInvoiceHTML(v); }
-function viewInvoice(id) {
-  const v = drafts().find(d => d.id === id); if (!v) return;
-  dialog(`Tax Invoice · ${esc(v.reference || v.party)}`, officialTallyInvoiceHTML(v), `<button class="btn" data-share="${id}">${icon('whatsapp')} Share WhatsApp</button><button class="btn primary" data-print="${id}">${icon('print')} Save as PDF / Print</button>`);
+async function viewInvoice(id) {
+  await openRenderedInvoice(id);
 }
 function editDraft(id){const v=drafts().find(d=>d.id===id);if(!v||v.status!=='draft')return;closeModal();const tax=v.taxes||[];newDraft(v.kind,{...v,amount:v.amount||v.total,taxMode:tax.length?(tax[0].type==='IGST'?'interstate':'local'):'none',taxPercent:String(tax.reduce((a,t)=>a+Number(t.percent),0)),taxLedgers:{CGST:'CGST',SGST:'SGST',IGST:'IGST',...Object.fromEntries(tax.map(t=>[t.type,t.ledger]))}});}
 function historyToInvoicePayload(v){
@@ -914,6 +958,8 @@ function historyToInvoicePayload(v){
   party_gstin: v.party_gstin || v.gstin || '',
   party_address: v.party_address || v.address || [],
   party_state: v.party_state || v.state || '',
+  party_pincode: v.party_pincode || v.pincode || '',
+  party_phone: v.party_phone || v.phone || '',
   cash_bank: 'Credit',
   account_ledger: v.kind === 'Sales' ? 'Sales Accounts' : 'Purchase Accounts',
   items,
@@ -930,20 +976,38 @@ async function openRenderedInvoice(id) {
     state.ledgerHistory?.find(r => r.id === id) ||
     state.report?.rows?.find(r => r.id === id) ||
     drafts().find(d => d.id === id);
-  if (!v) {
+  if (!v || v.status === 'posted' || !v.party_gstin || !v.party_address?.length) {
     try {
       const res = await api('voucher?id=' + encodeURIComponent(id));
-      v = res.voucher;
-    } catch (err) {
-      toast('Voucher details not found.');
-      return;
+      if (res?.voucher) {
+        v = v ? { ...v, ...res.voucher } : res.voucher;
+      }
+    } catch {
+      // Offline fallback
     }
   }
-  if (!v) return;
- const payload = (v.taxes && Array.isArray(v.taxes) && v.taxes.length > 0 && typeof v.taxes[0].type === 'string') ? v : historyToInvoicePayload(v);
- dialog(`Tax Invoice · ${esc(payload.reference||payload.party)}`, officialTallyInvoiceHTML(payload),
-  `<button class="btn" data-share-rendered="${payload.id}">${icon('whatsapp')} Share WhatsApp</button><button class="btn primary" data-print-rendered="${payload.id}">${icon('print')} Save as PDF / Print</button>`
- );
+  if (!v) {
+    toast('Voucher details not found.');
+    return;
+  }
+  const payload = (v.taxes && Array.isArray(v.taxes) && v.taxes.length > 0 && typeof v.taxes[0].type === 'string') ? v : historyToInvoicePayload(v);
+  const allLedgers = (typeof snap === 'function' && snap()?.ledgers) || [];
+  const cleanStr = s => String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const pClean = cleanStr(payload.party);
+  const master = allLedgers.find(l => l.name === payload.party || cleanStr(l.name) === pClean);
+  if (master) {
+    if (!payload.party_gstin && master.gstin) payload.party_gstin = master.gstin;
+    if ((!payload.party_address || !payload.party_address.length) && master.address) {
+      payload.party_address = typeof master.address === 'string' ? master.address.split('\n') : master.address;
+    }
+    if (!payload.party_state && master.state) payload.party_state = master.state;
+    if (!payload.party_pincode && master.pincode) payload.party_pincode = master.pincode;
+    if (!payload.party_phone && master.phone) payload.party_phone = master.phone;
+  }
+  state.activeInvoice = payload;
+  dialog(`Tax Invoice · ${esc(payload.reference||payload.party)}`, officialTallyInvoiceHTML(payload),
+   `<button class="btn" data-share="${payload.id}">${icon('whatsapp')} Share WhatsApp</button><button class="btn primary" data-print="${payload.id}">${icon('print')} Save as PDF / Print</button>`
+  );
 }
 function historyTable(rows) {
   const cards = `<div class="phone-list">${rows.map(v => `<article class="stock-card" style="cursor:pointer;" data-voucher-invoice="${esc(v.id)}"><span class="entry-card-icon">${icon('invoice')}</span><div class="entry-card-copy"><strong style="font-size:14px;">${esc(v.kind)} · ${esc(v.number || 'Unnumbered')}</strong><span>${esc(dateText(v.date))}</span>${v.narration ? '<small>' + esc(v.narration) + '</small>' : ''}<div style="display:flex;gap:8px;margin-top:8px;"><button class="btn small primary" data-voucher-invoice="${esc(v.id)}">${icon('invoice')} Official Tax Invoice</button><button class="btn small" data-share-rendered="${esc(v.id)}">${icon('whatsapp')} Share</button></div></div><div class="entry-card-value"><strong>${money(Number(v.debit) > 0 ? v.debit : v.credit)}</strong><small>${Number(v.debit) > 0 ? 'Debit' : 'Credit'}</small></div></article>`).join('')}</div>`;
@@ -979,9 +1043,11 @@ async function uploadBill(file) { if (file.size > 8 * 1024 * 1024) throw Error('
 async function sampleBill() { const canvas = document.createElement('canvas'); canvas.width = 1000; canvas.height = 1100; const c = canvas.getContext('2d'); c.fillStyle = '#ffffff'; c.fillRect(0, 0, 1000, 1100); c.fillStyle = '#111111'; c.font = 'bold 38px sans-serif'; c.fillText('PREMIER SUPPLY - DEMO BILL', 65, 90); c.font = '27px sans-serif';['Fictional sample for development only', 'Invoice No: DEMO-2026-001', 'Date: ' + today(), 'Bill to: Upkar Agency', '', 'Classic Backpack Demo', 'Quantity: 10 pcs    Rate: 450.00', 'Subtotal: 4500.00', 'CGST 9%: 405.00', 'SGST 9%: 405.00', '', 'Grand Total: 5310.00'].forEach((line, i) => c.fillText(line, 65, 170 + i * 57)); const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png')); await uploadBill(new File([blob], 'sample-purchase-bill.png', { type: 'image/png' })); }
 function printDocument(title, body) { $('#print-area').innerHTML = `<div class="print-head"><div><h1>Upkar Agency</h1><p>Office · ${state.mode === 'demo' ? 'DEMO DOCUMENT — FICTIONAL DATA' : 'Tally companion'}</p></div><div><h2>${esc(title)}</h2><p>${new Date().toLocaleDateString('en-IN')}</p></div></div>${body}<div class="print-note">${state.mode === 'demo' ? 'Fictional demo document. Not valid for accounting or tax use.' : 'Prepared from app records. This is not a statutory GST invoice; use the verified Tally invoice for tax purposes.'}</div>`; window.print(); }
 function printEntry(id) {
-  const v = drafts().find(d => d.id === id); if (!v) return;
+  const v = (state.activeInvoice && (state.activeInvoice.id === id || !id)) ? state.activeInvoice : drafts().find(d => d.id === id);
+  if (!v) return;
   if (v.kind === 'Sales' || v.items?.length) {
-    $('#print-area').innerHTML = taxInvoiceHTML(v);
+    const payload = (v.taxes && Array.isArray(v.taxes) && v.taxes.length > 0 && typeof v.taxes[0].type === 'string') ? v : historyToInvoicePayload(v);
+    $('#print-area').innerHTML = officialTallyInvoiceHTML(payload);
     window.print();
     return;
   }
@@ -989,9 +1055,10 @@ function printEntry(id) {
 }
 function csv(title, rows, columns) { const safe = v => { let t = String(v ?? ''); if (/^[=+@\-\t\r]/.test(t)) t = "'" + t; return '"' + t.replaceAll('"', '""') + '"'; }; const blob = new Blob(['\ufeff' + [columns, ...rows.map(r => columns.map(c => r[c]))].map(r => r.map(safe).join(',')).join('\r\n')], { type: 'text/csv;charset=utf-8;' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = title.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '.csv'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); }
 function share(id) {
-  const v = drafts().find(d => d.id === id); if (!v) return;
+  const v = (state.activeInvoice && (state.activeInvoice.id === id || !id)) ? state.activeInvoice : drafts().find(d => d.id === id);
+  if (!v) return;
   const isSale = v.kind === 'Sales';
-  const invNo = v.reference || (isSale ? 'INV-' + v.id.slice(0, 8).toUpperCase() : v.kind.toUpperCase() + '-' + v.id.slice(0, 6).toUpperCase());
+  const invNo = v.reference || (isSale ? 'INV-' + (v.id ? v.id.slice(0, 8).toUpperCase() : 'INV') : (v.kind || 'VOUCHER').toUpperCase() + '-' + (v.id ? v.id.slice(0, 6).toUpperCase() : 'VCH'));
   const text = `*${isSale ? 'TAX INVOICE' : 'VOUCHER SUMMARY'} — UPKAR AGENCY*\n` +
     `Invoice / Ref: ${invNo}\n` +
     `Date: ${tallyDate(v.date)}\n` +
@@ -1053,34 +1120,8 @@ document.addEventListener('click',event=>{
  if(button.dataset.detail){detail(button.dataset.detail);return;}
  if(button.dataset.invoice){viewInvoice(button.dataset.invoice);return;}
  if(button.dataset.voucherInvoice){openRenderedInvoice(button.dataset.voucherInvoice);return;}
- if(button.dataset.printRendered){
-  const v = (typeof registerView !== 'undefined' && registerView?.rows?.find(r=>r.id===button.dataset.printRendered)) ||
-            state.report?.rows?.find(r=>r.id===button.dataset.printRendered) ||
-            drafts().find(d=>d.id===button.dataset.printRendered);
-  if(v){
-   const payload = (v.taxes && Array.isArray(v.taxes) && v.taxes.length > 0 && typeof v.taxes[0].type === 'string') ? v : historyToInvoicePayload(v);
-   $('#print-area').innerHTML = officialTallyInvoiceHTML(payload);
-   window.print();
-  }
-  return;
- }
- if(button.dataset.shareRendered){
-  const v = (typeof registerView !== 'undefined' && registerView?.rows?.find(r=>r.id===button.dataset.shareRendered)) ||
-            state.report?.rows?.find(r=>r.id===button.dataset.shareRendered) ||
-            drafts().find(d=>d.id===button.dataset.shareRendered);
-  if(v){
-   const payload = (v.taxes && Array.isArray(v.taxes) && v.taxes.length > 0 && typeof v.taxes[0].type === 'string') ? v : historyToInvoicePayload(v);
-   const text = `*TAX INVOICE — UPKAR AGENCY*\n` +
-    `Invoice / Ref: ${payload.reference}\n` +
-    `Date: ${tallyDate(payload.date)}\n` +
-    `Customer: ${payload.party}\n` +
-    `Total Amount: ₹ ${fmtMoney(payload.total)}\n` +
-    `Amount in Words: ${tallyWords(payload.total)}\n\n` +
-    `Thank you for doing business with Upkar Agency!`;
-   dialog('Share on WhatsApp', `<p class="small muted">Review the message before opening WhatsApp.</p><pre class="ocr-text mt">${esc(text)}</pre>`, `<a class="btn primary" href="https://wa.me/?text=${encodeURIComponent(text)}" target="_blank" rel="noopener noreferrer">${icon('whatsapp')} Send via WhatsApp</a>`);
-  }
-  return;
- }
+ if(button.dataset.printRendered){printEntry(button.dataset.printRendered);return;}
+ if(button.dataset.shareRendered){share(button.dataset.shareRendered);return;}
   if (button.dataset.retryDraft) {
     const v = drafts().find(d => d.id === button.dataset.retryDraft);
     if (v) {

@@ -35,6 +35,9 @@ PREVIEW = False
 ALLOWED_TEAM_MEMBERS = {
     'kunal': 'Kunal',
     'mouriyan': 'Mouriyan',
+    'mourian': 'Mouriyan',
+    'gandhi mouriyan': 'Mouriyan',
+    'gandhimouriyan1234@gmail.com': 'Mouriyan',
     'anush': 'Anush',
     'yash': 'Yash',
     'madam': 'Madam',
@@ -253,6 +256,10 @@ class Handler(BaseHTTPRequestHandler):
                                     if match.get('party'): d['party'] = match['party']
                                     if match.get('number'): d['voucher_number'] = match['number']
                                     if match.get('narration'): d['narration'] = match['narration']
+                                    if match.get('party_gstin'): d['party_gstin'] = match['party_gstin']
+                                    if match.get('party_address'): d['party_address'] = match['party_address']
+                                    if match.get('party_state'): d['party_state'] = match['party_state']
+                                    if match.get('items'): d['items'] = match['items']
                                     c_lines = history.clean_lines(match.get('lines', []))
                                     p_amounts = [Decimal(line['amount']) for line in c_lines if line['ledger'] == match.get('party')]
                                     if p_amounts: d['total'] = str(abs(sum(p_amounts, Decimal(0))))
@@ -334,7 +341,7 @@ class Handler(BaseHTTPRequestHandler):
 
             if name_key in ALLOWED_TEAM_MEMBERS:
                 canonical_name = ALLOWED_TEAM_MEMBERS[name_key]
-                user_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, f'team.{name_key}.upkar.local'))
+                user_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, f'team.{canonical_name.casefold()}.upkar.local'))
                 with store.transaction() as db:
                     user = db.execute('SELECT * FROM users WHERE email=? OR id=?', (canonical_name, user_id)).fetchone()
                     if not user:

@@ -144,6 +144,18 @@ def reconcile_drafts_with_tally(db, entries):
                 if match.get('cancelled') and payload.get('tally_cancelled') != True:
                     payload['tally_cancelled'] = True
                     changed = True
+                if match.get('party_gstin') and match['party_gstin'] != payload.get('party_gstin'):
+                    payload['party_gstin'] = match['party_gstin']
+                    changed = True
+                if match.get('party_address') and match['party_address'] != payload.get('party_address'):
+                    payload['party_address'] = match['party_address']
+                    changed = True
+                if match.get('party_state') and match['party_state'] != payload.get('party_state'):
+                    payload['party_state'] = match['party_state']
+                    changed = True
+                if match.get('items') and match['items'] != payload.get('items'):
+                    payload['items'] = match['items']
+                    changed = True
                 if changed:
                     db.execute("UPDATE drafts SET payload=?, updated=? WHERE id=?", (json.dumps(payload), time.time(), d['id']))
     except Exception:
@@ -215,6 +227,8 @@ def register(db, kind, snapshot, start='', end='', offset=0, limit=200):
         total=str(abs(sum(amounts,Decimal(0)))) if amounts else ''
         if not amounts:unmapped+=1
         rows.append({'id':v['id'],'date':v['date'],'kind':v['kind'],'number':v['number'],'party':party,
+                     'party_gstin':v.get('party_gstin',''),'party_state':v.get('party_state',''),
+                     'party_address':v.get('party_address',[]),
                      'reference':v.get('reference',''),'total':total,'synced_at':updated,
                      'lines':v_lines,'items':v.get('items',[])})
     rows.sort(key=lambda v:(v['date'],v['id']),reverse=True)
