@@ -110,3 +110,23 @@ class CompanyWriteTests(unittest.TestCase):
             amounts=[Decimal(n.findtext('AMOUNT')) for n in ledgers]
             amounts += [Decimal(n.findtext('AMOUNT')) for n in voucher.findall('ALLINVENTORYENTRIES.LIST/ACCOUNTINGALLOCATIONS.LIST')]
             self.assertEqual(sum(amounts),0)
+
+    def test_sales_invoice_includes_full_buyer_address_and_gstin(self):
+        draft = invoice('Sales')
+        draft['party_gstin'] = '33AAECA6320J1ZZ'
+        draft['party_state'] = 'Tamil Nadu'
+        draft['party_address'] = ['No 79 Nattu Pillaiyar Koil St', 'Sowcarpet Chennai - 600001']
+        xml = build(draft, 'Upkar Agency', 'test-buyer-detail')
+        root = ET.fromstring(xml)
+        voucher = root.find('.//VOUCHER')
+        self.assertEqual(voucher.findtext('PARTYNAME'), 'Customer & Co')
+        self.assertEqual(voucher.findtext('BASICBUYERNAME'), 'Customer & Co')
+        self.assertEqual(voucher.findtext('PARTYGSTIN'), '33AAECA6320J1ZZ')
+        self.assertEqual(voucher.findtext('STATENAME'), 'Tamil Nadu')
+        self.assertEqual(voucher.findtext('PLACEOFSUPPLY'), 'Tamil Nadu')
+        buyer_addr = [n.text for n in voucher.findall('./BASICBUYERADDRESS.LIST/BASICBUYERADDRESS')]
+        self.assertEqual(buyer_addr, ['No 79 Nattu Pillaiyar Koil St', 'Sowcarpet Chennai - 600001'])
+        party_ledger = voucher.find('.//LEDGERENTRIES.LIST')
+        party_addr = [n.text for n in party_ledger.findall('./BASICBUYERADDRESS.LIST/BASICBUYERADDRESS')]
+        self.assertEqual(party_addr, ['No 79 Nattu Pillaiyar Koil St', 'Sowcarpet Chennai - 600001'])
+

@@ -161,6 +161,14 @@ def process(job, masters, journal, port, allow_writes):
         draft = normalize_draft(job['draft'])
         require_masters(draft, masters)
         billwise = next((v.get('billwise',False) for v in masters['ledgers'] if v['name']==draft['party']),False)
+        party_master = next((l for l in masters.get('ledgers', []) if l.get('name') == draft['party']), None)
+        if party_master:
+            if not draft.get('party_gstin') and party_master.get('gstin'):
+                draft['party_gstin'] = party_master['gstin']
+            if not draft.get('party_address') and party_master.get('address'):
+                draft['party_address'] = party_master['address']
+            if not draft.get('party_state') and party_master.get('state'):
+                draft['party_state'] = party_master['state']
         xml = build(draft, COMPANY, identifier,billwise=billwise)
     except (ValueError, KeyError, TypeError):
         return 'rejected', 'Voucher validation failed on the office device'

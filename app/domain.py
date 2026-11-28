@@ -53,6 +53,12 @@ def normalize_draft(payload):
                   narration=text(payload.get('narration', ''), 'Notes', 2000, False),
                   reference=text(payload.get('reference', ''), 'Reference', 100, False),
                   voucher_number=text(payload.get('voucher_number',''), 'Voucher number',100,False))
+    result['party_gstin'] = text(payload.get('party_gstin', ''), 'Party GSTIN', 30, False)
+    result['party_state'] = text(payload.get('party_state', ''), 'Party state', 100, False)
+    raw_addr = payload.get('party_address', [])
+    result['party_address'] = [text(line, 'Address line', 200, False) for line in raw_addr if isinstance(line, str) and line.strip()] if isinstance(raw_addr, list) else []
+    if payload.get('created_by'): result['created_by'] = text(payload['created_by'], 'Creator', 100, False)
+    if payload.get('approved_by'): result['approved_by'] = text(payload['approved_by'], 'Approver', 100, False)
     if kind in ('Receipt', 'Payment'):
         ledger = text(payload.get('cash_bank'), 'Cash or bank ledger')
         if ledger.strip().casefold() == result['party'].casefold():

@@ -27,6 +27,28 @@ def build(draft, company, identifier, *, billwise=False):
                        ('ISINVOICE', 'Yes' if draft['items'] else 'No')]:
         put(voucher, tag, value)
     if draft.get('voucher_number'): put(voucher,'VOUCHERNUMBER',draft['voucher_number'])
+    party_name = draft['party']
+    party_gstin = draft.get('party_gstin', '').strip()
+    party_state = draft.get('party_state', '').strip()
+    party_addr = draft.get('party_address', [])
+    if kind in ('Sales', 'Purchase'):
+        put(voucher, 'PARTYNAME', party_name)
+        if kind == 'Sales':
+            put(voucher, 'BASICBUYERNAME', party_name)
+        if party_gstin:
+            put(voucher, 'PARTYGSTIN', party_gstin)
+        if party_state:
+            put(voucher, 'STATENAME', party_state)
+            put(voucher, 'PLACEOFSUPPLY', party_state)
+        put(voucher, 'COUNTRYOFRESIDENCE', 'India')
+        if party_addr:
+            if kind == 'Sales':
+                buyer_addr = ET.SubElement(voucher, 'BASICBUYERADDRESS.LIST', TYPE='String')
+                for line in party_addr:
+                    put(buyer_addr, 'BASICBUYERADDRESS', line)
+            addr_list = ET.SubElement(voucher, 'ADDRESS.LIST', TYPE='String')
+            for line in party_addr:
+                put(addr_list, 'ADDRESS', line)
     total = Decimal(draft['total'])
     # Native Tally amounts use a negative sign for debits.
     party_amount = -total if kind in ('Sales', 'Payment') else total
@@ -38,6 +60,14 @@ def build(draft, company, identifier, *, billwise=False):
         return entry
     party = ledger(voucher, draft['party'], party_amount)
     put(party, 'ISPARTYLEDGER', 'Yes')
+    if kind in ('Sales', 'Purchase') and party_addr:
+        if kind == 'Sales':
+            p_buyer_addr = ET.SubElement(party, 'BASICBUYERADDRESS.LIST', TYPE='String')
+            for line in party_addr:
+                put(p_buyer_addr, 'BASICBUYERADDRESS', line)
+        p_addr_list = ET.SubElement(party, 'ADDRESS.LIST', TYPE='String')
+        for line in party_addr:
+            put(p_addr_list, 'ADDRESS', line)
     if draft.get('allocations'):
         for bill in draft['allocations']:
             entry = ET.SubElement(party, 'BILLALLOCATIONS.LIST')
